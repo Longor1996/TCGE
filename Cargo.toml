@@ -1,0 +1,9 @@
+[package]
+name = "TCGE"
+version = "0.1.0"
+authors = ["Longor1996 <lalongok@gmail.com>"]
+
+[dependencies]
+time = "*"
+glutin = "*"
+gl = "*"
