@@ -4,6 +4,12 @@ version = "0.1.0"
 authors = ["Longor1996 <lalongok@gmail.com>"]
 
 [dependencies]
+failure = "0.1"
 time = "*"
-glutin = "*"
+cgmath = "*"
 gl = "*"
+glfw = "*"
+image = "*"
+
+[build-dependencies]
+walkdir = "2.1"

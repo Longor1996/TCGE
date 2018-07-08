@@ -1,3 +1,4 @@
+#[macro_use] extern crate failure;
 extern crate TCGE;
 
 fn main() {
