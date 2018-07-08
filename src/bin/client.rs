@@ -74,7 +74,48 @@ fn run() -> Result<(), failure::Error> {
     shader_program.set_used();
 
     // ------------------------------------------
+    let (vao, vcount) = geometry_test();
 
+
+    // ------------------------------------------
+    while !window.should_close() {
+        process_events(&mut window, &events);
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+
+        shader_program.set_used();
+        unsafe {
+            gl::BindVertexArray(vao);
+            gl::DrawArrays(
+                gl::TRIANGLES,
+                0, vcount
+            );
+        }
+
+        window.swap_buffers();
+        glfw.poll_events();
+    }
+
+    Ok(())
+}
+
+use std::sync::mpsc::Receiver;
+fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>) {
+    for(_, event) in glfw::flush_messages(events) {
+        match event {
+            glfw::WindowEvent::FramebufferSize(width, height) => {
+                unsafe {gl::Viewport(0, 0, width, height)}
+            },
+            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                window.set_should_close(true)
+            },
+            _ => ()
+        }
+    }
+}
+
+fn geometry_test() -> (gl::types::GLuint, i32) {
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
         0.5, -0.5, 0.0,
@@ -113,66 +154,5 @@ fn run() -> Result<(), failure::Error> {
         gl::BindVertexArray(0);
     }
 
-
-    // ------------------------------------------
-    while !window.should_close() {
-        process_events(&mut window, &events);
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-
-        shader_program.set_used();
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(
-                gl::TRIANGLES,
-                0, (vertices.len()/3) as i32
-            );
-        }
-
-        window.swap_buffers();
-        glfw.poll_events();
-    }
-
-    Ok(())
-}
-
-use std::sync::mpsc::Receiver;
-fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>) {
-    for(_, event) in glfw::flush_messages(events) {
-        match event {
-            glfw::WindowEvent::FramebufferSize(width, height) => {
-                unsafe {gl::Viewport(0, 0, width, height)}
-            },
-            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                window.set_should_close(true)
-            },
-            _ => ()
-        }
-    }
-}
-
-pub fn failure_to_string<E: failure::Fail>(e: E) -> String {
-    use std::fmt::Write;
-
-    let mut result = String::new();
-
-    for (i, cause) in e.causes().collect::<Vec<_>>().into_iter().rev().enumerate() {
-        if i > 0 {
-            let _ = writeln!(&mut result, "   Which caused the following issue:");
-        }
-        let _ = write!(&mut result, "{}", cause);
-        if let Some(backtrace) = cause.backtrace() {
-            let backtrace_str = format!("{}", backtrace);
-            if backtrace_str.len() > 0 {
-                let _ = writeln!(&mut result, " This happened at {}", backtrace);
-            } else {
-                let _ = writeln!(&mut result);
-            }
-        } else {
-            let _ = writeln!(&mut result);
-        }
-    }
-
-    result
+    (vao, (vertices.len()/3) as i32)
 }
