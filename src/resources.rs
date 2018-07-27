@@ -5,7 +5,7 @@ use std::io::{self, Read};
 use std::ffi;
 
 #[derive(Debug, Fail)]
-pub enum ResError {
+pub enum Error {
     #[fail(display = "I/O error")]
     Io(#[cause] io::Error),
 
@@ -16,9 +16,9 @@ pub enum ResError {
     FailedToGetExePath,
 }
 
-impl From<io::Error> for ResError {
+impl From<io::Error> for Error {
     fn from(other: io::Error) -> Self {
-        ResError::Io(other)
+        Error::Io(other)
     }
 }
 
@@ -27,17 +27,17 @@ pub struct Resources {
 }
 
 impl Resources {
-    pub fn from_exe_path() -> Result<Resources, ResError> {
+    pub fn from_exe_path() -> Result<Resources, Error> {
         let exe_file_name = ::std::env::current_exe()
-            .map_err(|_| ResError::FailedToGetExePath)?;
+            .map_err(|_| Error::FailedToGetExePath)?;
         let exe_path = exe_file_name.parent()
-            .ok_or(ResError::FailedToGetExePath)?;
+            .ok_or(Error::FailedToGetExePath)?;
         Ok(Resources {
             root_path: exe_path.into()
         })
     }
 
-    pub fn load_cstring(&self, resource_name: &str) -> Result<ffi::CString, ResError> {
+    pub fn load_cstring(&self, resource_name: &str) -> Result<ffi::CString, Error> {
         let mut file = fs::File::open(
             resource_name_to_path(&self.root_path,resource_name)
         )?;
@@ -50,19 +50,10 @@ impl Resources {
 
         // check for nul byte
         if buffer.iter().find(|i| **i == 0).is_some() {
-            return Err(ResError::FileContainsNil);
+            return Err(Error::FileContainsNil);
         }
 
         Ok(unsafe { ffi::CString::from_vec_unchecked(buffer) })
-    }
-
-    pub fn open(&self, resource_name: &str) -> Result<fs::File, io::Error> {
-        fs::File::open(
-            resource_name_to_path(
-                &self.root_path,
-                resource_name
-            )
-        )
     }
 }
 
