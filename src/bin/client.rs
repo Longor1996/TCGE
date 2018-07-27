@@ -62,6 +62,11 @@ fn run() -> Result<(), failure::Error> {
     window.make_current();
     window.set_key_polling(true);
     window.set_framebuffer_size_polling(true);
+    window.set_size_limits(
+        320, 225,
+        glfw::ffi::DONT_CARE as u32,
+        glfw::ffi::DONT_CARE as u32
+    );
 
     // ------------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
