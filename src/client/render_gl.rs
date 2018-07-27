@@ -7,7 +7,7 @@ use std::ffi::{CString, CStr};
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Failed to load resource {}", name)]
-    ResourceLoad { name: String, #[cause] inner: resources::Error },
+    ResourceLoad { name: String, #[cause] inner: resources::ResError },
 
     #[fail(display = "Can not determine shader type for resource {}", name)]
     CanNotDetermineShaderTypeForResource { name: String },
