@@ -7,9 +7,30 @@ authors = ["Longor1996 <lalongok@gmail.com>"]
 failure = "0.1"
 time = "*"
 cgmath = "*"
+
+# filesystem
+## zip = "0.4.2"
+## rust-lzma = "0.2.1"
+## notify = "4.0.3"
+## filebuffer = "0.4.0"
+
+# graphics
 gl = "*"
 glfw = "*"
 image = "*"
+
+# user interface?
+## selectors = "0.19.0"
+## rusttype = "0.6.2"
+## imgui = "*"
+
+# networking
+## mio = "0.6.15"
+## ws = "0.7.6"
+## rcon = "0.1.0"
+
+# procedural
+simdnoise = "2.3.6"
 
 [build-dependencies]
 walkdir = "2.1"
