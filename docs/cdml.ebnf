@@ -2,50 +2,83 @@
 	
 	Notes:
 	- This file format definition uses a specialized dialect of EBNF.
-	- This format can be parsed with one character of lookahead / pushback.
-	- This format can be read as a continous stream of data and code.
-	- This format can contain both data AND code.
-	- This format always uses Unix line terminators.
 	- This format always uses the UTF-8 encoding.
+	- This format always uses Unix line terminators (`\n`).
+	- This format can be parsed in a streaming fashion:
+		- With 3 characters of lookahead.
+		- Without backtracking.
+		- Without stream seeking.
+	- This format can be read as a continous stream of data and code, if needed.
+	- This format can contain both data and code, as the two are interchangeable.
+	- This format is a superset of JSON.
 	- This format is effectively a LISP.
 	- This format is called CDML.
+	- `application/cdml`
+	- `*.cdml`
 	
 	Usecases:
 	- Data Driven Programming
-	- Readable Data Storage
 	- Configuration Files
 	- Application Logging
+	- ...
+	
+	A parser MUST provide the following OPTIONS:
+	- Type-Tags callbacks
+	- Expression callbacks
+	- Bitstring callbacks
+	- Ignore Key case-ing
+	- Global string table
+	- Skip raw-data section
+	- Maximum nesting depth
+	
+	A parser MUST return the following DATA:
+	- The 'header'.
+	- The 'stream'; either as list or iterator.
+	- The 'raw data'; as a array or buffer of bytes.
+	
+	A parser SHOULD return the following METADATA:
+	- The total amount of nodes parsed.
+	- The deepest node nesting depth.
+	- The amount of lines, excluding raw data.
+	- The longest encountered line length, excluding raw data.
+	
+	A parser MUST NOT return the following:
+	- The shebang (skip it).
+	- Any and all comments.
+	- Invalid UTF-8 codepoints.
 */
 
+// entrypoint for parsing
 #ENTRYPOINT
-file: exec? head body raw
-	exec: '#' (.-\n)* // skippable!
-	head: map         // must exist!
-	body: node_outer* // streamable!
-	raw:  ';' .* // raw data steam!
+file: (shebang|compress)? header stream raw
+	shebang: '#' (.-\n)*    // For interpreter/bash passtrough.
+	header: map|graph|table // For real data or metadata; must exist.
+	stream: node_outer*     // A streamable undelimited list of nodes.
+	raw:';;;' (.-\n)* .*    // Raw bytes until the end of the file/stream.
 
+// between any two terms not separated by the '~'-operator.
 #BETWEEN_TOKENS {
-	whitespace: \S*
-	line_comment: '//'  (.-\n)*   \n
-	blob_comment: '/*' (.-'*/')* '*/'
+	whitespace: \s* // all whitespace is skipped by the parser
+	linecomment: '//' (.-\n)* \n // line comments are skipped by the parser
+	// no block comments makes parsing easier! the format is nested enough as is.
 }
 
 // Primary parsing fork
-node_outer: node_typed* node_inner node_range?
-	node_typed: '#'~bareword
-	node_range: '~' node_inner
+node_outer: node_type* node_inner node_pair?
+	node_type: '#'~bareword
+	node_pair: '~' node_inner
 node_inner: value | struct | expression
 
 // Value fork
 value:
-	: '_'
-	: 'null'
-	: 'true'
-	: 'false'
-	: bareword
+	: undefined
+	: nothing
+	: boolean
+	: numberword // excluded from barewords
 	: number
-	: numberword
 	: instant
+	: duration
+	: bareword
 	: esc_string
 	: raw_string
 	: bit_string
@@ -56,25 +89,49 @@ struct:
 	: list
 	: dual
 	: path
+	: graph
+	: table
 
 /* expressions (parser callbacks)
+	A parser callback accepts a array of CDML-Values and returns a CDML-Value.
+	
 	(box 1 1 1 3 3 3)
 	(rgb 255 255 255)
-	(if os-name 'windows' THEN)
-	(pane "Hi!" width=10 height=7)
+	(if os-name eq 'windows' ...)
+	(msg "Hi!" width=16 height=9)
 	
 	- Any character-sequence, excluding whitespace, is allowed as operator.
-	- Arguments may be named by prefixing a bareword with an equal-sign.
-	- There can be, at most, up to 255 arguments.
+	- There can be named parameters by writing a bareword and a equal-sign.
+	- There can be, at most, up to 255 parameters.
 */
-expression: '(' operator element* ')'
-	operator: .*? \S
-	element: (bareword '=')? node_outer ','?
+expression: '(' operator posparam* keyparam* ')'
+	operator: .*? \s
+	posparam: node_outer ','?
+	keyparam: bareword '=' node_outer ','?
 
 /******************************************************************************/
 // value nodes
 
+/* undefined (void/infer)
+	A space that *should* be filled in.
+*/
+undefined: '_'
+
+/* nothing (null/none/nil)
+	The accepted/known absence of a value.
+*/
+nothing: 'null'
+
+/* booleans (bits/flags/toggles)
+	Is either TRUE or FALSE.
+	
+	true
+	false
+*/
+boolean: 'true' | 'false'
+
 /* A bareword is a string without quotes, delimited only by whitespace.
+	It must start with a letter, and may only contain letters and `-_.`
 	
 	normal-string
 	normal_string
@@ -82,7 +139,7 @@ expression: '(' operator element* ')'
 */
 bareword: \L (\L|'-'|'_'|'.')*
 
-/* numbers (examples)
+/* numbers
 	0  +1  -1  42
 	+12345 -12345
 	
@@ -99,16 +156,21 @@ bareword: \L (\L|'-'|'_'|'.')*
 	1#m  1#kg 1#ms 1#psi
 	1#ly 1#em 1#px 1#dpi
 	
-	// units without type tag
+	// units without type tag (only for decimal digit mode)
 	1m  1kg 1ms 1psi
 	1ly 1em 1pt 1dpi
 */
-number: sign? (integer decimal? exponen? unit? | numberword)
+number: sign? (integer decimal? powerof? unit? | numberword)
 	integer: digits
 	decimal: '.' digits10
-	exponen: [eE^] sign digits
-	unit: ('#')?~bareword
+	powerof: [eE^] sign digits
+	unit: ('#' #IF_DEC)?~bareword
 	sign: [+-]
+
+/* numberwords
+	A numberword is a bareword, directly converted into a number by the parser.
+	They are completely excluded from the unlimited set of possible barewords.
+*/
 numberword: 'pi' | 'euler' | 'infinity' | 'infinite' | 'notanumber'
 
 /* number bases (examples)
@@ -119,12 +181,12 @@ numberword: 'pi' | 'euler' | 'infinity' | 'infinite' | 'notanumber'
 	0x0123456789ABCDEF
 */
 digits: digits2 | digits8 | digits10 | digits16
-	digits2:  '0b'  <[01]>+
-	digits8:  '0o'  <[01234567]>+
-	digits10: '0d'? <[0123456789]>+
-	digits16: '0x'  <[0123456789ABCDEFabcdef]>+
+	digits2:  '0b'  <[01]>+ // dual|binary, base 2
+	digits8:  '0o'  <[01234567]>+ // octal, base 8
+	digits10: '0d'? <[0123456789]>+ // decimal, base 10
+	digits16: '0x'  <[0123456789ABCDEFabcdef]>+ // hexadecimal, base 16
 
-/* timestamps (All UTC)
+/* instants in time (timestamps; using UTC)
 	@2017-03-03T18:44:00Z+01:00
 	@T18:44:00Z+01:00
 	@2017-03-03
@@ -134,6 +196,26 @@ instant: '@' date? time? zone?
 	date: digits '-' digits{2} '-' digits{2}
 	time: 'T' digits{2} >> ':' digits{2} >> ':' digits{2} >> '.' digits
 	zone: 'Z' [+-]? digits{2} >> ':' digits{2}
+
+/* durations of time (all deltas)
+	Any part of a duration can be left out.
+	
+	@@2018Y-10M-21D-19h-13m-37s
+*/
+duration: '@@' Tn Tyears Tquarts Tmonths Tweeks Tdays ...
+	... Thours Tminutes Tseconds Tmillis Tmicros Tnanos
+	Tn: '-'?
+	Tyears:   (\d+ 'Y' '-'?)?  // ~365.25 days
+	Tquartrs: (\d+ 'Q' '-'?)?  // 3 months
+	Tmonths:  (\d+ 'M' '-'?)?  // ~30 days
+	Tweeks:   (\d+ 'W' '-'?)?  // 7 days
+	Tdays:    (\d+ 'D' '-'?)?  // ~24 hours
+	Thours:   (\d+ 'h' '-'?)?  // 60 minutes
+	Tminutes: (\d+ 'm' '-'?)?  // 60 seconds
+	Tseconds: (\d+ 's' '-'?)?  // 1 standard second
+	Tmillis:  (\d+ 'ms' '-'?)? // 1:1000 a second
+	Tmicros:  (\d+ 'us' '-'?)? // 1:1000000 a second
+	Tnanos:   (\d+ 'ns')?      // 1:1000000000 a second
 
 /*
 	"string"
@@ -154,12 +236,16 @@ raw_string: "'" (.-"'")* "'"
 		xz` ... ` // base16 bytes // he[x]-a-decimal compressed
 		wz` ... ` // base64 bytes // [w]eb-a-decimal compressed
 */
-bit_string: bareword "`" (.-"`")* "`"
+bit_string: bareword (bit_string_one | bit_string_tri)
+	bit_string_one: "`" (.-"`")* "`"
+	bit_string_tri: "```" (.-"```")* "```"
+
+key_string: bareword | esc_string | raw_string
 
 /******************************************************************************/
 // struct nodes
 
-/* plain object/map/record
+/* plain object/map/record/key-values
 	{}
 	{,}
 	{a 3}
@@ -184,10 +270,10 @@ bit_string: bareword "`" (.-"`")* "`"
 */
 map: '{' (map_item ','?)* '}'
 	map_item: map_key ':'? map_val
-	map_key: bareword | esc_string | raw_string
+	map_key: key_string
 	map_val: node_outer
 
-/* plain list
+/* plain list/array/enumeration
 	[]
 	[,]
 	[1]
@@ -195,6 +281,12 @@ map: '{' (map_item ','?)* '}'
 	[1,2,3]
 	[1,2,3,]
 	[1, 2 3,]
+	
+	[
+		1
+		2
+		3
+	]
 */
 list: '[' (node_outer ','?)* ']'
 
@@ -220,13 +312,46 @@ list: '[' (node_outer ','?)* ']'
 	<a:3,b:2,c:1 ; 1,2,3 ; d:4,e:5,f:6>
 */
 dual: '<' dual_attrbs? dual_childs? ~ (';' dual_attrbs)? '>'
-	dual_attrbs: (map_item ','?)*
+	dual_attrbs: (key_string ':' node_outer ','?)*
 	dual_childs: ';' (node_outer ','?)*
 
 /* path
 	/a/b/c/1/2/3
 */
 path: '/' node_outer path?
+
+/* table (object of parallel arrays)
+	{[ a b c {primary: a};
+		1 2 3;
+		1,2 3;
+		1,2,3;
+	]}
+*/
+table: '{[' table_head table_meta ';' table_body ']}'
+	table_head: key_string+
+	table_meta: map?
+	table_body: ((node_outer ','?)+ ';')*
+
+/* graph (object of nodes and edges)
+	{< {};
+		NODE,
+		NODE: VAL,
+		NODE: VAL;
+		NODE NODE,
+		NODE NODE: =VAL +=VAL -=VAL,
+		EDGE NODE NODE,
+		EDGE NODE NODE: =VAL +=VAL -=VAL,
+	>}
+*/
+graph: '{<' ng_head ';' ng_nodes ';' ng_edges '>}'
+	ng_head: map?
+	ng_node_name: key_string
+	ng_nodes: (ng_node ',')*
+		ng_node: ng_node_name (':' node_outer)?
+	ng_edges: (ng_edge ',')*
+		ng_edge: ng_edge_name ng_node_name ng_node_name (':' ng_edge_values)?
+		ng_edge_name:  key_string?
+		ng_edge_values: ('=' node_outer)? ('+=' node_outer)? ('+=' node_outer)?
 
 /******************************************************************************/
 /* // Listing of examples...
@@ -253,7 +378,6 @@ pi euler infinity notanumber // number words
 @2017-03-03T18:44:00Z+01:00
 @T18:44:00Z+01:00
 @Z+01:00
-@0x12345678
 
 // numbers can have units
 90#deg
@@ -272,10 +396,12 @@ b16`012345678` // base16
 b64`012345678` // base64
 b85`012345678` // base85
 
-{a : 3} // Map | Record
-[1 2 3] // List | Array
-<a : 3 ; 1 2 3> // Dual
+{a : 3} // Map
+[1 2 3] // List
+<a : 3; 1 2 3>  // Dual
 /a/b/c/1/2/3    // Path
+{[a b c; 1 2 3;1 2 3]} // table
+{<;a,b,c; a b, a c>}   // graph
 
 // Type Tags
 #thing VALUE
@@ -291,4 +417,7 @@ b85`012345678` // base85
 
 // Ranges and/or Pairs
 1 ~ 2
+
+;;; Here comes the raw data section...
+4i8ic5734o89c5739597m508mxc0924mc859234
 */
