@@ -1,8 +1,10 @@
 extern crate std;
 extern crate gl;
+extern crate cgmath;
 use ::resources;
 use ::resources::Resources;
 use std::ffi::{CString, CStr};
+use client::render_gl::cgmath::prelude::*;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -91,6 +93,32 @@ impl Program {
     pub fn set_used(&self) {
         unsafe {
             gl::UseProgram(self.id);
+        }
+    }
+
+    pub fn uniform_location(&self, uniform_name: &str) -> i32 {
+        let vstr = uniform_name.as_bytes().to_owned();
+        let cstr = unsafe { CString::from_vec_unchecked(vstr) };
+        unsafe {
+            let loc = gl::GetUniformLocation(self.id, cstr.as_ptr());
+
+            if loc == -1 {
+                panic!("Uniform location for '{}' is invalid.", uniform_name);
+            }
+
+            loc
+        }
+    }
+
+    pub fn uniform_scalar(&self, uniform: i32, value: f32) {
+        unsafe {
+            gl::Uniform1f(uniform, value)
+        }
+    }
+
+    pub fn uniform_matrix4(&self, uniform: i32, matrix: cgmath::Matrix4<f32>) {
+        unsafe {
+            gl::UniformMatrix4fv(uniform, 1, gl::FALSE, matrix.as_ptr())
         }
     }
 }

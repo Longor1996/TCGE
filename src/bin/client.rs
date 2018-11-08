@@ -1,7 +1,7 @@
 extern crate failure;
 extern crate TCGE;
 extern crate time;
-
+extern crate cgmath;
 extern crate glfw;
 use self::glfw::{Context, Key, Action};
 
@@ -9,6 +9,7 @@ extern crate gl;
 
 use TCGE::resources::Resources;
 use TCGE::client::render_gl;
+use TCGE::gameloop;
 
 fn main() {
     println!("Hello, Client!");
@@ -51,7 +52,8 @@ fn run() -> Result<(), failure::Error> {
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
 
     #[cfg(target_os = "macos")]
-        glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+    glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+    glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
 
     // ------------------------------------------
     let (mut window, events) = glfw.create_window(
@@ -79,25 +81,37 @@ fn run() -> Result<(), failure::Error> {
     shader_program.set_used();
 
     // ------------------------------------------
-    let (vao, vcount) = geometry_test();
+    let geometry = geometry_test();
 
+    let mut render_state = RenderState {
+        uniform_mat: shader_program.uniform_location("transform"),
+        uniform_time: shader_program.uniform_location("time"),
+        shader_program: shader_program,
+        geometry: geometry
+    };
+
+    let camera = Camera {
+        position: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
+        velocity: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
+        rotation: cgmath::Vector2 {x: 0.0, y: 0.0}
+    };
+
+    let mut gls = gameloop::newGameloop(20);
 
     // ------------------------------------------
     while !window.should_close() {
         process_events(&mut window, &events);
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
 
-        shader_program.set_used();
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(
-                gl::TRIANGLES,
-                0, vcount
-            );
-        }
-
+        gameloop::gameloop_next(&mut gls,
+            || {glfw.get_time()},
+            |now:f64| {
+                println!("It is now {}", now);
+            },
+            |now:f64, interpolation:f32| {
+                render(&render_state, &camera, now);
+            }
+        );
+        
         window.swap_buffers();
         glfw.poll_events();
     }
@@ -105,7 +119,33 @@ fn run() -> Result<(), failure::Error> {
     Ok(())
 }
 
+struct RenderState {
+    uniform_mat: i32,
+    uniform_time: i32,
+    shader_program: render_gl::Program,
+    geometry: SimpleVAO,
+}
+
+fn render(render_state: &RenderState, camera: &Camera, now: f64) {
+    unsafe {
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+    }
+
+    render_state.shader_program.set_used();
+    render_state.shader_program.uniform_matrix4(render_state.uniform_mat, camera.transform());
+    render_state.shader_program.uniform_scalar(render_state.uniform_time, now as f32);
+    unsafe {
+        gl::BindVertexArray(render_state.geometry.handle);
+        gl::DrawArrays(
+            gl::TRIANGLES,
+            0, render_state.geometry.count
+        );
+    }
+}
+
 use std::sync::mpsc::Receiver;
+use failure::Fail;
+
 fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>) {
     for(_, event) in glfw::flush_messages(events) {
         match event {
@@ -120,7 +160,12 @@ fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Windo
     }
 }
 
-fn geometry_test() -> (gl::types::GLuint, i32) {
+struct SimpleVAO {
+    handle: gl::types::GLuint,
+    count: i32,
+}
+
+fn geometry_test() -> SimpleVAO {
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
         0.5, -0.5, 0.0,
@@ -159,5 +204,27 @@ fn geometry_test() -> (gl::types::GLuint, i32) {
         gl::BindVertexArray(0);
     }
 
-    (vao, (vertices.len()/3) as i32)
+    return SimpleVAO {
+        handle: vao,
+        count: (vertices.len()/3) as i32
+    }
+}
+
+struct Camera {
+    position: cgmath::Vector3<f32>,
+    velocity: cgmath::Vector3<f32>,
+    rotation: cgmath::Vector2<f32>,
+}
+
+impl Camera {
+    fn transform(&self) -> cgmath::Matrix4<f32> {
+        let mat = cgmath::Matrix4::new(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        );
+
+        return mat
+    }
 }

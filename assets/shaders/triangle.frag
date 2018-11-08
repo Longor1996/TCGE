@@ -1,8 +1,16 @@
 #version 330 core
 
 out vec4 Color;
+uniform float time;
 
 void main()
 {
-    Color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+	float f = time * 10.0;
+
+  Color = vec4(
+    (sin(f) + 1.0f) * 0.5f,
+    (sin(f) + 1.0f) * 0.5f,
+    (sin(f) + 1.0f) * 0.5f,
+    1.0f
+  );
 }
