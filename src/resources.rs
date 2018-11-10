@@ -55,6 +55,13 @@ impl Resources {
 
         Ok(unsafe { ffi::CString::from_vec_unchecked(buffer) })
     }
+
+    pub fn open_stream(&self, resource_name: &str) -> Result<fs::File, ResError> {
+        let file = fs::File::open(
+            resource_name_to_path(&self.root_path,resource_name)
+        )?;
+        Ok(file)
+    }
 }
 
 impl Drop for Resources {
