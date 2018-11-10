@@ -1,4 +1,5 @@
-#[macro_use] extern crate failure;
+#[macro_use]
+extern crate failure;
 extern crate TCGE;
 
 use TCGE::resources::Resources;
@@ -10,17 +11,14 @@ fn main() {
 
     println!("Hello, Server! {}", TCGE::MAGIC);
 
-    let mut reader = res.open("test.cdml").unwrap();
+    let reader = res.open_stream("test.cdml").unwrap();
     let mut reader= utf8::UTF8Read::new(reader);
 
-    print!("\n");
-    loop {
-        match reader.read() {
-            Ok(x) => print!("{}", x),
-            Err(e) => break
-        }
+    println!();
+    while let Ok(x) = reader.read() {
+        print!("{}", x)
     }
-    print!("\n");
+    println!();
 
     // let mut cdmlReader = cdml::CDMLReader::read(reader);
 

@@ -1,6 +1,6 @@
 
 pub struct GameloopState {
-    ticks_per_second: i32,
+    //ticks_per_second: i32,
     skip_ticks: f64,
     max_frameskip: i32,
     next_game_tick: f64,
@@ -8,9 +8,9 @@ pub struct GameloopState {
     interpolation: f64,
 }
 
-pub fn newGameloop(ticks_per_second: i32) -> GameloopState {
+pub fn new_gameloop(ticks_per_second: i32) -> GameloopState {
     GameloopState {
-        ticks_per_second: ticks_per_second,
+        //ticks_per_second,
         skip_ticks: 1.0 / (ticks_per_second as f64),
         max_frameskip: 5,
         loops: 0,

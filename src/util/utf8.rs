@@ -85,7 +85,7 @@ impl<R: Read> UTF8Read<R> {
 
         let mut sequence_length = 1;
         loop {
-            if !((buf[0] & (0x80 >> sequence_length)) != 0) {
+            if (buf[0] & (0x80 >> sequence_length)) == 0 {
                 break
             }
             sequence_length += 1;
@@ -136,7 +136,7 @@ impl<R: Read> UTF8Read<R> {
         }
 
         self.unread = true;
-        return Ok(())
+        Ok(())
     }
 }
 

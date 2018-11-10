@@ -204,7 +204,7 @@ fn shader_from_source(
         gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
     }
 
-    if(success == 0) {
+    if success == 0 {
         let mut len: gl::types::GLint = 0;
         unsafe {
             gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);

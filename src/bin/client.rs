@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use std::cell::Ref;
-use std::cell::RefMut;
 use std::cell::RefCell;
 
 extern crate failure;
@@ -34,7 +33,7 @@ fn main() {
             let _ = write!(&mut result, "{}", cause);
             if let Some(backtrace) = cause.backtrace() {
                 let backtrace_str = format!("{}", backtrace);
-                if backtrace_str.len() > 0 {
+                if !backtrace_str.is_empty() {
                     let _ = writeln!(&mut result, " This happened at {}", backtrace);
                 } else {
                     let _ = writeln!(&mut result);
@@ -84,6 +83,14 @@ fn run() -> Result<(), failure::Error> {
     // ------------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
+    /*
+    unsafe {
+        let depth_bits = glfw::ffi::glfwGetWindowAttrib(window.window_ptr(), glfw::ffi::DEPTH_BITS);
+        let depth_bits = gl::GetFramebufferAttachmentParameteriv(gl::FRAMEBUFFER, gl::GL_DEPTH_ATTACHMENT);
+        println!("Available depth bits: {}", depth_bits);
+    }
+    */
+
     // ------------------------------------------
     let shader_program = render_gl::Program::from_res(
         &res, "shaders/triangle"
@@ -95,7 +102,7 @@ fn run() -> Result<(), failure::Error> {
     let render_state = RenderState {
         uniform_mat: shader_program.uniform_location("transform"),
         uniform_time: shader_program.uniform_location("time"),
-        shader_program: shader_program
+        shader_program
     };
 
     let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
@@ -110,7 +117,7 @@ fn run() -> Result<(), failure::Error> {
     })));
 
     // ------------------------------------------
-    let mut gls = gameloop::newGameloop(20);
+    let mut gls = gameloop::new_gameloop(20);
 
     while !window.should_close() {
         process_events(
@@ -125,7 +132,7 @@ fn run() -> Result<(), failure::Error> {
         gameloop::gameloop_next(&mut gls,
             || {glfw.get_time()},
 
-            |now:f64| {
+            |_now:f64| {
                 // println!("It is now {}", now);
 
                 scene.borrow().as_ref().map(|scene| {
@@ -186,7 +193,7 @@ struct RenderState {
     shader_program: render_gl::Program
 }
 
-fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32, i32), now: f64, interpolation:f32) {
+fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32, i32), now: f64, _interpolation:f32) {
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         gl::Enable(gl::DEPTH_TEST);
@@ -195,7 +202,7 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32
     }
 
     render_state.shader_program.set_used();
-    render_state.shader_program.uniform_matrix4(render_state.uniform_mat, camera.transform(size));
+    render_state.shader_program.uniform_matrix4(render_state.uniform_mat, camera.transform(size, true));
     render_state.shader_program.uniform_scalar(render_state.uniform_time, now as f32);
 
     for mesh in scene.meshes.iter() {
@@ -296,7 +303,7 @@ fn geometry_test() -> SimpleVAO {
         gl::BindVertexArray(0);
     }
 
-    return SimpleVAO {
+    SimpleVAO {
         handle: vao,
         count: (vertices.len()/3) as i32
     }
@@ -311,7 +318,7 @@ struct Camera {
 }
 
 impl Camera {
-    fn transform(&self, size: (i32,i32) ) -> cgmath::Matrix4<f32> {
+    fn transform(&self, size: (i32,i32), translation: bool ) -> cgmath::Matrix4<f32> {
         use cgmath::Matrix4;
 
         let (width, height) = size;
@@ -339,9 +346,13 @@ impl Camera {
         camera = camera * Matrix4::from_angle_x(pitch);
         camera = camera * Matrix4::from_angle_y(yaw);
         camera = camera * Matrix4::from_nonuniform_scale(1.0,1.0,-1.0);
-        camera = camera * Matrix4::from_translation(-self.position);
 
-        return perspective * camera;
+        if translation {
+            camera = camera * Matrix4::from_translation(-self.position);
+        }
+
+        // return multiplied matrix
+        perspective * camera
     }
 
     fn update_rotation(&mut self, yaw: f32, pitch: f32) {
