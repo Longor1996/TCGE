@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Longor1996 <lalongok@gmail.com>"]
 
 [dependencies]
-failure = "0.1"
+failure = "0.1.3"
 time = "*"
 cgmath = "*"
 
@@ -18,6 +18,7 @@ cgmath = "*"
 gl = "*"
 glfw = "*"
 image = "*"
+# https://crates.io/keywords/renderdoc
 
 # user interface?
 ## selectors = "0.19.0"
@@ -30,8 +31,16 @@ image = "*"
 ## rcon = "0.1.0"
 
 # procedural
-simdnoise = "2.3.6"
+simdnoise = "*"
 
 [build-dependencies]
 walkdir = "2.1"
 git-version = "0.2.1"
+
+# windres = "0.2.1"
+# build_details = "0.1.2"
+
+
+#cargo extensions?
+# - https://crates.io/crates/cargo-modules
+# - https://crates.io/crates/cargo-disassemble
