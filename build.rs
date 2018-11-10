@@ -1,4 +1,5 @@
 extern crate walkdir;
+extern crate git_version;
 
 use std::env;
 use std::fs::{self, DirBuilder};
@@ -6,6 +7,10 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 fn main() {
+    println!("Setting version...");
+    git_version::set_env();
+
+    println!("Copying assets...");
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 

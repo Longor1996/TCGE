@@ -21,6 +21,7 @@ use TCGE::gameloop;
 
 fn main() {
     println!("Hello, Client!");
+    println!("Version: {}", env!("VERSION"));
 
     if let Err(e) = run() {
         use std::fmt::Write;

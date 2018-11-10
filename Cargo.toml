@@ -34,3 +34,4 @@ simdnoise = "2.3.6"
 
 [build-dependencies]
 walkdir = "2.1"
+git-version = "0.2.1"
