@@ -10,9 +10,10 @@ This project is currently at the beginning of it's development.
 
 Make it as data-driven as possible...
 
-- No hardcoded ID's, wherever possible.
-- No hardcoded gameplay elements.
-- Make use of emergent systems.
-- Make heavy use of CDML.
+* No hardcoded ID's, wherever possible.
+* No hardcoded gameplay elements.
+* Make use of emergent systems.
+* Make heavy use of CDML.
 
-The final goal (in the far future) is to create the game called Talecraft.
+The final goal \(in the far future\) is to create the game called Talecraft.
+
