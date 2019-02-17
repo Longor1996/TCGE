@@ -103,7 +103,8 @@ impl Program {
             let loc = gl::GetUniformLocation(self.id, cstr.as_ptr());
 
             if loc == -1 {
-                panic!("Uniform location for '{}' is invalid.", uniform_name);
+                eprintln!("Uniform location for '{}' is invalid.", uniform_name);
+                return 0;
             }
 
             loc
