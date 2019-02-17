@@ -21,7 +21,7 @@ pub enum Error {
     #[fail(display = "Failed to link program {}: {}", name, message)]
     LinkError { name: String, message: String },
     
-    #[fail(display = "Failed to parse image {}: {}", name, message)]
+    #[fail(display = "Failed to parse image {}", name)]
     ImageParse { name: String, #[cause] inner: image::ImageError },
 }
 
@@ -272,26 +272,26 @@ impl Texture {
         let image_height = image_size.1;
         let image_area = image_width * image_height;
         
-        let mut handle = 0;
+        let mut handle: gl::types::GLuint = 0;
         unsafe {
             // preparing
-            gl::GenTextures(1, &handle);
+            gl::GenTextures(1, &mut handle);
             gl::BindTexture(gl::TEXTURE_2D, handle);
             
             // wrapping
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
             
             // sampling
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             
             // uploading
             gl::TexImage2D(gl::TEXTURE_2D,
-                0, gl::RGB,
-                image_width, image_height,
+                0, gl::RGB as i32,
+                image_width as i32, image_height as i32,
                 0, gl::RGB, gl::UNSIGNED_BYTE,
-                image.as_ptr()
+                image.as_ptr() as *const std::ffi::c_void
             );
         }
         
