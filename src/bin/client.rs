@@ -95,12 +95,14 @@ fn run() -> Result<(), failure::Error> {
 	// ------------------------------------------
 	
 	// ------------------------------------------
+	let shader_grid = ShaderGrid::new(&res)?;
 	let shader_random = ShaderRandom::new(&res)?;
 	let shader_solid_color = ShaderSolidColor::new(&res)?;
 	
 	// ------------------------------------------
 	let mut render_state = RenderState {
 		frame_id: 0,
+		shader_grid,
 		shader_random,
 		shader_solid_color
 	};
@@ -117,7 +119,8 @@ fn run() -> Result<(), failure::Error> {
 			rotation_last: cgmath::Vector2 {x: 0.0, y: 90.0}
 		},
 		meshes: vec![geometry_test()],
-		mesh_grid: geometry_grid()
+		mesh_grid: geometry_grid(),
+		mesh_planequad: geometry_planequad(),
 	})));
 	
 	// ------------------------------------------
@@ -213,6 +216,7 @@ struct Scene {
 	camera: Camera,
 	meshes: Vec<SimpleVAO>,
 	mesh_grid: SimpleVAO,
+	mesh_planequad: SimpleVAO,
 }
 
 struct Cursor {
@@ -233,6 +237,7 @@ impl Cursor {
 
 struct RenderState {
 	frame_id: i64,
+	shader_grid: ShaderGrid,
 	shader_random: ShaderRandom,
 	shader_solid_color: ShaderSolidColor,
 }
@@ -284,6 +289,21 @@ impl ShaderSolidColor {
 	}
 }
 
+struct ShaderGrid {
+	shader_program: render_gl::Program,
+	uniform_matrix: i32
+}
+impl ShaderGrid {
+	fn new(res: &Resources) -> Result<ShaderGrid, TCGE::client::render_gl::Error> {
+		let shader_program = render_gl::Program::from_res(&res, "shaders/grid")?;
+		let uniform_matrix = shader_program.uniform_location("transform");
+		Ok(ShaderGrid {
+			shader_program,
+			uniform_matrix
+		})
+	}
+}
+
 fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32, i32), now: f64, _interpolation:f32) {
 	unsafe {
 		gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -298,12 +318,24 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32
 	
 	let camera_transform = camera.transform(size, _interpolation, true);
 	
+	/*
 	let shader_solid_color = &render_state.shader_solid_color;
 	let grid_color = cgmath::Vector4 {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
 	shader_solid_color.shader_program.set_used();
 	shader_solid_color.shader_program.uniform_matrix4(shader_solid_color.uniform_matrix, camera_transform);
 	shader_solid_color.shader_program.uniform_vector4(shader_solid_color.uniform_color, grid_color);
 	scene.mesh_grid.draw(gl::LINES);
+	*/
+	
+	unsafe {
+		gl::Enable(gl::BLEND);
+		gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+	}
+	let shader_grid = &render_state.shader_grid;
+	shader_grid.shader_program.set_used();
+	shader_grid.shader_program.uniform_matrix4(shader_grid.uniform_matrix, camera_transform);
+	scene.mesh_planequad.draw(gl::TRIANGLES);
+	unsafe {gl::Disable(gl::BLEND) }
 	
 	let shader_random = &render_state.shader_random;
 	shader_random.shader_program.set_used();
@@ -325,6 +357,57 @@ impl SimpleVAO {
 			gl::BindVertexArray(self.handle);
 			gl::DrawArrays(mode, 0, self.count);
 		}
+	}
+}
+
+fn geometry_planequad() -> SimpleVAO {
+	let s = 1024.0;
+	let vertices: Vec<f32> = vec![
+		-s, 0.0,  s,
+		 s, 0.0,  s,
+		-s, 0.0, -s,
+		 s, 0.0,  s,
+		 s, 0.0, -s,
+		-s, 0.0, -s
+	];
+	
+	let mut vbo: gl::types::GLuint = 0;
+	
+	unsafe {
+		gl::GenBuffers(1, &mut vbo);
+	}
+	
+	unsafe {
+		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+		gl::BufferData(
+			gl::ARRAY_BUFFER,
+			(vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+			vertices.as_ptr() as *const gl::types::GLvoid,
+			gl::STATIC_DRAW
+		);
+		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+	}
+	
+	let mut vao: gl::types::GLuint = 0;
+	unsafe {
+		gl::GenVertexArrays(1, &mut vao);
+		gl::BindVertexArray(vao);
+		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+		gl::EnableVertexAttribArray(0);
+		gl::VertexAttribPointer(
+			0,
+			3,
+			gl::FLOAT, gl::FALSE,
+			(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
+			std::ptr::null()
+		);
+		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+		gl::BindVertexArray(0);
+	}
+	
+	SimpleVAO {
+		handle: vao,
+		count: (vertices.len()/3) as i32
 	}
 }
 

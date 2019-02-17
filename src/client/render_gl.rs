@@ -31,17 +31,19 @@ impl Program {
             ".vert",
             ".frag",
         ];
-
+        
         let resource_names = POSSIBLE_EXT.iter()
             .map(|file_extension| format!("{}{}", name, file_extension))
             .collect::<Vec<String>>();
-
+    
+        println!("Loading program shaders: {}", name);
         let shaders = resource_names.iter()
             .map(|resource_name| {
                 Shader::from_res(res, resource_name)
             })
             .collect::<Result<Vec<Shader>, Error>>()?;
-
+    
+        println!("Compiling program: {}", name);
         Program::from_shaders(&shaders[..])
             .map_err(|message| Error::LinkError { name: name.into(), message })
     }
@@ -165,10 +167,12 @@ impl Shader {
             })
             .map(|&(_, kind)| kind)
             .ok_or_else(|| Error::CanNotDetermineShaderTypeForResource { name: name.into() })?;
-
+    
+        println!("Loading shader: {} . {}", name, shader_kind);
         let source = res.load_cstring(name)
             .map_err(|e| Error::ResourceLoad { name: name.into(), inner: e })?;
-
+    
+        println!("Compiling shader: {}", name);
         Shader::from_source(&source, shader_kind)
             .map_err(|message| Error::CompileError { name: name.into(), message })
     }
