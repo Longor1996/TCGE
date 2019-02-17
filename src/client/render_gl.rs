@@ -1,6 +1,7 @@
 extern crate std;
 extern crate gl;
 extern crate cgmath;
+extern crate image;
 use ::resources;
 use ::resources::Resources;
 use std::ffi::{CString, CStr};
@@ -19,6 +20,9 @@ pub enum Error {
 
     #[fail(display = "Failed to link program {}: {}", name, message)]
     LinkError { name: String, message: String },
+    
+    #[fail(display = "Failed to parse image {}: {}", name, message)]
+    ImageParse { name: String, #[cause] inner: image::ImageError },
 }
 
 pub struct Program {
@@ -243,4 +247,57 @@ fn create_whitespace_cstring_with_len(len: usize) -> CString {
     let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
     buffer.extend([b' '].iter().cycle().take(len as usize));
     unsafe { CString::from_vec_unchecked(buffer) }
+}
+
+pub struct Texture {
+	id: gl::types::GLuint,
+}
+
+impl Texture {
+
+    pub fn from_res(res: &Resources, name: &str) -> Result<Texture, Error> {
+        // TODO: The following is rather horrible code. Causes way too many copies.
+        
+        let buffer = res.load_buffer(name)
+            .map_err(|e| Error::ResourceLoad { name: name.into(), inner: e })?;
+        
+        let image = image::load_from_memory(&buffer)
+            .map_err(|e| Error::ImageParse { name: name.into(), inner: e })?;
+        
+        let image = image.as_rgba8()
+            .expect("Failed to convert Image to RGBA8.");
+        
+        let image_size = image.dimensions();
+        let image_width = image_size.0;
+        let image_height = image_size.1;
+        let image_area = image_width * image_height;
+        
+        let mut handle = 0;
+        unsafe {
+            // preparing
+            gl::GenTextures(1, &handle);
+            gl::BindTexture(gl::TEXTURE_2D, handle);
+            
+            // wrapping
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
+            
+            // sampling
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST);
+            
+            // uploading
+            gl::TexImage2D(gl::TEXTURE_2D,
+                0, gl::RGB,
+                image_width, image_height,
+                0, gl::RGB, gl::UNSIGNED_BYTE,
+                image.as_ptr()
+            );
+        }
+        
+        Ok(Texture{
+            id: handle
+        })
+    }
+
 }
