@@ -120,7 +120,7 @@ fn run() -> Result<(), failure::Error> {
 		},
 		meshes: vec![geometry_test()],
 		mesh_grid: geometry_grid(),
-		mesh_planequad: geometry_planequad(),
+		mesh_planequad: geometry_planequad(1024.0),
 	})));
 	
 	// ------------------------------------------
@@ -360,8 +360,7 @@ impl SimpleVAO {
 	}
 }
 
-fn geometry_planequad() -> SimpleVAO {
-	let s = 1024.0;
+fn geometry_planequad(s: f32) -> SimpleVAO {
 	let vertices: Vec<f32> = vec![
 		-s, 0.0,  s,
 		 s, 0.0,  s,
