@@ -36,6 +36,19 @@ impl Resources {
             root_path: exe_path.into()
         })
     }
+    
+    pub fn load_buffer(&self, resource_name: &str) -> Result<Vec<u8>, ResError> {
+        let mut file = fs::File::open(
+            resource_name_to_path(&self.root_path,resource_name)
+        )?;
+        
+        // allocate buffer of the same size as file
+        let mut buffer: Vec<u8> = Vec::with_capacity(
+            file.metadata()?.len() as usize + 1
+        );
+        file.read_to_end(&mut buffer)?;
+        Ok(buffer)
+    }
 
     pub fn load_cstring(&self, resource_name: &str) -> Result<ffi::CString, ResError> {
         let mut file = fs::File::open(
