@@ -62,6 +62,7 @@ fn run() -> Result<(), failure::Error> {
 	#[cfg(target_os = "macos")]
 		glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 	glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
+	glfw.window_hint(glfw::WindowHint::Samples(Some(4)));
 	
 	// ------------------------------------------
 	let (mut window, events) = glfw.create_window(
@@ -92,18 +93,16 @@ fn run() -> Result<(), failure::Error> {
 	*/
 	
 	// ------------------------------------------
-	let shader_program = render_gl::Program::from_res(
-		&res, "shaders/triangle"
-	)?;
 	
-	shader_program.set_used();
+	// ------------------------------------------
+	let shader_random = ShaderRandom::new(&res)?;
+	let shader_solid_color = ShaderSolidColor::new(&res)?;
 	
 	// ------------------------------------------
 	let mut render_state = RenderState {
 		frame_id: 0,
-		uniform_mat: shader_program.uniform_location("transform"),
-		uniform_time: shader_program.uniform_location("time"),
-		shader_program
+		shader_random,
+		shader_solid_color
 	};
 	
 	let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
@@ -117,7 +116,8 @@ fn run() -> Result<(), failure::Error> {
 			velocity_last: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
 			rotation_last: cgmath::Vector2 {x: 0.0, y: 90.0}
 		},
-		meshes: vec![geometry_test()]
+		meshes: vec![geometry_test()],
+		mesh_grid: geometry_grid()
 	})));
 	
 	// ------------------------------------------
@@ -178,74 +178,6 @@ fn run() -> Result<(), failure::Error> {
 	Ok(())
 }
 
-struct Scene {
-	camera: Camera,
-	meshes: Vec<SimpleVAO>,
-}
-
-struct Cursor {
-	pos_x: f32,
-	pos_y: f32,
-	mov_x: f32,
-	mov_y: f32,
-}
-
-impl Cursor {
-	fn update(&mut self, x: f64, y: f64) {
-		self.mov_x = (x as f32) - self.pos_x;
-		self.mov_y = (y as f32) - self.pos_y;
-		self.pos_x = x as f32;
-		self.pos_y = y as f32;
-	}
-}
-
-struct RenderState {
-	frame_id: i64,
-	uniform_mat: i32,
-	uniform_time: i32,
-	shader_program: render_gl::Program
-}
-
-impl RenderState {
-	fn begin(&mut self) {
-		self.frame_id = self.frame_id + 1;
-	}
-	fn end(&mut self) {}
-	
-	fn reset(&mut self) {
-		self.frame_id = 0;
-	}
-}
-
-fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32, i32), now: f64, _interpolation:f32) {
-	unsafe {
-		gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-		gl::Enable(gl::DEPTH_TEST);
-		gl::CullFace(gl::FRONT);
-		gl::Enable(gl::CULL_FACE);
-	}
-	
-	println!("Render Frame [ id: {}, size: {} x {}, time: {}, delta: {}]",
-		render_state.frame_id, size.0, size.1, now, _interpolation
-	);
-	
-	let camera_transform = camera.transform(size, _interpolation, true);
-	
-	render_state.shader_program.set_used();
-	render_state.shader_program.uniform_matrix4(render_state.uniform_mat, camera_transform);
-	render_state.shader_program.uniform_scalar(render_state.uniform_time, now as f32);
-	
-	for mesh in scene.meshes.iter() {
-		unsafe {
-			gl::BindVertexArray(mesh.handle);
-			gl::DrawArrays(
-				gl::TRIANGLES,
-				0, mesh.count
-			);
-		}
-	}
-}
-
 use std::sync::mpsc::Receiver;
 fn process_events(
 	window: &mut glfw::Window,
@@ -277,9 +209,180 @@ fn process_events(
 	}
 }
 
+struct Scene {
+	camera: Camera,
+	meshes: Vec<SimpleVAO>,
+	mesh_grid: SimpleVAO,
+}
+
+struct Cursor {
+	pos_x: f32,
+	pos_y: f32,
+	mov_x: f32,
+	mov_y: f32,
+}
+
+impl Cursor {
+	fn update(&mut self, x: f64, y: f64) {
+		self.mov_x = (x as f32) - self.pos_x;
+		self.mov_y = (y as f32) - self.pos_y;
+		self.pos_x = x as f32;
+		self.pos_y = y as f32;
+	}
+}
+
+struct RenderState {
+	frame_id: i64,
+	shader_random: ShaderRandom,
+	shader_solid_color: ShaderSolidColor,
+}
+
+impl RenderState {
+	fn begin(&mut self) {
+		self.frame_id = self.frame_id + 1;
+	}
+	fn end(&mut self) {}
+	
+	fn reset(&mut self) {
+		self.frame_id = 0;
+	}
+}
+
+struct ShaderRandom {
+	shader_program: render_gl::Program,
+	uniform_matrix: i32,
+	uniform_time: i32,
+}
+impl ShaderRandom {
+	fn new(res: &Resources) -> Result<ShaderRandom, TCGE::client::render_gl::Error> {
+		let shader_program = render_gl::Program::from_res(&res, "shaders/triangle")?;
+		let uniform_matrix = shader_program.uniform_location("transform");
+		let uniform_time = shader_program.uniform_location("time");
+		Ok(ShaderRandom {
+			shader_program,
+			uniform_matrix,
+			uniform_time
+		})
+	}
+}
+
+struct ShaderSolidColor {
+	shader_program: render_gl::Program,
+	uniform_matrix: i32,
+	uniform_color: i32,
+}
+impl ShaderSolidColor {
+	fn new(res: &Resources) -> Result<ShaderSolidColor, TCGE::client::render_gl::Error> {
+		let shader_program = render_gl::Program::from_res(&res, "shaders/solid-color")?;
+		let uniform_matrix = shader_program.uniform_location("transform");
+		let uniform_color = shader_program.uniform_location("color");
+		Ok(ShaderSolidColor {
+			shader_program,
+			uniform_matrix,
+			uniform_color
+		})
+	}
+}
+
+fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32, i32), now: f64, _interpolation:f32) {
+	unsafe {
+		gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+		gl::Enable(gl::DEPTH_TEST);
+		gl::CullFace(gl::FRONT);
+		gl::Enable(gl::CULL_FACE);
+	}
+	
+	println!("Render Frame [ id: {}, size: {} x {}, time: {}, delta: {}]",
+		render_state.frame_id, size.0, size.1, now, _interpolation
+	);
+	
+	let camera_transform = camera.transform(size, _interpolation, true);
+	
+	let shader_solid_color = &render_state.shader_solid_color;
+	let grid_color = cgmath::Vector4 {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
+	shader_solid_color.shader_program.set_used();
+	shader_solid_color.shader_program.uniform_matrix4(shader_solid_color.uniform_matrix, camera_transform);
+	shader_solid_color.shader_program.uniform_vector4(shader_solid_color.uniform_color, grid_color);
+	scene.mesh_grid.draw(gl::LINES);
+	
+	let shader_random = &render_state.shader_random;
+	shader_random.shader_program.set_used();
+	shader_random.shader_program.uniform_matrix4(shader_random.uniform_matrix, camera_transform);
+	shader_random.shader_program.uniform_scalar(shader_random.uniform_time, now as f32);
+	
+	for mesh in scene.meshes.iter() {
+		mesh.draw(gl::TRIANGLES);
+	}
+}
+
 struct SimpleVAO {
 	handle: gl::types::GLuint,
 	count: i32,
+}
+impl SimpleVAO {
+	fn draw(&self, mode: u32) {
+		unsafe {
+			gl::BindVertexArray(self.handle);
+			gl::DrawArrays(mode, 0, self.count);
+		}
+	}
+}
+
+fn geometry_grid() -> SimpleVAO {
+	let mut vertices: Vec<f32> = vec![];
+	
+	let range: i32 = 256;
+	let size: f32 = range as f32;
+	
+	for x in -range .. range {
+		vertices.extend(&vec![
+			-size, 0.0, x as f32,
+			 size, 0.0, x as f32
+		]);
+		vertices.extend(&vec![
+			x as f32, 0.0, -size,
+			x as f32, 0.0, size
+		]);
+	}
+	
+	let mut vbo: gl::types::GLuint = 0;
+	
+	unsafe {
+		gl::GenBuffers(1, &mut vbo);
+	}
+	
+	unsafe {
+		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+		gl::BufferData(
+			gl::ARRAY_BUFFER,
+			(vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+			vertices.as_ptr() as *const gl::types::GLvoid,
+			gl::STATIC_DRAW
+		);
+		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+	}
+	
+	let mut vao: gl::types::GLuint = 0;
+	unsafe {
+		gl::GenVertexArrays(1, &mut vao);
+		gl::BindVertexArray(vao);
+		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+		gl::EnableVertexAttribArray(0);
+		gl::VertexAttribPointer(
+			0,
+			3,
+			gl::FLOAT, gl::FALSE,
+			(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
+			std::ptr::null()
+		);
+		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+		gl::BindVertexArray(0);
+	}
+	
+	SimpleVAO {
+		handle: vao,
+		count: (vertices.len()/2) as i32
+	}
 }
 
 fn geometry_test() -> SimpleVAO {
@@ -412,9 +515,13 @@ impl Camera {
 		self.position_last.clone_from(& self.position);
 		self.velocity_last.clone_from(& self.velocity);
 		
-		let move_speed = 0.5;
+		let mut move_speed = 0.5;
 		
 		if window.get_key(Key::LeftShift) == Action::Press {
+			move_speed = move_speed * 4.0;
+		}
+		
+		if window.get_key(Key::LeftControl) == Action::Press {
 			self.position += Vector3::new(0.0, -1.0, 0.0) * move_speed;
 		}
 		if window.get_key(Key::Space) == Action::Press {

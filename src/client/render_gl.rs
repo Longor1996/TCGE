@@ -112,12 +112,21 @@ impl Program {
     }
 
     pub fn uniform_scalar(&self, uniform: i32, value: f32) {
+        if uniform == -1 {return}
         unsafe {
             gl::Uniform1f(uniform, value)
         }
     }
+    
+    pub fn uniform_vector4(&self, uniform: i32, vector: cgmath::Vector4<f32>) {
+        if uniform == -1 {return}
+        unsafe {
+            gl::Uniform4fv(uniform, 1, vector.as_ptr())
+        }
+    }
 
     pub fn uniform_matrix4(&self, uniform: i32, matrix: cgmath::Matrix4<f32>) {
+        if uniform == -1 {return}
         unsafe {
             gl::UniformMatrix4fv(uniform, 1, gl::FALSE, matrix.as_ptr())
         }
