@@ -1,423 +1,205 @@
-/* Caskeda Data Markup Language | Complex Data Markup Language
-	
-	Notes:
-	- This file format definition uses a specialized dialect of EBNF.
-	- This format always uses the UTF-8 encoding.
-	- This format always uses Unix line terminators (`\n`).
-	- This format can be parsed in a streaming fashion:
-		- With 3 characters of lookahead.
-		- Without backtracking.
-		- Without stream seeking.
-	- This format can be read as a continous stream of data and code, if needed.
-	- This format can contain both data and code, as the two are interchangeable.
-	- This format is a superset of JSON.
-	- This format is effectively a LISP.
-	- This format is called CDML.
-	- `application/cdml`
-	- `*.cdml`
-	
-	Usecases:
-	- Data Driven Programming
-	- Configuration Files
-	- Application Logging
-	- ...
-	
-	A parser MUST provide the following OPTIONS:
-	- Type-Tags callbacks
-	- Expression callbacks
-	- Bitstring callbacks
-	- Ignore Key case-ing
-	- Global string table
-	- Skip raw-data section
-	- Maximum nesting depth
-	
-	A parser MUST return the following DATA:
-	- The 'header'.
-	- The 'stream'; either as list or iterator.
-	- The 'raw data'; as a array or buffer of bytes.
-	
-	A parser SHOULD return the following METADATA:
-	- The total amount of nodes parsed.
-	- The deepest node nesting depth.
-	- The amount of lines, excluding raw data.
-	- The longest encountered line length, excluding raw data.
-	
-	A parser MUST NOT return the following:
-	- The shebang (skip it).
-	- Any and all comments.
-	- Invalid UTF-8 codepoints.
-*/
+/*
 
-// entrypoint for parsing
++-------------------------------------+
+| Caskeda Data Markup Language (CDML) |
++-----------+-------------------------+
+| Extension | `.cdml`                 |
+| Type Code | `TEXT`                  |
+| Mime-Type | `application/cdml`      |
+| Website   | https://longor.net/cdml |
++-----------+-------------------------+
+
+CDML is a data/file format for storing and moving complex data,
+while it keeping friendly for both humans and computers to read.
+
+- CDML is *always* encoded as UTF-8 plaintext with unix line-separators.
+	- Note: UTF-8 without Byte-Order-Mark.
+
+- CDML is a partial (!) superset of JSON, so any parser for it
+	should also be able to read JSON files.
+
+- The inherent structure of the 'stream' section can be used to
+	store/process streaming data, such as log files and progressive assets.
+
+- As defined by the grammar, any parser will need to be able to look-ahead
+	at least 3 codepoints, without backtracking or stream seeking.
+
+---
+
+Any valid parser for CDML must:
+
+- Have callbacks for type-tags, raw strings and expressions.
+- Let the consumer of the data ignore the casing of keys.
+- Have a flag to ignore processing of the 'raw' section.
+- Provide a way to set a string-interning table to reduce memory waste.
+- Allow setting a maximum nesting depth to prevent overflows.
+
+- Return the following data:
+	- The header section of a CDML file as is.
+	- The stream section of a CDML file as a (lazy?) list of nodes.
+	- The raw section of a CDML file (if asked to) as buffer of bytes.
+
+- Provide the following metadata:
+	- The total amount of parsed nodes in the file.
+	- The greatest depth encountered in the hierarchy.
+	- The amount of bytes & lines read, excluding raw data.
+
+- Never return the shebang (if there is one) or any and all line-comments.
+
+- Immediately stop parsing if a invalid UTF-8 codepoint is encountered.
+
+---
+
+This grammmar file uses a slightly specialized dialect of EBNF.
+
+*******************************************************************************/
+
 #ENTRYPOINT
-file: (shebang|compress)? header stream raw
-	shebang: '#' (.-\n)*    // For interpreter/bash passtrough.
-	header: map|graph|table // For real data or metadata; must exist.
-	stream: node_outer*     // A streamable undelimited list of nodes.
-	raw:';;;' (.-\n)* .*    // Raw bytes until the end of the file/stream.
+file: shebang? header stream raw
+	shebang: '#' (.*?) \n
+	header:  struct_dict
+	stream:  (node_wrap [;\n])*
+	raw:     ';;;' (.*?) \n .*
 
-// between any two terms not separated by the '~'-operator.
-#BETWEEN_TOKENS {
-	whitespace: \s* // all whitespace is skipped by the parser
-	linecomment: '//' (.-\n)* \n // line comments are skipped by the parser
-	// no block comments makes parsing easier! the format is nested enough as is.
-}
+#BETWEEN_TOKENS:
+	whitespace: \s*
+	comments: '//' (.*?) \n
 
-// Primary parsing fork
-node_outer: node_type* node_inner node_pair?
-	node_type: '#'~bareword
-	node_pair: '~' node_inner
-node_inner: value | struct | expression
+/******************************************************************************/
 
-// Value fork
+// wrapper for generic node structure
+node_wrap: node_type? node_data node_combi
+
+// additional node data
+node_type: '#' string_bare
+node_combi: node_pair?
+	node_pair: '&' node_data
+
+// nodes can have names
+node_key:
+	| string_bare
+	| string_quote1
+	| string_quote2
+
+// the actual node/item
+node_data:
+	| value
+	| struct
+	| expression
+
+/******************************************************************************/
+
 value:
-	: undefined
-	: nothing
-	: boolean
-	: numberword // excluded from barewords
-	: number
-	: instant
-	: duration
-	: bareword
-	: esc_string
-	: raw_string
-	: bit_string
+	| value_undefined
+	| value_nothing
+	| value_boolean
+	| value_numword
+	| value_number
+	| value_string
 
-// Structure fork
 struct:
-	: map
-	: list
-	: dual
-	: path
-	: graph
-	: table
+	| struct_dict
+	| struct_list
+	| struct_path
+	| struct_obj
+	| struct_graph
+	| struct_table
 
-/* expressions (parser callbacks)
-	A parser callback accepts a array of CDML-Values and returns a CDML-Value.
-	
-	(box 1 1 1 3 3 3)
-	(rgb 255 255 255)
-	(if os-name eq 'windows' ...)
-	(msg "Hi!" width=16 height=9)
-	
-	- Any character-sequence, excluding whitespace, is allowed as operator.
-	- There can be named parameters by writing a bareword and a equal-sign.
-	- There can be, at most, up to 255 parameters.
-*/
-expression: '(' operator posparam* keyparam* ')'
-	operator: .*? \s
-	posparam: node_outer ','?
-	keyparam: bareword '=' node_outer ','?
+expression: '(' expression_op expression_arg_pos* expression_arg_key* ')'
+	expression_op: .*? \s
+	expression_arg_pos: node_wrap
+	expression_arg_key: string_bare '=' (node_data node_combi)
 
 /******************************************************************************/
-// value nodes
 
-/* undefined (void/infer)
-	A space that *should* be filled in.
-*/
-undefined: '_'
+value_undefined: '_'
 
-/* nothing (null/none/nil)
-	The accepted/known absence of a value.
-*/
-nothing: 'null'
+value_nothing: 'null'
 
-/* booleans (bits/flags/toggles)
-	Is either TRUE or FALSE.
-	
-	true
-	false
-*/
-boolean: 'true' | 'false'
+value_boolean:
+	| 'true'
+	| 'false'
 
-/* A bareword is a string without quotes, delimited only by whitespace.
-	It must start with a letter, and may only contain letters and `-_.`
-	
-	normal-string
-	normal_string
-	normal.string
-*/
-bareword: \L (\L|'-'|'_'|'.')*
+value_numword:
+	| 'pi'
+	| 'euler'
+	| 'sqrt2'
+	| 'infinity'
+	| 'infinite'
+	| 'NaN'
 
-/* numbers
-	0  +1  -1  42
-	+12345 -12345
-	
-	// decimals
-	0.00001   0.12345   3.14159
-	
-	// exponent
-	1.4e+10   1.9e-10   10e+100
-	
-	// leading zeroes
-	00000001  00012345
-	
-	// units (no built-ins)
-	1#m  1#kg 1#ms 1#psi
-	1#ly 1#em 1#px 1#dpi
-	
-	// units without type tag (only for decimal digit mode)
-	1m  1kg 1ms 1psi
-	1ly 1em 1pt 1dpi
-*/
-number: sign? (integer decimal? powerof? unit? | numberword)
-	integer: digits
-	decimal: '.' digits10
-	powerof: [eE^] sign digits
-	unit: ('#' #IF_DEC)?~bareword
-	sign: [+-]
+value_number: num_sign? (value_numword | num_int num_dec? num_pow? num_unit?)
+	num_sign: '+' | '-'
+	num_int: digits
+	num_dec: '.' digits10
+	num_pow: [eE^] sign? digits
+	num_unit: #IF_PRE (digits16)
+		#THEN: '#' string_bare
+		#ELSE: string_bare
 
-/* numberwords
-	A numberword is a bareword, directly converted into a number by the parser.
-	They are completely excluded from the unlimited set of possible barewords.
-*/
-numberword: 'pi' | 'euler' | 'infinity' | 'infinite' | 'notanumber'
+digits:
+	| digits2
+	| digits8
+	| digits10
+	| digits16
 
-/* number bases (examples)
-	0b01
-	0o01234567
-	0d0123456789
-	0x0123456789abcdef
-	0x0123456789ABCDEF
-*/
-digits: digits2 | digits8 | digits10 | digits16
-	digits2:  '0b'  <[01]>+ // dual|binary, base 2
-	digits8:  '0o'  <[01234567]>+ // octal, base 8
-	digits10: '0d'? <[0123456789]>+ // decimal, base 10
-	digits16: '0x'  <[0123456789ABCDEFabcdef]>+ // hexadecimal, base 16
+// concrete digits definition
+digits2:  '0b'  [_01]+         // base 2:  dual|binary
+digits8:  '0o'  [_01234567]+   // base 8:  octal
+digits10: '0d'? [_0123456789]+ // base 10: decimal
+digits16: '0x'  [_0123456789ABCDEFabcdef]+ // base 16: hexadecimal
 
-/* instants in time (timestamps; using UTC)
-	@2017-03-03T18:44:00Z+01:00
-	@T18:44:00Z+01:00
-	@2017-03-03
-	@Z+01:00
-*/
-instant: '@' date? time? zone?
-	date: digits '-' digits{2} '-' digits{2}
-	time: 'T' digits{2} >> ':' digits{2} >> ':' digits{2} >> '.' digits
-	zone: 'Z' [+-]? digits{2} >> ':' digits{2}
+value_string:
+	| string_bare
+	| string_quote1
+	| string_quote2
+	| string_embed
 
-/* durations of time (all deltas)
-	Any part of a duration can be left out.
-	
-	@@2018Y-10M-21D-19h-13m-37s
-*/
-duration: '@@' Tn Tyears Tquarts Tmonths Tweeks Tdays ...
-	... Thours Tminutes Tseconds Tmillis Tmicros Tnanos
-	Tn: '-'?
-	Tyears:   (\d+ 'Y' '-'?)?  // ~365.25 days
-	Tquartrs: (\d+ 'Q' '-'?)?  // 3 months
-	Tmonths:  (\d+ 'M' '-'?)?  // ~30 days
-	Tweeks:   (\d+ 'W' '-'?)?  // 7 days
-	Tdays:    (\d+ 'D' '-'?)?  // ~24 hours
-	Thours:   (\d+ 'h' '-'?)?  // 60 minutes
-	Tminutes: (\d+ 'm' '-'?)?  // 60 seconds
-	Tseconds: (\d+ 's' '-'?)?  // 1 standard second
-	Tmillis:  (\d+ 'ms' '-'?)? // 1:1000 a second
-	Tmicros:  (\d+ 'us' '-'?)? // 1:1000000 a second
-	Tnanos:   (\d+ 'ns')?      // 1:1000000000 a second
-
-/*
-	"string"
-*/
-esc_string: '"' (.-'"')* '"'
-
-/*
-	'string'
-*/
-raw_string: "'" (.-"'")* "'"
-
-/* fmt `bit string`
-	
-	Example formats (not part of the parser!):
-		str` ... ` // plain multiline [str]ing
-		x` ... ` // base16 bytes // he[x]-a-decimal
-		w` ... ` // base64 bytes // [w]eb-a-decimal
-		xz` ... ` // base16 bytes // he[x]-a-decimal compressed
-		wz` ... ` // base64 bytes // [w]eb-a-decimal compressed
-*/
-bit_string: bareword (bit_string_one | bit_string_tri)
-	bit_string_one: "`" (.-"`")* "`"
-	bit_string_tri: "```" (.-"```")* "```"
-
-key_string: bareword | esc_string | raw_string
+// concrete strings definition
+string_bare: \l (\l|[_.-])*
+string_quote1: "'" (.-"'")* "'"
+string_quote2: '"' (.-'"')* '"'
+string_embed: string_bare? (string_embed_q1 | string_embed_q3)
+	string_embed_q1: "`" (.-"`")* "`"
+	string_embed_q3: "```" (.-"```")* "```"
 
 /******************************************************************************/
-// struct nodes
 
-/* plain object/map/record/key-values
-	{}
-	{,}
-	{a 3}
-	{a:3}
-	{a 3,}
-	{a:3,}
-	{a:3,b:3}
-	{a 3,b 3}
-	
-	{
-		a: 1
-		b: 2
-		c: 3
-	}
-	
-	// This works only if all tokens are properly terminated
-	{
-		a [wow]
-		b {wow 2}
-		c /wow/3
-	}
-*/
-map: '{' (map_item ','?)* '}'
-	map_item: map_key ':'? map_val
-	map_key: key_string
-	map_val: node_outer
+struct_dict: '{' dict_item* '}'
+	dict_item: node_key ':' node_wrap [,\n]
 
-/* plain list/array/enumeration
-	[]
-	[,]
-	[1]
-	[1 2 3]
-	[1,2,3]
-	[1,2,3,]
-	[1, 2 3,]
-	
-	[
-		1
-		2
-		3
-	]
-*/
-list: '[' (node_outer ','?)* ']'
+struct_list: '[' list_item ']'
+	list_item: node_wrap [,\n]
 
-/* dual
-	<>
-	
-	// attributes (plain object)
-	<a:3 b:2 c:1>
-	<a:3,b:2,c:1>
-	
-	// attributes and values ('dual' object/list)
-	<a:3 b:2 c:1 ; 1 2 3>
-	<a:3 b:2 c:1 ; 1,2,3>
-	<a:3,b:2,c:1 ; 1 2 3>
-	<a:3,b:2,c:1 ; 1,2,3>
-	
-	// values (plain list)
-	<; 1 2 3>
-	<; 1,2,3>
-	
-	// attributes at start/end allowed
-	<a:3,b:2,c:1 ; 1 2 3 ; d:4,e:5,f:6>
-	<a:3,b:2,c:1 ; 1,2,3 ; d:4,e:5,f:6>
-*/
-dual: '<' dual_attrbs? dual_childs? ~ (';' dual_attrbs)? '>'
-	dual_attrbs: (key_string ':' node_outer ','?)*
-	dual_childs: ';' (node_outer ','?)*
+struct_path: '/' path_component struct_path?
+	path_component: path_virtual? node_wrap
+	path_virtual: ':'
 
-/* path
-	/a/b/c/1/2/3
-*/
-path: '/' node_outer path?
+struct_obj: '<' obj_attributes? obj_children? (';' obj_attributes)? '>'
+	obj_attributes: obj_attribute*
+		obj_attribute: node_key ':' node_wrap [,\n]
+	obj_children: ';' (node_wrap [,\n])*
 
-/* table (object of parallel arrays)
-	{[ a b c {primary: a};
-		1 2 3;
-		1,2 3;
-		1,2,3;
-	]}
-*/
-table: '{[' table_head table_meta ';' table_body ']}'
-	table_head: key_string+
-	table_meta: map?
-	table_body: ((node_outer ','?)+ ';')*
+struct_table: '<[' table_head table_meta ';' table_rows ']>'
+	table_head: node_key+
+	table_meta: struct_dict?
+	table_rows: (table_row ';')*
+	table_row:  node_wrap
 
-/* graph (object of nodes and edges)
-	{< {};
-		NODE,
-		NODE: VAL,
-		NODE: VAL;
-		NODE NODE,
-		NODE NODE: =VAL +=VAL -=VAL,
-		EDGE NODE NODE,
-		EDGE NODE NODE: =VAL +=VAL -=VAL,
-	>}
-*/
-graph: '{<' ng_head ';' ng_nodes ';' ng_edges '>}'
-	ng_head: map?
-	ng_node_name: key_string
-	ng_nodes: (ng_node ',')*
-		ng_node: ng_node_name (':' node_outer)?
-	ng_edges: (ng_edge ',')*
-		ng_edge: ng_edge_name ng_node_name ng_node_name (':' ng_edge_values)?
-		ng_edge_name:  key_string?
-		ng_edge_values: ('=' node_outer)? ('+=' node_outer)? ('+=' node_outer)?
+struct_graph: '<{' graph_head ';' graph_nodes ';' graph_edges '}>'
+	graph_head:  graph_attr*
+		graph_attr: node_key ':' node_wrap [,\n]
+	// define nodes
+	graph_nodes: graph_node*
+		graph_node: node_key graph_node_value? [,\n]
+			graph_node_value: ':' node_wrap
+	// define edges
+	graph_edges: graph_edge*
+		graph_edge: node_key? (node_key node_key) graph_edge_vals? [,\n]
+			// define edge value-positions
+			graph_edge_vals: ':'\
+				('+=' node_wrap)?\
+				('-=' node_wrap)?\
+				('=' node_wrap)?
 
 /******************************************************************************/
-/* // Listing of examples...
-
-_    // unit|infer
-null // 'nothing'
-true false // boolean logic
-pi euler infinity notanumber // number words
-
-// plain numbers
-1234567890
-12345.6789
-1.4e+10
-1.9e-10
-
-// numbers with bases
-0b01
-0o01234567
-0d0123456789
-0x0123456789abcdef
-0x0123456789ABCDEF
-
-// timestamps
-@2017-03-03T18:44:00Z+01:00
-@T18:44:00Z+01:00
-@Z+01:00
-
-// numbers can have units
-90#deg
-1024#px
-1.0#em
-
-// strings (single word)
-normal-string
-normal_string
-// strings (multiline)
-'normal string'
-"normal string"
-
-// binary strings (examples)
-b16`012345678` // base16
-b64`012345678` // base64
-b85`012345678` // base85
-
-{a : 3} // Map
-[1 2 3] // List
-<a : 3; 1 2 3>  // Dual
-/a/b/c/1/2/3    // Path
-{[a b c; 1 2 3;1 2 3]} // table
-{<;a,b,c; a b, a c>}   // graph
-
-// Type Tags
-#thing VALUE
-#thing 12345
-#thing [1 2]
-#thing "Wow"
-#thing <; _>
-
-// Expression
-(+ 1 3)
-(rgb 255 255 255)
-(dialog "Hello, World!" color=red modal=false)
-
-// Ranges and/or Pairs
-1 ~ 2
-
-;;; Here comes the raw data section...
-4i8ic5734o89c5739597m508mxc0924mc859234
-*/
