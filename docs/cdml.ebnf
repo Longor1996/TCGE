@@ -16,13 +16,14 @@ while it keeping friendly for both humans and computers to read.
 	- Note: UTF-8 without Byte-Order-Mark.
 
 - CDML is a partial (!) superset of JSON, so any parser for it
-	should also be able to read JSON files.
+	should also be able to read JSON files, for the most part.
 
-- The inherent structure of the 'stream' section can be used to
-	store/process streaming data, such as log files and progressive assets.
+- The inherent structure of the 'stream' section can be used to store
+	and process streaming data, such as log files and progressive assets.
 
-- As defined by the grammar, any parser will need to be able to look-ahead
-	at least 3 codepoints, without backtracking or stream seeking.
+- As defined by the grammar, any parser needs to be able to look-ahead
+	at least 3 bytes, without need of backtracking or random access.
+	This characteristic makes extremely fast parsing possible.
 
 ---
 
@@ -54,6 +55,7 @@ This grammmar file uses a slightly specialized dialect of EBNF.
 
 *******************************************************************************/
 
+
 #ENTRYPOINT
 file: shebang? header stream raw
 	shebang: '#' (.*?) \n
@@ -61,19 +63,24 @@ file: shebang? header stream raw
 	stream:  (node_wrap [;\n])*
 	raw:     ';;;' (.*?) \n .*
 
+
 #BETWEEN_TOKENS:
 	whitespace: \s*
 	comments: '//' (.*?) \n
 
+
 /******************************************************************************/
+
 
 // wrapper for generic node structure
 node_wrap: node_type? node_data node_combi
 
+
 // additional node data
-node_type: '#' string_bare
+node_type: '#' string_bare // CALLBACK(typeTags: Vec<&str>) -> CdmlNode
 node_combi: node_pair?
 	node_pair: '&' node_data
+
 
 // nodes can have names
 node_key:
@@ -81,13 +88,16 @@ node_key:
 	| string_quote1
 	| string_quote2
 
+
 // the actual node/item
 node_data:
 	| value
 	| struct
 	| expression
 
+
 /******************************************************************************/
+
 
 value:
 	| value_undefined
@@ -97,6 +107,7 @@ value:
 	| value_number
 	| value_string
 
+
 struct:
 	| struct_dict
 	| struct_list
@@ -105,20 +116,27 @@ struct:
 	| struct_graph
 	| struct_table
 
+
+// CALLBACK(op: &str, posArgs: Vec<CdmlNode>, keyArgs: Map<...>) -> CdmlNode
 expression: '(' expression_op expression_arg_pos* expression_arg_key* ')'
 	expression_op: .*? \s
 	expression_arg_pos: node_wrap
 	expression_arg_key: string_bare '=' (node_data node_combi)
 
+
 /******************************************************************************/
+
 
 value_undefined: '_'
 
+
 value_nothing: 'null'
+
 
 value_boolean:
 	| 'true'
 	| 'false'
+
 
 value_numword:
 	| 'pi'
@@ -127,6 +145,8 @@ value_numword:
 	| 'infinity'
 	| 'infinite'
 	| 'NaN'
+
+
 
 value_number: num_sign? (value_numword | num_int num_dec? num_pow? num_unit?)
 	num_sign: '+' | '-'
@@ -143,12 +163,14 @@ digits:
 	| digits10
 	| digits16
 
-// concrete digits definition
 digits2:  '0b'  [_01]+         // base 2:  dual|binary
 digits8:  '0o'  [_01234567]+   // base 8:  octal
 digits10: '0d'? [_0123456789]+ // base 10: decimal
 digits16: '0x'  [_0123456789ABCDEFabcdef]+ // base 16: hexadecimal
 
+
+
+// Various ways to write a string: bare, quoted (single/double) and 'raw'
 value_string:
 	| string_bare
 	| string_quote1
@@ -159,33 +181,54 @@ value_string:
 string_bare: \l (\l|[_.-])*
 string_quote1: "'" (.-"'")* "'"
 string_quote2: '"' (.-'"')* '"'
+
+// CALLBACK(format: &str, buffer: Vec<u8>) -> CdmlNode
 string_embed: string_bare? (string_embed_q1 | string_embed_q3)
 	string_embed_q1: "`" (.-"`")* "`"
 	string_embed_q3: "```" (.-"```")* "```"
 
+
 /******************************************************************************/
 
+
+// 'Dict'-Struct: A collection of values with a string-index.
 struct_dict: '{' dict_item* '}'
 	dict_item: node_key ':' node_wrap [,\n]
 
+
+// 'List'-Struct: A collection of values with a 0-based number-index.
 struct_list: '[' list_item ']'
 	list_item: node_wrap [,\n]
 
+
+// 'Path'-Struct: A linked list of values, some of which may be 'virtual'.
 struct_path: '/' path_component struct_path?
 	path_component: path_virtual? node_wrap
 	path_virtual: ':'
 
+
+
+// The following structures are 'complex'.
+// That means they could be replicated trough 'simple' structures,
+// without loosing out on anything but conciseness and performance.
+
+
+// 'Object'-Struct: For storing a bag of attributes and values, like XML does.
 struct_obj: '<' obj_attributes? obj_children? (';' obj_attributes)? '>'
 	obj_attributes: obj_attribute*
 		obj_attribute: node_key ':' node_wrap [,\n]
 	obj_children: ';' (node_wrap [,\n])*
 
+
+// 'Table'-Struct: For storing a header of columns and a bag of same-size rows.
 struct_table: '<[' table_head table_meta ';' table_rows ']>'
 	table_head: node_key+
 	table_meta: struct_dict?
 	table_rows: (table_row ';')*
 	table_row:  node_wrap
 
+
+// 'Graph'-Struct: For storing a complex graph of nodes and edges with values.
 struct_graph: '<{' graph_head ';' graph_nodes ';' graph_edges '}>'
 	graph_head:  graph_attr*
 		graph_attr: node_key ':' node_wrap [,\n]
