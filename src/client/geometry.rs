@@ -175,15 +175,32 @@ pub fn geometry_test() -> SimpleVao {
 
 struct SimpleVaoBuilder {
 	vertices: Vec<f32>,
-	// texcoord: Vec<f32>,
+	texcoord: Vec<f32>,
 }
 
 impl SimpleVaoBuilder {
 	
 	pub fn new() -> SimpleVaoBuilder {
 		SimpleVaoBuilder {
-			vertices: vec![]
+			vertices: vec![],
+			texcoord: vec![],
 		}
+	}
+	
+	pub fn push_vertex(&mut self, x: f32, y: f32, z: f32) {
+		self.vertices.push(x);
+		self.vertices.push(y);
+		self.vertices.push(z);
+		self.vertices.push(0.0);
+		self.vertices.push(0.0);
+	}
+	
+	pub fn push_vertex_with_uv(&mut self, x: f32, y: f32, z: f32, u: f32, v: f32) {
+		self.vertices.push(x);
+		self.vertices.push(y);
+		self.vertices.push(z);
+		self.vertices.push(u);
+		self.vertices.push(v);
 	}
 	
 	pub fn push_vertices(&mut self, mut other: Vec<f32>) {
@@ -191,7 +208,14 @@ impl SimpleVaoBuilder {
 			panic!("Attempted to push non-trinary vertex.");
 		}
 		
-		self.vertices.append(&mut other);
+		let num = other.len() / 3;
+		for i in 0..num {
+			self.push_vertex(
+				other[i*3+0],
+				other[i*3+1],
+				other[i*3+2]
+			);
+		}
 	}
 	
 	pub fn push_quads(&mut self, mut quad: Vec<f32>) {
@@ -205,21 +229,19 @@ impl SimpleVaoBuilder {
 		- C = 6 7 8
 		- D = 9 10 11
 		*/
-		self.push_vertices(vec![
-			quad[0], quad[1], quad[2],
-			quad[3], quad[4], quad[5],
-			quad[9], quad[10], quad[11],
-			quad[3], quad[4], quad[5],
-			quad[6], quad[7], quad[8],
-			quad[9], quad[10], quad[11]
-		]);
+		self.push_vertex_with_uv(quad[0], quad[1],  quad[2],  0.0, 0.0); // A
+		self.push_vertex_with_uv(quad[3], quad[4],  quad[5],  1.0, 0.0); // B
+		self.push_vertex_with_uv(quad[9], quad[10], quad[11], 0.0, 1.0); // D
+		self.push_vertex_with_uv(quad[3], quad[4],  quad[5],  1.0, 0.0); // B
+		self.push_vertex_with_uv(quad[6], quad[7],  quad[8],  1.0, 1.0); // C
+		self.push_vertex_with_uv(quad[9], quad[10], quad[11], 0.0, 1.0); // D
 	}
 	
 	pub fn build(&self) -> SimpleVao {
-		let mut vbo: gl::types::GLuint = 0;
+		let mut vbo_vertex: gl::types::GLuint = 0;
 		unsafe {
-			gl::GenBuffers(1, &mut vbo);
-			gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+			gl::GenBuffers(1, &mut vbo_vertex);
+			gl::BindBuffer(gl::ARRAY_BUFFER, vbo_vertex);
 			gl::BufferData(
 				gl::ARRAY_BUFFER,
 				(self.vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
@@ -233,16 +255,28 @@ impl SimpleVaoBuilder {
 		unsafe {
 			gl::GenVertexArrays(1, &mut vao);
 			gl::BindVertexArray(vao);
-			gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+			gl::BindBuffer(gl::ARRAY_BUFFER, vbo_vertex);
+			
 			gl::EnableVertexAttribArray(0);
 			gl::VertexAttribPointer(
 				0,
 				3,
 				gl::FLOAT,
 				gl::FALSE,
-				(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-				std::ptr::null()
+				(5 * std::mem::size_of::<f32>()) as gl::types::GLint,
+				(0 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
 			);
+			
+			gl::EnableVertexAttribArray(1);
+			gl::VertexAttribPointer(
+				1,
+				2,
+				gl::FLOAT,
+				gl::FALSE,
+				(5 * std::mem::size_of::<f32>()) as gl::types::GLint,
+				(3 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+			);
+			
 			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 			gl::BindVertexArray(0);
 		}
