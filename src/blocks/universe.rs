@@ -1,3 +1,10 @@
+/*
+	This file defines the 'universe' of blocks.
+	Its simply the definition of blocks and their states.
+	
+	TODO: Load the universe from a file.
+*/
+
 pub struct BlockUniverse {
 	blocks: Vec<Block>,
 }
@@ -48,6 +55,3 @@ pub fn define_universe() -> BlockUniverse {
 		]
 	}
 }
-
-// TODO: Load the universe (block definitions) from a file.
-

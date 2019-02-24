@@ -1,3 +1,9 @@
+/*
+	This file defines a free-flying camera for debugging purposes.
+	
+	TODO: Integrate the debug-camera with the ECS once it comes up.
+*/
+
 extern crate glfw;
 use self::glfw::{Key, Action};
 

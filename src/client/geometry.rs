@@ -1,3 +1,11 @@
+/*
+	This file contains functions to generate geometry of various kinds.
+	it also contains the SimpleVAO-struct for easy rendering.
+	
+	TODO: Move some of the duplicated code for mesh-creation into SimpleVAO.
+	-OR-: Create some kind of 'VAO Builder' to make the process simpler.
+*/
+
 extern crate cgmath;
 extern crate gl;
 

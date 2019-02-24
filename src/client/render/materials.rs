@@ -1,3 +1,7 @@
+/*
+	This file contains basic materials/shaders for rendering.
+*/
+
 use super::utility;
 use super::super::super::resources::Resources;
 

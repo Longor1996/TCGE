@@ -1,3 +1,7 @@
+/*
+	This file contains utilities for interfacing with OpenGL.
+*/
+
 use ::resources;
 use ::resources::Resources;
 use std::ffi::{CString, CStr};
@@ -171,6 +175,8 @@ impl Shader {
 		println!("Loading shader: {} . {}", name, shader_kind);
 		let source = res.load_cstring(name)
 			.map_err(|e| Error::ResourceLoad { name: name.into(), inner: e })?;
+		
+		// TODO: Allow shader-files to include other shader-files.
 		
 		println!("Compiling shader: {}", name);
 		Shader::from_source(&source, shader_kind)
