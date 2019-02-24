@@ -16,6 +16,7 @@ use TCGE::client::render;
 use TCGE::client::geometry;
 use TCGE::client::freecam;
 use TCGE::gameloop;
+use std::sync::mpsc::Receiver;
 
 fn main() {
 	println!("Hello, Client!");
@@ -48,12 +49,7 @@ fn main() {
 	println!("Goodbye!");
 }
 
-fn run() -> Result<(), failure::Error> {
-	// ------------------------------------------
-	let res = Resources::from_exe_path()?;
-	
-	// ------------------------------------------
-	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
+fn new_window(mut glfw: glfw::Glfw) -> (glfw::Window, Receiver<(f64, glfw::WindowEvent)>) {
 	
 	glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
 	glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
@@ -82,6 +78,17 @@ fn run() -> Result<(), failure::Error> {
 	
 	// ------------------------------------------
 	gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+	
+	return (window, events);
+}
+
+fn run() -> Result<(), failure::Error> {
+	// ------------------------------------------
+	let res = Resources::from_exe_path()?;
+	
+	// ------------------------------------------
+	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
+	let (mut window, events) = new_window(glfw);
 	
 	/*
 	unsafe {
