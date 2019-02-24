@@ -4,17 +4,16 @@ use std::cell::RefCell;
 
 extern crate failure;
 use failure::Fail;
-
 extern crate time;
 extern crate cgmath;
 
 extern crate glfw;
 use self::glfw::{Context, Key, Action};
-
 extern crate gl;
 
 extern crate TCGE;
 use TCGE::resources::Resources;
+use TCGE::blocks::universe;
 use TCGE::client::render_gl;
 use TCGE::gameloop;
 
@@ -93,8 +92,6 @@ fn run() -> Result<(), failure::Error> {
 	*/
 	
 	// ------------------------------------------
-	
-	// ------------------------------------------
 	let shader_grid = ShaderGrid::new(&res)?;
 	let shader_random = ShaderRandom::new(&res)?;
 	let shader_solid_color = ShaderSolidColor::new(&res)?;
@@ -109,6 +106,8 @@ fn run() -> Result<(), failure::Error> {
 	
 	let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
 	
+	let local_universe = universe::define_universe();
+	
 	let scene = Rc::new(RefCell::new(Option::Some(Scene {
 		camera: Camera {
 			position: cgmath::Vector3 {x: 0.0, y: 1.8, z: 0.0},
@@ -120,7 +119,8 @@ fn run() -> Result<(), failure::Error> {
 		},
 		meshes: vec![geometry_test()],
 		mesh_grid: geometry_grid(),
-		mesh_planequad: geometry_planequad(1024.0),
+		mesh_planequad: geometry_planequad(10.0),
+		local_universe: local_universe
 	})));
 	
 	// ------------------------------------------
@@ -217,6 +217,7 @@ struct Scene {
 	meshes: Vec<SimpleVAO>,
 	mesh_grid: SimpleVAO,
 	mesh_planequad: SimpleVAO,
+	local_universe: universe::BlockUniverse,
 }
 
 struct Cursor {
