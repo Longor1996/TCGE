@@ -144,12 +144,6 @@ fn run() -> Result<(), failure::Error> {
 			|| {glfw.get_time()},
 			
 			|_now:f64| {
-				// println!("It is now {}", now);
-				
-				scene.borrow().as_ref().map(|scene| {
-					println!("{}", scene.camera);
-				});
-				
 				scene.borrow_mut().as_mut().map(|mut_scene| {
 					mut_scene.camera.update_movement(&window);
 				});
@@ -263,9 +257,11 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, s
 		gl::Enable(gl::CULL_FACE);
 	}
 	
+	/*
 	println!("Render Frame [ id: {}, size: {} x {}, time: {}, delta: {}]",
 		render_state.frame_id, size.0, size.1, now, _interpolation
 	);
+	*/
 	
 	let camera_transform = camera.transform(size, _interpolation, true);
 	
