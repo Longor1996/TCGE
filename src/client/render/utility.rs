@@ -1,11 +1,7 @@
-extern crate std;
-extern crate gl;
-extern crate cgmath;
-extern crate image;
 use ::resources;
 use ::resources::Resources;
 use std::ffi::{CString, CStr};
-use client::render_gl::cgmath::prelude::*;
+use super::cgmath::prelude::*;
 
 #[derive(Debug, Fail)]
 pub enum Error {

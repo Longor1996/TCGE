@@ -14,7 +14,8 @@ extern crate gl;
 extern crate TCGE;
 use TCGE::resources::Resources;
 use TCGE::blocks::universe;
-use TCGE::client::render_gl;
+use TCGE::client::render;
+use TCGE::client::geometry;
 use TCGE::gameloop;
 
 fn main() {
@@ -92,9 +93,9 @@ fn run() -> Result<(), failure::Error> {
 	*/
 	
 	// ------------------------------------------
-	let shader_grid = ShaderGrid::new(&res)?;
-	let shader_random = ShaderRandom::new(&res)?;
-	let shader_solid_color = ShaderSolidColor::new(&res)?;
+	let shader_grid = render::materials::ShaderGrid::new(&res)?;
+	let shader_random = render::materials::ShaderRandom::new(&res)?;
+	let shader_solid_color = render::materials::ShaderSolidColor::new(&res)?;
 	
 	// ------------------------------------------
 	let mut render_state = RenderState {
@@ -106,7 +107,7 @@ fn run() -> Result<(), failure::Error> {
 	
 	let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
 	
-	let local_universe = universe::define_universe();
+	let block_universe = universe::define_universe();
 	
 	let scene = Rc::new(RefCell::new(Option::Some(Scene {
 		camera: Camera {
@@ -117,10 +118,9 @@ fn run() -> Result<(), failure::Error> {
 			velocity_last: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
 			rotation_last: cgmath::Vector2 {x: 0.0, y: 90.0}
 		},
-		meshes: vec![geometry_test()],
-		mesh_grid: geometry_grid(),
-		mesh_planequad: geometry_planequad(10.0),
-		local_universe: local_universe
+		meshes: vec![geometry::geometry_test()],
+		mesh_planequad: geometry::geometry_planequad(10.0),
+		block_universe: block_universe
 	})));
 	
 	// ------------------------------------------
@@ -181,10 +181,9 @@ fn run() -> Result<(), failure::Error> {
 	Ok(())
 }
 
-use std::sync::mpsc::Receiver;
 fn process_events(
 	window: &mut glfw::Window,
-	events: &Receiver<(f64, glfw::WindowEvent)>,
+	events: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
 	cursor: &mut Cursor,
 	opt_scene: &mut Option<Scene>
 ) {
@@ -214,10 +213,9 @@ fn process_events(
 
 struct Scene {
 	camera: Camera,
-	meshes: Vec<SimpleVAO>,
-	mesh_grid: SimpleVAO,
-	mesh_planequad: SimpleVAO,
-	local_universe: universe::BlockUniverse,
+	meshes: Vec<geometry::SimpleVAO>,
+	mesh_planequad: geometry::SimpleVAO,
+	block_universe: universe::BlockUniverse,
 }
 
 struct Cursor {
@@ -238,9 +236,9 @@ impl Cursor {
 
 struct RenderState {
 	frame_id: i64,
-	shader_grid: ShaderGrid,
-	shader_random: ShaderRandom,
-	shader_solid_color: ShaderSolidColor,
+	shader_grid: render::materials::ShaderGrid,
+	shader_random: render::materials::ShaderRandom,
+	shader_solid_color: render::materials::ShaderSolidColor,
 }
 
 impl RenderState {
@@ -251,57 +249,6 @@ impl RenderState {
 	
 	fn reset(&mut self) {
 		self.frame_id = 0;
-	}
-}
-
-struct ShaderRandom {
-	shader_program: render_gl::Program,
-	uniform_matrix: i32,
-	uniform_time: i32,
-}
-impl ShaderRandom {
-	fn new(res: &Resources) -> Result<ShaderRandom, TCGE::client::render_gl::Error> {
-		let shader_program = render_gl::Program::from_res(&res, "shaders/triangle")?;
-		let uniform_matrix = shader_program.uniform_location("transform");
-		let uniform_time = shader_program.uniform_location("time");
-		Ok(ShaderRandom {
-			shader_program,
-			uniform_matrix,
-			uniform_time
-		})
-	}
-}
-
-struct ShaderSolidColor {
-	shader_program: render_gl::Program,
-	uniform_matrix: i32,
-	uniform_color: i32,
-}
-impl ShaderSolidColor {
-	fn new(res: &Resources) -> Result<ShaderSolidColor, TCGE::client::render_gl::Error> {
-		let shader_program = render_gl::Program::from_res(&res, "shaders/solid-color")?;
-		let uniform_matrix = shader_program.uniform_location("transform");
-		let uniform_color = shader_program.uniform_location("color");
-		Ok(ShaderSolidColor {
-			shader_program,
-			uniform_matrix,
-			uniform_color
-		})
-	}
-}
-
-struct ShaderGrid {
-	shader_program: render_gl::Program,
-	uniform_matrix: i32
-}
-impl ShaderGrid {
-	fn new(res: &Resources) -> Result<ShaderGrid, TCGE::client::render_gl::Error> {
-		let shader_program = render_gl::Program::from_res(&res, "shaders/grid")?;
-		let uniform_matrix = shader_program.uniform_location("transform");
-		Ok(ShaderGrid {
-			shader_program,
-			uniform_matrix
-		})
 	}
 }
 
@@ -345,183 +292,6 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &Camera, size: (i32
 	
 	for mesh in scene.meshes.iter() {
 		mesh.draw(gl::TRIANGLES);
-	}
-}
-
-struct SimpleVAO {
-	handle: gl::types::GLuint,
-	count: i32,
-}
-impl SimpleVAO {
-	fn draw(&self, mode: u32) {
-		unsafe {
-			gl::BindVertexArray(self.handle);
-			gl::DrawArrays(mode, 0, self.count);
-		}
-	}
-}
-
-fn geometry_planequad(s: f32) -> SimpleVAO {
-	let vertices: Vec<f32> = vec![
-		-s, 0.0,  s,
-		 s, 0.0,  s,
-		-s, 0.0, -s,
-		 s, 0.0,  s,
-		 s, 0.0, -s,
-		-s, 0.0, -s
-	];
-	
-	let mut vbo: gl::types::GLuint = 0;
-	
-	unsafe {
-		gl::GenBuffers(1, &mut vbo);
-	}
-	
-	unsafe {
-		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-		gl::BufferData(
-			gl::ARRAY_BUFFER,
-			(vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-			vertices.as_ptr() as *const gl::types::GLvoid,
-			gl::STATIC_DRAW
-		);
-		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-	}
-	
-	let mut vao: gl::types::GLuint = 0;
-	unsafe {
-		gl::GenVertexArrays(1, &mut vao);
-		gl::BindVertexArray(vao);
-		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-		gl::EnableVertexAttribArray(0);
-		gl::VertexAttribPointer(
-			0,
-			3,
-			gl::FLOAT, gl::FALSE,
-			(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-			std::ptr::null()
-		);
-		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-		gl::BindVertexArray(0);
-	}
-	
-	SimpleVAO {
-		handle: vao,
-		count: (vertices.len()/3) as i32
-	}
-}
-
-fn geometry_grid() -> SimpleVAO {
-	let mut vertices: Vec<f32> = vec![];
-	
-	let range: i32 = 256;
-	let size: f32 = range as f32;
-	
-	for x in -range .. range {
-		vertices.extend(&vec![
-			-size, 0.0, x as f32,
-			 size, 0.0, x as f32
-		]);
-		vertices.extend(&vec![
-			x as f32, 0.0, -size,
-			x as f32, 0.0, size
-		]);
-	}
-	
-	let mut vbo: gl::types::GLuint = 0;
-	
-	unsafe {
-		gl::GenBuffers(1, &mut vbo);
-	}
-	
-	unsafe {
-		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-		gl::BufferData(
-			gl::ARRAY_BUFFER,
-			(vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-			vertices.as_ptr() as *const gl::types::GLvoid,
-			gl::STATIC_DRAW
-		);
-		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-	}
-	
-	let mut vao: gl::types::GLuint = 0;
-	unsafe {
-		gl::GenVertexArrays(1, &mut vao);
-		gl::BindVertexArray(vao);
-		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-		gl::EnableVertexAttribArray(0);
-		gl::VertexAttribPointer(
-			0,
-			3,
-			gl::FLOAT, gl::FALSE,
-			(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-			std::ptr::null()
-		);
-		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-		gl::BindVertexArray(0);
-	}
-	
-	SimpleVAO {
-		handle: vao,
-		count: (vertices.len()/2) as i32
-	}
-}
-
-fn geometry_test() -> SimpleVAO {
-	let mut vertices: Vec<f32> = vec![
-		-0.5, -0.5, -10.0,
-		0.5, -0.5, -10.0,
-		0.0, 0.5, -10.0
-	];
-	
-	vertices.extend(&vec![
-		-20.0, 0.0, -20.0,
-		0.0, 0.0,  20.0,
-		20.0, 0.0, -20.0
-	]);
-	
-	vertices.extend(&vec![
-		-5.0, 0.0, 30.0,
-		0.0, 9.0, 30.0,
-		5.0, 0.0, 30.0
-	]);
-	
-	let mut vbo: gl::types::GLuint = 0;
-	unsafe {
-		gl::GenBuffers(1, &mut vbo);
-	}
-	unsafe {
-		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-		gl::BufferData(
-			gl::ARRAY_BUFFER,
-			(vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-			vertices.as_ptr() as *const gl::types::GLvoid,
-			gl::STATIC_DRAW
-		);
-		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-	}
-	
-	let mut vao: gl::types::GLuint = 0;
-	unsafe {
-		gl::GenVertexArrays(1, &mut vao);
-		gl::BindVertexArray(vao);
-		gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-		gl::EnableVertexAttribArray(0);
-		gl::VertexAttribPointer(
-			0,
-			3,
-			gl::FLOAT, gl::FALSE,
-			(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-			std::ptr::null()
-		);
-		gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-		gl::BindVertexArray(0);
-	}
-	
-	SimpleVAO {
-		handle: vao,
-		count: (vertices.len()/3) as i32
 	}
 }
 
