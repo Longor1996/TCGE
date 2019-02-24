@@ -1,5 +1,7 @@
 /*
 	This file contains utilities for interfacing with OpenGL.
+	
+	TODO: Once CDML is implemented, rewrite loading to be more... dynamic.
 */
 
 use ::resources;
@@ -26,6 +28,7 @@ pub enum Error {
 }
 
 pub struct Program {
+	name: String,
 	id: gl::types::GLuint,
 }
 
@@ -48,11 +51,11 @@ impl Program {
 			.collect::<Result<Vec<Shader>, Error>>()?;
 		
 		println!("Compiling program: {}", name);
-		Program::from_shaders(&shaders[..])
+		Program::from_shaders(name, &shaders[..])
 			.map_err(|message| Error::LinkError { name: name.into(), message })
 	}
 	
-	pub fn from_shaders(shaders: &[Shader]) -> Result<Program, String> {
+	pub fn from_shaders(name: &str, shaders: &[Shader]) -> Result<Program, String> {
 		let program_id = unsafe { gl::CreateProgram() };
 		
 		for shader in shaders {
@@ -89,7 +92,7 @@ impl Program {
 			unsafe { gl::DetachShader(program_id, shader.id()); }
 		}
 		
-		Ok(Program { id: program_id })
+		Ok(Program { name: name.to_string(), id: program_id })
 	}
 	
 	pub fn id(&self) -> gl::types::GLuint {
@@ -109,7 +112,7 @@ impl Program {
 			let loc = gl::GetUniformLocation(self.id, cstr.as_ptr());
 			
 			if loc == -1 {
-				eprintln!("Uniform location for '{}' is invalid.", uniform_name);
+				eprintln!("Uniform location for '{}' in '{}' is invalid.", uniform_name, self.name);
 				return 0;
 			}
 			
