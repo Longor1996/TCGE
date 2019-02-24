@@ -49,7 +49,7 @@ fn main() {
 	println!("Goodbye!");
 }
 
-fn new_window(mut glfw: glfw::Glfw) -> (glfw::Window, Receiver<(f64, glfw::WindowEvent)>) {
+fn new_window(mut glfw: &glfw::Glfw) -> (glfw::Window, Receiver<(f64, glfw::WindowEvent)>) {
 	
 	glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
 	glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
@@ -88,7 +88,7 @@ fn run() -> Result<(), failure::Error> {
 	
 	// ------------------------------------------
 	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
-	let (mut window, events) = new_window(glfw);
+	let (mut window, events) = new_window(&glfw);
 	
 	/*
 	unsafe {
