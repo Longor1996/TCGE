@@ -30,7 +30,7 @@ impl Camera {
 			active: true,
 			position: cgmath::Vector3 {x: 0.0, y: 1.8, z: -3.0},
 			velocity: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
-			rotation: cgmath::Vector2 {x: 0.0, y: 90.0},
+			rotation: cgmath::Vector2 {x: 0.0, y: 0.0},
 			position_last: cgmath::Vector3 {x: 0.0, y: 1.8, z: 0.0},
 			velocity_last: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
 			rotation_last: cgmath::Vector2 {x: 0.0, y: 90.0}
