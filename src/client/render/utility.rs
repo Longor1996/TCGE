@@ -120,6 +120,13 @@ impl Program {
 		}
 	}
 	
+	pub fn uniform_sampler(&self, uniform: i32, value: gl::types::GLuint) {
+		if uniform == -1 {return}
+		unsafe {
+			gl::Uniform1i(uniform, value as i32)
+		}
+	}
+	
 	pub fn uniform_scalar(&self, uniform: i32, value: f32) {
 		if uniform == -1 {return}
 		unsafe {
@@ -255,7 +262,7 @@ fn create_whitespace_cstring_with_len(len: usize) -> CString {
 }
 
 pub struct Texture {
-	id: gl::types::GLuint,
+	pub id: gl::types::GLuint,
 	width: u32,
 	height: u32,
 	tx: f32,
@@ -292,16 +299,19 @@ impl Texture {
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 			
 			// sampling
-			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
 			
 			// uploading
 			gl::TexImage2D(gl::TEXTURE_2D,
-			               0, gl::RGB as i32,
+			               0, gl::RGBA as i32,
 			               image_width as i32, image_height as i32,
-			               0, gl::RGB, gl::UNSIGNED_BYTE,
+			               0, gl::RGBA, gl::UNSIGNED_BYTE,
 			               image.as_ptr() as *const std::ffi::c_void
 			);
+			
+			// Gen mipmaps
+			gl::GenerateMipmap(gl::TEXTURE_2D);
 		}
 		
 		Ok(Texture{
