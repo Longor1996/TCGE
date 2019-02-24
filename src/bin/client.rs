@@ -212,8 +212,8 @@ fn process_events(
 
 struct Scene {
 	camera: freecam::Camera,
-	meshes: Vec<geometry::SimpleVAO>,
-	mesh_planequad: geometry::SimpleVAO,
+	meshes: Vec<geometry::SimpleVao>,
+	mesh_planequad: geometry::SimpleVao,
 	block_universe: universe::BlockUniverse,
 }
 

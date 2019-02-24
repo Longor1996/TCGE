@@ -9,12 +9,12 @@
 extern crate cgmath;
 extern crate gl;
 
-pub struct SimpleVAO {
+pub struct SimpleVao {
 	handle: gl::types::GLuint,
 	count: i32,
 }
 
-impl SimpleVAO {
+impl SimpleVao {
 	pub fn draw(&self, mode: u32) {
 		unsafe {
 			gl::BindVertexArray(self.handle);
@@ -25,7 +25,7 @@ impl SimpleVAO {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_planequad(s: f32) -> SimpleVAO {
+pub fn geometry_planequad(s: f32) -> SimpleVao {
 	let vertices: Vec<f32> = vec![
 		-s, 0.0,  s,
 		s, 0.0,  s,
@@ -61,7 +61,8 @@ pub fn geometry_planequad(s: f32) -> SimpleVAO {
 		gl::VertexAttribPointer(
 			0,
 			3,
-			gl::FLOAT, gl::FALSE,
+			gl::FLOAT,
+			gl::FALSE,
 			(3 * std::mem::size_of::<f32>()) as gl::types::GLint,
 			std::ptr::null()
 		);
@@ -69,7 +70,7 @@ pub fn geometry_planequad(s: f32) -> SimpleVAO {
 		gl::BindVertexArray(0);
 	}
 	
-	SimpleVAO {
+	SimpleVao {
 		handle: vao,
 		count: (vertices.len()/3) as i32
 	}
@@ -77,7 +78,7 @@ pub fn geometry_planequad(s: f32) -> SimpleVAO {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_grid() -> SimpleVAO {
+pub fn geometry_grid() -> SimpleVao {
 	let mut vertices: Vec<f32> = vec![];
 	
 	let range: i32 = 256;
@@ -128,7 +129,7 @@ pub fn geometry_grid() -> SimpleVAO {
 		gl::BindVertexArray(0);
 	}
 	
-	SimpleVAO {
+	SimpleVao {
 		handle: vao,
 		count: (vertices.len()/2) as i32
 	}
@@ -136,7 +137,7 @@ pub fn geometry_grid() -> SimpleVAO {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_test() -> SimpleVAO {
+pub fn geometry_test() -> SimpleVao {
 	let mut vertices: Vec<f32> = vec![
 		-0.5, -0.5, -10.0,
 		0.5, -0.5, -10.0,
@@ -187,7 +188,7 @@ pub fn geometry_test() -> SimpleVAO {
 		gl::BindVertexArray(0);
 	}
 	
-	SimpleVAO {
+	SimpleVao {
 		handle: vao,
 		count: (vertices.len()/3) as i32
 	}
