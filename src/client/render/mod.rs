@@ -5,3 +5,4 @@ extern crate image;
 
 pub mod utility;
 pub mod materials;
+pub mod ascii_text;

@@ -103,6 +103,14 @@ fn run() -> Result<(), failure::Error> {
 	let shader_random = render::materials::ShaderRandom::new(&res)?;
 	let shader_solid_color = render::materials::ShaderSolidColor::new(&res)?;
 	
+	let mut ascii_renderer = render::ascii_text::AsciiTextRenderer::load(&res)?;
+	
+	// ------------------------------------------
+	let mut render_state_gui = GuiRenderState {
+		width: 0, height: 0,
+		ascii_renderer,
+	};
+	
 	// ------------------------------------------
 	let mut render_state = RenderState {
 		frame_id: 0,
@@ -164,6 +172,11 @@ fn run() -> Result<(), failure::Error> {
 					);
 				});
 				(&mut render_state).end();
+				
+				let (w, h) = window.get_framebuffer_size();
+				render_state_gui.width = w;
+				render_state_gui.height = h;
+				render_gui(&mut render_state_gui);
 			}
 		);
 		
@@ -312,4 +325,30 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, s
 	for mesh in scene.meshes.iter() {
 		mesh.draw(gl::TRIANGLES);
 	}
+}
+
+struct GuiRenderState {
+	width: i32, height: i32,
+	ascii_renderer: render::ascii_text::AsciiTextRenderer,
+}
+
+fn render_gui(render_state_gui: &mut GuiRenderState) {
+	
+	unsafe {
+		gl::Flush();
+		gl::Enable(gl::BLEND);
+		gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+		gl::Disable(gl::DEPTH_TEST);
+	}
+	
+	let projection = cgmath::ortho(0.0,
+		render_state_gui.width as f32,
+		render_state_gui.height as f32,
+		0.0,
+		-1.0,1.0
+	);
+	
+	render_state_gui.ascii_renderer.transform = projection;
+	render_state_gui.ascii_renderer.draw_text("Hello, World!".to_string(), 0.0, 0.0);
+	
 }
