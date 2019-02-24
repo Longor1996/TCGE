@@ -19,6 +19,8 @@ pub struct AsciiTextRenderer {
 impl AsciiTextRenderer {
 	
 	pub fn load(res: &resources::Resources) -> Result<AsciiTextRenderer, utility::Error> {
+		let material = AsciiTextRendererMaterial::new(res)?;
+		
 		
 		let file = res.open_stream(FONT_DATA_TXT)
 			.map_err(|e| utility::Error::ResourceLoad { name: FONT_DATA_TXT.to_string(), inner: e })?;
@@ -36,12 +38,18 @@ impl AsciiTextRenderer {
 				continue;
 			}
 			
-			let char = AsciiTextRendererChar::from_line(&line[5..]);
+			let mut char = AsciiTextRendererChar::from_line(&line[5..]);
+			
+			char.uv = material.sdfmap.get_uv_rect(
+				char.x, char.y,
+				char.width, char.height
+			);
+			
 			chars[char.id] = char;
 		}
 		
 		Ok(AsciiTextRenderer {
-			material: AsciiTextRendererMaterial::new(res)?,
+			material: material,
 			characters: chars,
 			transform: cgmath::Matrix4::identity(),
 			quad: geometry::geometry_planequad(256.0)
@@ -73,23 +81,25 @@ impl AsciiTextRenderer {
 #[derive(Clone,Copy)]
 struct AsciiTextRendererChar {
 	id: usize,
-	x: f32,
-	y: f32,
-	width: f32,
-	height: f32,
+	x: u32,
+	y: u32,
+	width: u32,
+	height: u32,
 	xoffset: f32,
 	yoffset: f32,
 	xadvance: f32,
+	uv: [f32;4],
 }
 
 impl AsciiTextRendererChar {
 	pub fn from_nothing(id: usize) -> AsciiTextRendererChar {
 		AsciiTextRendererChar {
 			id,
-			x: 0.0, y: 0.0,
-			width: 0.0, height: 0.0,
+			x: 0, y: 0,
+			width: 0, height: 0,
 			xoffset: 0.0, yoffset: 0.0,
-			xadvance: 0.0
+			xadvance: 0.0,
+			uv: [0.0, 0.0, 0.0, 0.0]
 		}
 	}
 	
@@ -106,10 +116,10 @@ impl AsciiTextRendererChar {
 			
 			match key {
 				"id" => char.id = value.parse::<usize>().expect("Could not parse 'id'"),
-				"x" => char.x = value.parse::<f32>().expect("Could not parse 'x'"),
-				"y" => char.y = value.parse::<f32>().expect("Could not parse 'y'"),
-				"width" => char.width = value.parse::<f32>().expect("Could not parse 'width'"),
-				"height" => char.height = value.parse::<f32>().expect("Could not parse 'height'"),
+				"x" => char.x = value.parse::<u32>().expect("Could not parse 'x'"),
+				"y" => char.y = value.parse::<u32>().expect("Could not parse 'y'"),
+				"width" => char.width = value.parse::<u32>().expect("Could not parse 'width'"),
+				"height" => char.height = value.parse::<u32>().expect("Could not parse 'height'"),
 				"xoffset" => char.xoffset = value.parse::<f32>().expect("Could not parse 'xoffset'"),
 				"yoffset" => char.yoffset = value.parse::<f32>().expect("Could not parse 'yoffset'"),
 				"xadvance" => char.xadvance = value.parse::<f32>().expect("Could not parse 'xadvance'"),
