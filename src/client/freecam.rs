@@ -15,6 +15,7 @@ use super::cgmath::{
 // TODO: Camera needs PlayerController/ClientInput...
 #[derive(Debug)]
 pub struct Camera {
+	pub active: bool,
 	pub position: cgmath::Vector3<f32>,
 	pub velocity: cgmath::Vector3<f32>,
 	pub rotation: cgmath::Vector2<f32>,
@@ -26,6 +27,7 @@ pub struct Camera {
 impl Camera {
 	pub fn new() -> Camera {
 		return Camera {
+			active: true,
 			position: cgmath::Vector3 {x: 0.0, y: 1.8, z: -3.0},
 			velocity: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
 			rotation: cgmath::Vector2 {x: 0.0, y: 90.0},
@@ -75,6 +77,10 @@ impl Camera {
 	pub fn update_rotation(&mut self, yaw: f32, pitch: f32) {
 		self.rotation_last.clone_from(& self.rotation);
 		
+		if !self.active {
+			return;
+		}
+		
 		let mouse_sensivity = 0.5;
 		
 		self.rotation.x += pitch * mouse_sensivity;
@@ -88,6 +94,10 @@ impl Camera {
 		
 		self.position_last.clone_from(& self.position);
 		self.velocity_last.clone_from(& self.velocity);
+		
+		if !self.active {
+			return;
+		}
 		
 		let mut move_speed = 0.5;
 		

@@ -189,9 +189,25 @@ fn process_events(
 			glfw::WindowEvent::FramebufferSize(width, height) => {
 				unsafe {gl::Viewport(0, 0, width, height)}
 			},
+			
+			glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
+				if window.get_cursor_mode() == glfw::CursorMode::Disabled {
+					window.set_cursor_mode(glfw::CursorMode::Normal);
+				} else {
+					window.set_cursor_mode(glfw::CursorMode::Disabled);
+				}
+				
+				opt_scene.as_mut()
+					.map(|mut_scene| &mut mut_scene.camera)
+					.map( |mut_camera| {
+						mut_camera.active = window.get_cursor_mode() == glfw::CursorMode::Disabled;
+					});
+			},
+			
 			glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
 				window.set_should_close(true)
 			},
+			
 			glfw::WindowEvent::CursorPos(x, y) => {
 				cursor.update(x, y);
 				opt_scene.as_mut()
