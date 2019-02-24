@@ -117,8 +117,12 @@ fn run() -> Result<(), failure::Error> {
 	
 	let scene = Rc::new(RefCell::new(Option::Some(Scene {
 		camera: freecam::Camera::new(),
-		meshes: vec![geometry::geometry_test()],
-		mesh_planequad: geometry::geometry_planequad(10.0),
+		meshes: vec![
+			geometry::geometry_test(),
+			geometry::geometry_cube(1.0),
+			// geometry::geometry_cube(-512.0),
+		],
+		mesh_planequad: geometry::geometry_planequad(1024.0),
 		block_universe: block_universe
 	})));
 	
