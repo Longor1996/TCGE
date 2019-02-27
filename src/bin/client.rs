@@ -10,13 +10,14 @@ extern crate glfw;
 use glfw::{Context, Key, Action};
 extern crate gl;
 
-extern crate TCGE;
-use TCGE::resources::Resources;
-use TCGE::blocks::universe;
-use TCGE::client::render;
-use TCGE::client::geometry;
-use TCGE::client::freecam;
-use TCGE::gameloop;
+extern crate tcge;
+use tcge::resources::Resources;
+use tcge::blocks::universe;
+use tcge::client::cmd_opts;
+use tcge::client::render;
+use tcge::client::geometry;
+use tcge::client::freecam;
+use tcge::gameloop;
 use std::sync::mpsc::Receiver;
 
 fn main() {

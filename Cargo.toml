@@ -1,5 +1,5 @@
 [package]
-name = "TCGE"
+name = "tcge"
 version = "0.1.0"
 authors = ["Longor1996 <lalongok@gmail.com>"]
 
