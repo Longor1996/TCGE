@@ -1,0 +1,69 @@
+extern crate clap;
+
+use self::clap::{Arg, App};
+
+pub struct CmdOptions {
+	pub width: u32,
+	pub height: u32,
+	pub gl_multisamples: u32,
+}
+
+pub fn parse() -> Result<CmdOptions, failure::Error> {
+	let matches = App::new("tcge-client")
+		.version(env!("VERSION"))
+		.author("Lars Longor K <lalongok@gmail.com>")
+		.about("A game-engine for discrete voxels.")
+		// beginning of command line configuration
+		// TODO: Add commandline options for various things...
+		
+		.arg(Arg::with_name("width")
+			.help("Sets the width of the primary window.")
+			.value_name("WIDTH")
+			.takes_value(true)
+			.require_equals(true)
+			.validator(|v: String| {
+				v.parse::<u32>()
+					.map(|_val| ())
+					.map_err(|err| err.to_string())
+			})
+		)
+		
+		.arg(Arg::with_name("height")
+			.help("Sets the height of the primary window.")
+			.value_name("HEIGHT")
+			.takes_value(true)
+			.require_equals(true)
+			.validator(|v: String| {
+				v.parse::<u32>()
+					.map(|_val| ())
+					.map_err(|err| err.to_string())
+			})
+		)
+		
+		.arg(Arg::with_name("gl_multisample")
+			.help("Sets the amount of samples to use for the framebuffer.")
+			.value_name("SAMPLES")
+			.takes_value(true)
+			.require_equals(true)
+			.validator(|v: String| {
+				v.parse::<u32>()
+					.map(|_val| ())
+					.map_err(|err| err.to_string())
+			})
+		)
+		
+		// end of command line configuration
+		.get_matches();
+	
+	Ok(CmdOptions {
+		width: matches.value_of("WIDTH")
+			.unwrap_or("0").parse::<u32>()?
+		,
+		height: matches.value_of("HEIGHT")
+			.unwrap_or("0").parse::<u32>()?
+		,
+		gl_multisamples: matches.value_of("SAMPLES")
+			.unwrap_or("0").parse::<u32>()?
+		,
+	})
+}

@@ -4,8 +4,8 @@ use std::cell::RefCell;
 extern crate failure;
 #[allow(unused_imports)]
 use failure::Fail;
-extern crate time;
 
+extern crate time;
 extern crate glfw;
 use glfw::{Context, Key, Action};
 extern crate gl;
@@ -21,10 +21,37 @@ use tcge::gameloop;
 use std::sync::mpsc::Receiver;
 
 fn main() {
-	println!("Hello, Client!");
-	println!("Version: {}", env!("VERSION"));
+	// TODO: Attempt to merge the two separate error-printers into one...
 	
-	if let Err(e) = run() {
+	let options = match cmd_opts::parse() {
+		Err(e) => {
+			use std::fmt::Write;
+			let mut result = String::new();
+			
+			for (i, cause) in e.causes().collect::<Vec<_>>().into_iter().enumerate() {
+				if i > 0 {
+					let _ = write!(&mut result, "   Caused by: ");
+				}
+				let _ = write!(&mut result, "{}", cause);
+				if let Some(backtrace) = cause.backtrace() {
+					let backtrace_str = format!("{}", backtrace);
+					if !backtrace_str.is_empty() {
+						let _ = writeln!(&mut result, " This happened at {}", backtrace);
+					} else {
+						let _ = writeln!(&mut result);
+					}
+				} else {
+					let _ = writeln!(&mut result);
+				}
+			}
+			
+			println!("{}\n", result);
+			panic!("Failed to parse command-line arguments! Exiting...");
+		}
+		Ok(o) => o
+	};
+	
+	if let Err(e) = run(options) {
 		use std::fmt::Write;
 		let mut result = String::new();
 		
@@ -48,10 +75,13 @@ fn main() {
 		println!("{}", result);
 	}
 	
-	println!("Goodbye!");
+	println!("\nGoodbye!\n");
 }
 
-fn new_window(glfw: &mut glfw::Glfw) -> (glfw::Window, Receiver<(f64, glfw::WindowEvent)>) {
+fn new_window(
+	glfw: &mut glfw::Glfw,
+	opts: &cmd_opts::CmdOptions
+) -> (glfw::Window, Receiver<(f64, glfw::WindowEvent)>) {
 	
 	glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
 	glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
@@ -59,7 +89,7 @@ fn new_window(glfw: &mut glfw::Glfw) -> (glfw::Window, Receiver<(f64, glfw::Wind
 	#[cfg(target_os = "macos")]
 		glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 	glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
-	glfw.window_hint(glfw::WindowHint::Samples(Some(4)));
+	glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
 	
 	// ------------------------------------------
 	let (mut window, events) = glfw.create_window(
@@ -84,13 +114,13 @@ fn new_window(glfw: &mut glfw::Glfw) -> (glfw::Window, Receiver<(f64, glfw::Wind
 	return (window, events);
 }
 
-fn run() -> Result<(), failure::Error> {
+fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	let res = Resources::from_exe_path()?;
 	
 	// ------------------------------------------
 	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
-	let (mut window, events) = new_window(&mut glfw);
+	let (mut window, events) = new_window(&mut glfw, &opts);
 	
 	/*
 	unsafe {

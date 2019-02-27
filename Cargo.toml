@@ -7,6 +7,7 @@ authors = ["Longor1996 <lalongok@gmail.com>"]
 failure = "0.1.3"
 time = "*"
 cgmath = "*"
+clap = "~2.32.0"
 
 # filesystem
 ## zip = "0.4.2"
