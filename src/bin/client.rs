@@ -2,6 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 extern crate failure;
+#[allow(unused_imports)]
 use failure::Fail;
 extern crate time;
 

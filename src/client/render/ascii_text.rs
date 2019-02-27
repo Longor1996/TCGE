@@ -1,4 +1,3 @@
-extern crate regex;
 use super::super::super::resources;
 use super::super::geometry;
 use super::cgmath::SquareMatrix;

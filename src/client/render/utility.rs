@@ -286,7 +286,6 @@ impl Texture {
 		let image_size = image.dimensions();
 		let image_width = image_size.0;
 		let image_height = image_size.1;
-		let image_area = image_width * image_height;
 		
 		let mut handle: gl::types::GLuint = 0;
 		unsafe {

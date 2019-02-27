@@ -1,15 +1,16 @@
-#[macro_use]
 extern crate failure;
-extern crate TCGE;
+#[allow(unused_imports)]
+use failure::Fail;
 
-use TCGE::resources::Resources;
-use TCGE::util::utf8;
-use TCGE::util::cdml;
+extern crate tcge;
+use tcge::resources::Resources;
+use tcge::util::utf8;
+//use tcge::util::cdml;
 
 fn main() {
     let res = Resources::from_exe_path().unwrap();
 
-    println!("Hello, Server! {}", TCGE::MAGIC);
+    println!("Hello, Server! {}", tcge::MAGIC);
 
     let reader = res.open_stream("test.cdml").unwrap();
     let mut reader= utf8::UTF8Read::new(reader);

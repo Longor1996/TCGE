@@ -203,7 +203,7 @@ impl SimpleVaoBuilder {
 		self.vertices.push(v);
 	}
 	
-	pub fn push_vertices(&mut self, mut other: Vec<f32>) {
+	pub fn push_vertices(&mut self, other: Vec<f32>) {
 		if (other.len() % 3) != 0 {
 			panic!("Attempted to push non-trinary vertex.");
 		}
@@ -218,7 +218,7 @@ impl SimpleVaoBuilder {
 		}
 	}
 	
-	pub fn push_quads(&mut self, mut quad: Vec<f32>) {
+	pub fn push_quads(&mut self, quad: Vec<f32>) {
 		if (quad.len() % 3*4) != 0 {
 			panic!("Attempted to push non-quadliteral quads.");
 		}
