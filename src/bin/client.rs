@@ -5,6 +5,7 @@ extern crate failure;
 #[allow(unused_imports)]
 use failure::Fail;
 
+use std::thread;
 extern crate time;
 extern crate glfw;
 use glfw::{Context, Key, Action};
@@ -111,7 +112,30 @@ fn new_window(
 	// ------------------------------------------
 	gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 	
+	unsafe {
+		gl::Enable(gl::DEBUG_OUTPUT);
+		gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
+	}
+	
+	// ------------------------------------------
+	println!("Initialized window!");
 	return (window, events);
+}
+
+extern "system" fn on_gl_error(
+	source: gl::types::GLenum,
+	etype: gl::types::GLenum,
+	id: gl::types::GLuint,
+	severity: gl::types::GLenum,
+	length: gl::types::GLsizei,
+	message: *const gl::types::GLchar,
+	userval: *mut std::ffi::c_void,
+) {
+	unsafe {
+		let msg = std::ffi::CStr::from_ptr(message)
+			.to_str().expect("Could not convert GL-Error to &str.");
+		eprintln!("GL CALLBACK [{}, #{}, @{}, !{}]: {}", etype, id, source, severity, msg);
+	}
 }
 
 fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
@@ -153,8 +177,9 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
 	
-	let block_universe = universe::define_universe();
+	println!("Initializing scene...");
 	
+	let block_universe = universe::define_universe();
 	let scene = Rc::new(RefCell::new(Option::Some(Scene {
 		camera: freecam::Camera::new(),
 		meshes: vec![
@@ -167,8 +192,11 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	})));
 	
 	// ------------------------------------------
+	println!("Initializing gameloop...");
+	
 	let mut gls = gameloop::new_gameloop(30);
 	
+	println!("Starting gameloop...");
 	while !window.should_close() {
 		process_events(
 			&mut window,
@@ -381,6 +409,6 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	);
 	
 	render_state_gui.ascii_renderer.transform = projection;
-	render_state_gui.ascii_renderer.draw_text("Hello, World!".to_string(), 0.0, 0.0);
+	render_state_gui.ascii_renderer.draw_text("Hello, World!".to_string(), 32.0, 32.0);
 	
 }

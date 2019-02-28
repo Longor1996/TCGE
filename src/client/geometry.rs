@@ -1,9 +1,6 @@
 /*
 	This file contains functions to generate geometry of various kinds.
 	it also contains the SimpleVAO-struct for easy rendering.
-	
-	TODO: Move some of the duplicated code for mesh-creation into SimpleVAO.
-	-OR-: Create some kind of 'VAO Builder' to make the process simpler.
 */
 
 extern crate cgmath;
@@ -240,6 +237,7 @@ impl SimpleVaoBuilder {
 	pub fn build(&self) -> SimpleVao {
 		let mut vbo_vertex: gl::types::GLuint = 0;
 		unsafe {
+			println!("Allocating vertex buffer for geometry...");
 			gl::GenBuffers(1, &mut vbo_vertex);
 			gl::BindBuffer(gl::ARRAY_BUFFER, vbo_vertex);
 			gl::BufferData(
@@ -253,6 +251,7 @@ impl SimpleVaoBuilder {
 		
 		let mut vao: gl::types::GLuint = 0;
 		unsafe {
+			println!("Allocating vertex array for geometry...");
 			gl::GenVertexArrays(1, &mut vao);
 			gl::BindVertexArray(vao);
 			gl::BindBuffer(gl::ARRAY_BUFFER, vbo_vertex);
@@ -263,8 +262,8 @@ impl SimpleVaoBuilder {
 				3,
 				gl::FLOAT,
 				gl::FALSE,
-				(5 * std::mem::size_of::<f32>()) as gl::types::GLint,
-				(0 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+				(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+				(0 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 			);
 			
 			gl::EnableVertexAttribArray(1);
@@ -273,8 +272,8 @@ impl SimpleVaoBuilder {
 				2,
 				gl::FLOAT,
 				gl::FALSE,
-				(5 * std::mem::size_of::<f32>()) as gl::types::GLint,
-				(3 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+				(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+				(3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 			);
 			
 			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
@@ -283,7 +282,7 @@ impl SimpleVaoBuilder {
 		
 		SimpleVao {
 			handle: vao,
-			count: (self.vertices.len()/3) as i32
+			count: (self.vertices.len()/5) as i32
 		}
 	}
 	

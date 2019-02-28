@@ -11,7 +11,6 @@ const FONT_MATERIAL: &str = "shaders/sdf-text";
 pub struct AsciiTextRenderer {
 	material: AsciiTextRendererMaterial,
 	characters: Vec<AsciiTextRendererChar>,
-	quad: geometry::SimpleVao,
 	buffer: Vec<f32>,
 	buffer_vao: gl::types::GLuint,
 	buffer_vbo: gl::types::GLuint,
@@ -22,10 +21,16 @@ pub struct AsciiTextRenderer {
 impl AsciiTextRenderer {
 	
 	pub fn load(res: &resources::Resources) -> Result<AsciiTextRenderer, utility::Error> {
+		println!("Loading font: {}, {}", FONT_DATA_TXT, FONT_DATA_PNG);
 		let material = AsciiTextRendererMaterial::new(res)?;
 		
-		let gpu = AsciiTextRenderer::prepare_gpu_objects();
+		println!("Preparing GPU resources...");
+		let gpu = AsciiTextRenderer::prepare_gpu_objects(&material);
 		
+		let mut buffer = vec![];
+		buffer.resize(gpu.2 as usize / std::mem::size_of::<f32>(), 0.0);
+		
+		println!("Loading font: {}", FONT_DATA_TXT);
 		let file = res.open_stream(FONT_DATA_TXT)
 			.map_err(|e| utility::Error::ResourceLoad { name: FONT_DATA_TXT.to_string(), inner: e })?;
 		
@@ -35,6 +40,7 @@ impl AsciiTextRenderer {
 			chars.push(AsciiTextRendererChar::from_nothing(x));
 		}
 		
+		println!("Parsing font: {}", FONT_DATA_TXT);
 		for line in BufReader::new(file).lines() {
 			let line = line.expect("Error while reading font definition.");
 			
@@ -56,31 +62,38 @@ impl AsciiTextRenderer {
 			material: material,
 			characters: chars,
 			transform: cgmath::Matrix4::identity(),
-			quad: geometry::geometry_planequad(256.0),
-			buffer: vec![],
+			buffer: buffer,
 			buffer_vbo: gpu.0,
 			buffer_vao: gpu.1,
 			buffer_size: gpu.2,
 		})
 	}
 	
-	pub fn prepare_gpu_objects() -> (gl::types::GLuint, gl::types::GLuint, gl::types::GLsizeiptr) {
+	pub fn prepare_gpu_objects(
+		material: &AsciiTextRendererMaterial
+	) -> (
+		gl::types::GLuint,
+		gl::types::GLuint,
+		gl::types::GLsizeiptr
+	) {
 		let buffer_size = (1024*1024) * std::mem::size_of::<f32>() as gl::types::GLsizeiptr;
 		let mut buffer_vbo: gl::types::GLuint = 0;
 		unsafe {
+			println!("Allocating text geometry buffer...");
 			gl::GenBuffers(1, &mut buffer_vbo);
 			gl::BindBuffer(gl::ARRAY_BUFFER, buffer_vbo);
-			gl::BufferData(
+			gl::BufferStorage(
 				gl::ARRAY_BUFFER,
 				buffer_size as gl::types::GLsizeiptr,
-				(0) as *const gl::types::GLvoid,
-				gl::DYNAMIC_STORAGE_BIT
+				std::ptr::null(),
+				gl::MAP_WRITE_BIT
 			);
 			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 		}
 		
 		let mut buffer_vao: gl::types::GLuint = 0;
 		unsafe {
+			println!("Allocating text geometry descriptor...");
 			gl::GenVertexArrays(1, &mut buffer_vao);
 			gl::BindVertexArray(buffer_vao);
 			gl::BindBuffer(gl::ARRAY_BUFFER, buffer_vbo);
@@ -91,8 +104,8 @@ impl AsciiTextRenderer {
 				2,
 				gl::FLOAT,
 				gl::FALSE,
-				(4 * std::mem::size_of::<f32>()) as gl::types::GLint,
-				(0 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+				(4 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+				(0 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 			);
 			
 			gl::EnableVertexAttribArray(1);
@@ -101,14 +114,15 @@ impl AsciiTextRenderer {
 				2,
 				gl::FLOAT,
 				gl::FALSE,
-				(4 * std::mem::size_of::<f32>()) as gl::types::GLint,
-				(2 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+				(4 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+				(2 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 			);
 			
 			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 			gl::BindVertexArray(0);
 		}
 		
+		println!("Allocated text geometry buffers.");
 		return (buffer_vbo, buffer_vao, buffer_size);
 	}
 	
@@ -116,8 +130,7 @@ impl AsciiTextRenderer {
 		
 		let position = cgmath::Vector3::<f32> {x, y, z: 0.0};
 		let transform = self.transform
-			* cgmath::Matrix4::from_translation(position)
-			* cgmath::Matrix4::from_angle_x(cgmath::Deg(90.0));
+			* cgmath::Matrix4::from_translation(position);
 		let color = cgmath::Vector4::<f32> {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
 		
 		self.material.shader.set_used();
@@ -129,34 +142,80 @@ impl AsciiTextRenderer {
 			gl::BindTexture(gl::TEXTURE_2D, self.material.sdfmap.id);
 		}
 		
-		// TODO: Fill vertex data into the buffer, then copy to GPU
 		self.buffer.clear();
+		let mut xpos = x;
+		let mut ypos = x;
+		for char in text.chars() {
+			self.draw_char(
+				&mut xpos,
+				&mut ypos,
+				char
+			);
+		}
 		
 		unsafe {
-			let buflen_cpu = self.buffer.len();
-			let buflen_gpu = self.buffer_size as usize / std::mem::size_of::<f32>();
+			let buflen_cpu = self.buffer.len(); // individual float elements
+			let buflen_gpu = (self.buffer_size as usize) / 4;
 			if buflen_cpu > buflen_gpu {
 				eprintln!("Text Geometry Buffer Overflow: {} > {}", buflen_cpu, buflen_gpu);
 				return;
 			}
 			
 			gl::BindBuffer(gl::ARRAY_BUFFER, self.buffer_vbo);
-			gl::BufferSubData(
-				gl::ARRAY_BUFFER, 0,
-				(buflen_cpu / std::mem::size_of::<f32>()) as isize,
-			    self.buffer.as_ptr() as *const gl::types::GLvoid
-			);
-			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+			let hndl = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY) as *mut f32;
+			if hndl.is_null() {
+				panic!("OpenGL returned NIL-handle.");
+			}
+			let len = (self.buffer.len() * std::mem::size_of::<f32>()) as usize;
+			self.buffer.as_ptr().copy_to(hndl, len);
+			gl::UnmapBuffer(gl::ARRAY_BUFFER);
 		}
 		
 		unsafe {
-			let triangles_count = (self.buffer.len() / 3) as i32;
-			if triangles_count != 0 {
+			let vertices = (self.buffer.len() / 4) as i32;
+			
+			if vertices != 0 {
 				gl::BindVertexArray(self.buffer_vao);
-				gl::DrawArrays(gl::TRIANGLES, 0, triangles_count);
+				gl::DrawArrays(gl::TRIANGLES, 0, vertices);
 				gl::BindVertexArray(0);
 			}
 		}
+		
+		unsafe {
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+			gl::BindTexture(gl::TEXTURE_2D, 0);
+		}
+	}
+	
+	pub fn draw_char(&mut self, x: &mut f32, y: &mut f32, character: char) {
+		let character = character as usize;
+		
+		if character >= self.characters.len() {
+			return;
+		}
+		
+		let character = &self.characters[character];
+		let w = character.width as f32;
+		let h = character.height as f32;
+		
+		let lx = *x + character.xoffset;
+		let ly = *y - character.yoffset;
+		
+		let mut temp = vec![
+			// triangle top left
+			lx + 0.0, ly + 0.0, character.uv[0], character.uv[1],
+			lx + (w), ly + 0.0, character.uv[2], character.uv[1],
+			lx + 0.0, ly + (h), character.uv[0], character.uv[3],
+			
+			// triangle bottom right
+			lx + (w), ly + 0.0, character.uv[2], character.uv[1],
+			lx + (w), ly + (h), character.uv[2], character.uv[3],
+			lx + 0.0, ly + (h), character.uv[0], character.uv[3],
+		];
+		&self.buffer.append(&mut temp);
+		
+		// increase x position
+		*x += character.xadvance;
 	}
 	
 }
@@ -224,7 +283,10 @@ pub struct AsciiTextRendererMaterial {
 
 impl AsciiTextRendererMaterial {
 	pub fn new(res: &resources::Resources) -> Result<AsciiTextRendererMaterial, utility::Error> {
+		println!("Loading font texture...");
 		let sdfmap = utility::Texture::from_res(&res, FONT_DATA_PNG)?;
+		
+		println!("Loading font shader...");
 		let shader = utility::Program::from_res(&res, FONT_MATERIAL)?;
 		
 		let uniform_matrix = shader.uniform_location("transform");

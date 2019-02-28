@@ -255,7 +255,7 @@ fn shader_from_source(
 	Ok(id)
 }
 
-fn create_whitespace_cstring_with_len(len: usize) -> CString {
+pub fn create_whitespace_cstring_with_len(len: usize) -> CString {
 	let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
 	buffer.extend([b' '].iter().cycle().take(len as usize));
 	unsafe { CString::from_vec_unchecked(buffer) }
@@ -294,8 +294,8 @@ impl Texture {
 			gl::BindTexture(gl::TEXTURE_2D, handle);
 			
 			// wrapping
-			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
 			
 			// sampling
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
@@ -327,7 +327,7 @@ impl Texture {
 			x as f32 * self.tx,
 			y as f32 * self.ty,
 			(x+w) as f32 * self.tx,
-			(h+w) as f32 * self.tx
+			(y+h) as f32 * self.ty
 		]
 	}
 	
