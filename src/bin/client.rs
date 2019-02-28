@@ -131,10 +131,12 @@ extern "system" fn on_gl_error(
 	message: *const gl::types::GLchar,
 	userval: *mut std::ffi::c_void,
 ) {
-	unsafe {
-		let msg = std::ffi::CStr::from_ptr(message)
-			.to_str().expect("Could not convert GL-Error to &str.");
-		eprintln!("GL CALLBACK [{}, #{}, @{}, !{}]: {}", etype, id, source, severity, msg);
+	if false {
+		unsafe {
+			let msg = std::ffi::CStr::from_ptr(message)
+				.to_str().expect("Could not convert GL-Error to &str.");
+			eprintln!("GL CALLBACK [{}, #{}, @{}, !{}]: {}", etype, id, source, severity, msg);
+		}
 	}
 }
 
