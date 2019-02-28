@@ -1,4 +1,5 @@
 info face="Hack"
+scale 48
 chars count=193
 char id=0     x=505   y=462   width=4     height=4     xoffset=-1.500    yoffset=1.500     xadvance=29.500      page=0  chnl=0
 char id=13    x=505   y=466   width=4     height=4     xoffset=-1.500    yoffset=1.500     xadvance=29.500      page=0  chnl=0

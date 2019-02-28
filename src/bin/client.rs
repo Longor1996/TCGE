@@ -409,6 +409,9 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	);
 	
 	render_state_gui.ascii_renderer.transform = projection;
-	render_state_gui.ascii_renderer.draw_text("Hello, World!".to_string(), 32.0, 32.0);
+	render_state_gui.ascii_renderer.draw_text(
+		format!("TCGE {}",env!("VERSION")),
+		16.0, 0.0+2.0, 16.0+2.0
+	);
 	
 }

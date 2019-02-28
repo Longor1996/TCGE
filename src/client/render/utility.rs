@@ -25,6 +25,9 @@ pub enum Error {
 	
 	#[fail(display = "Failed to parse image {}", name)]
 	ImageParse { name: String, #[cause] inner: image::ImageError },
+	
+	#[fail(display = "Failed to parse value {}", name)]
+	ValueParse { name: String },
 }
 
 pub struct Program {

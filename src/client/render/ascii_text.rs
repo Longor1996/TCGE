@@ -11,6 +11,7 @@ const FONT_MATERIAL: &str = "shaders/sdf-text";
 pub struct AsciiTextRenderer {
 	material: AsciiTextRendererMaterial,
 	characters: Vec<AsciiTextRendererChar>,
+	scale: f32,
 	buffer: Vec<f32>,
 	buffer_vao: gl::types::GLuint,
 	buffer_vbo: gl::types::GLuint,
@@ -40,9 +41,18 @@ impl AsciiTextRenderer {
 			chars.push(AsciiTextRendererChar::from_nothing(x));
 		}
 		
+		let mut scale = 48.0; // default
+		
 		println!("Parsing font: {}", FONT_DATA_TXT);
 		for line in BufReader::new(file).lines() {
 			let line = line.expect("Error while reading font definition.");
+			
+			if line.starts_with("scale ") {
+				let split = line.find(" ").expect("Unexpected error.");
+				let scaleStr = &line.split_at(split).1[1..];
+				scale = scaleStr.parse::<f32>()
+					.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+			}
 			
 			if ! line.starts_with("char ") {
 				continue;
@@ -62,6 +72,7 @@ impl AsciiTextRenderer {
 			material: material,
 			characters: chars,
 			transform: cgmath::Matrix4::identity(),
+			scale: scale,
 			buffer: buffer,
 			buffer_vbo: gpu.0,
 			buffer_vao: gpu.1,
@@ -126,7 +137,7 @@ impl AsciiTextRenderer {
 		return (buffer_vbo, buffer_vao, buffer_size);
 	}
 	
-	pub fn draw_text(&mut self, text: String, x: f32, y: f32) {
+	pub fn draw_text(&mut self, text: String, font_size: f32, x: f32, y: f32) {
 		
 		let position = cgmath::Vector3::<f32> {x, y, z: 0.0};
 		let transform = self.transform
@@ -149,6 +160,7 @@ impl AsciiTextRenderer {
 			self.draw_char(
 				&mut xpos,
 				&mut ypos,
+				font_size,
 				char
 			);
 		}
@@ -187,7 +199,7 @@ impl AsciiTextRenderer {
 		}
 	}
 	
-	pub fn draw_char(&mut self, x: &mut f32, y: &mut f32, character: char) {
+	pub fn draw_char(&mut self, x: &mut f32, y: &mut f32, font_size: f32, character: char) {
 		let character = character as usize;
 		
 		if character >= self.characters.len() {
@@ -195,11 +207,10 @@ impl AsciiTextRenderer {
 		}
 		
 		let character = &self.characters[character];
-		let w = character.width as f32;
-		let h = character.height as f32;
-		
-		let lx = *x + character.xoffset;
-		let ly = *y - character.yoffset;
+		let w  = character.width  as f32  /self.scale*font_size;
+		let h  = character.height as f32  /self.scale*font_size;
+		let lx = *x + character.xoffset  /self.scale*font_size;
+		let ly = *y - character.yoffset  /self.scale*font_size;
 		
 		let mut temp = vec![
 			// triangle top left
@@ -215,7 +226,7 @@ impl AsciiTextRenderer {
 		&self.buffer.append(&mut temp);
 		
 		// increase x position
-		*x += character.xadvance;
+		*x += character.xadvance /self.scale*font_size;
 	}
 	
 }
