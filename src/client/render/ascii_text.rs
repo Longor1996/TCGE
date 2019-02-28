@@ -74,7 +74,7 @@ impl AsciiTextRenderer {
 				gl::ARRAY_BUFFER,
 				buffer_size as gl::types::GLsizeiptr,
 				(0) as *const gl::types::GLvoid,
-				gl::STATIC_DRAW
+				gl::DYNAMIC_STORAGE_BIT
 			);
 			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 		}
@@ -143,20 +143,19 @@ impl AsciiTextRenderer {
 			gl::BindBuffer(gl::ARRAY_BUFFER, self.buffer_vbo);
 			gl::BufferSubData(
 				gl::ARRAY_BUFFER, 0,
-				self.buffer_size,
+				(buflen_cpu / std::mem::size_of::<f32>()) as isize,
 			    self.buffer.as_ptr() as *const gl::types::GLvoid
 			);
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 		}
 		
 		unsafe {
 			let triangles_count = (self.buffer.len() / 3) as i32;
-			gl::BindVertexArray(self.buffer_vao);
-			gl::DrawArrays(gl::TRIANGLES, 0, triangles_count);
-		}
-		
-		unsafe {
-			gl::BindVertexArray(0);
-			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+			if triangles_count != 0 {
+				gl::BindVertexArray(self.buffer_vao);
+				gl::DrawArrays(gl::TRIANGLES, 0, triangles_count);
+				gl::BindVertexArray(0);
+			}
 		}
 	}
 	
