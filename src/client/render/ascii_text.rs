@@ -12,6 +12,10 @@ pub struct AsciiTextRenderer {
 	material: AsciiTextRendererMaterial,
 	characters: Vec<AsciiTextRendererChar>,
 	quad: geometry::SimpleVao,
+	buffer: Vec<f32>,
+	buffer_vao: gl::types::GLuint,
+	buffer_vbo: gl::types::GLuint,
+	buffer_size: gl::types::GLsizeiptr,
 	pub transform: cgmath::Matrix4<f32>,
 }
 
@@ -20,6 +24,7 @@ impl AsciiTextRenderer {
 	pub fn load(res: &resources::Resources) -> Result<AsciiTextRenderer, utility::Error> {
 		let material = AsciiTextRendererMaterial::new(res)?;
 		
+		let gpu = AsciiTextRenderer::prepare_gpu_objects();
 		
 		let file = res.open_stream(FONT_DATA_TXT)
 			.map_err(|e| utility::Error::ResourceLoad { name: FONT_DATA_TXT.to_string(), inner: e })?;
@@ -51,11 +56,63 @@ impl AsciiTextRenderer {
 			material: material,
 			characters: chars,
 			transform: cgmath::Matrix4::identity(),
-			quad: geometry::geometry_planequad(256.0)
+			quad: geometry::geometry_planequad(256.0),
+			buffer: vec![],
+			buffer_vbo: gpu.0,
+			buffer_vao: gpu.1,
+			buffer_size: gpu.2,
 		})
 	}
 	
-	pub fn draw_text(&self, text: String, x: f32, y: f32) {
+	pub fn prepare_gpu_objects() -> (gl::types::GLuint, gl::types::GLuint, gl::types::GLsizeiptr) {
+		let buffer_size = (1024*1024) * std::mem::size_of::<f32>() as gl::types::GLsizeiptr;
+		let mut buffer_vbo: gl::types::GLuint = 0;
+		unsafe {
+			gl::GenBuffers(1, &mut buffer_vbo);
+			gl::BindBuffer(gl::ARRAY_BUFFER, buffer_vbo);
+			gl::BufferData(
+				gl::ARRAY_BUFFER,
+				buffer_size as gl::types::GLsizeiptr,
+				(0) as *const gl::types::GLvoid,
+				gl::STATIC_DRAW
+			);
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+		}
+		
+		let mut buffer_vao: gl::types::GLuint = 0;
+		unsafe {
+			gl::GenVertexArrays(1, &mut buffer_vao);
+			gl::BindVertexArray(buffer_vao);
+			gl::BindBuffer(gl::ARRAY_BUFFER, buffer_vbo);
+			
+			gl::EnableVertexAttribArray(0);
+			gl::VertexAttribPointer(
+				0,
+				2,
+				gl::FLOAT,
+				gl::FALSE,
+				(4 * std::mem::size_of::<f32>()) as gl::types::GLint,
+				(0 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+			);
+			
+			gl::EnableVertexAttribArray(1);
+			gl::VertexAttribPointer(
+				1,
+				2,
+				gl::FLOAT,
+				gl::FALSE,
+				(4 * std::mem::size_of::<f32>()) as gl::types::GLint,
+				(2 * std::mem::size_of::<f32>()) as *const std::ffi::c_void
+			);
+			
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+			gl::BindVertexArray(0);
+		}
+		
+		return (buffer_vbo, buffer_vao, buffer_size);
+	}
+	
+	pub fn draw_text(&mut self, text: String, x: f32, y: f32) {
 		
 		let position = cgmath::Vector3::<f32> {x, y, z: 0.0};
 		let transform = self.transform
@@ -72,7 +129,35 @@ impl AsciiTextRenderer {
 			gl::BindTexture(gl::TEXTURE_2D, self.material.sdfmap.id);
 		}
 		
-		self.quad.draw(gl::TRIANGLES);
+		// TODO: Fill vertex data into the buffer, then copy to GPU
+		self.buffer.clear();
+		
+		unsafe {
+			let buflen_cpu = self.buffer.len();
+			let buflen_gpu = self.buffer_size as usize / std::mem::size_of::<f32>();
+			if buflen_cpu > buflen_gpu {
+				eprintln!("Text Geometry Buffer Overflow: {} > {}", buflen_cpu, buflen_gpu);
+				return;
+			}
+			
+			gl::BindBuffer(gl::ARRAY_BUFFER, self.buffer_vbo);
+			gl::BufferSubData(
+				gl::ARRAY_BUFFER, 0,
+				self.buffer_size,
+			    self.buffer.as_ptr() as *const gl::types::GLvoid
+			);
+		}
+		
+		unsafe {
+			let triangles_count = (self.buffer.len() / 3) as i32;
+			gl::BindVertexArray(self.buffer_vao);
+			gl::DrawArrays(gl::TRIANGLES, 0, triangles_count);
+		}
+		
+		unsafe {
+			gl::BindVertexArray(0);
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+		}
 	}
 	
 }
