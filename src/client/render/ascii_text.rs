@@ -181,6 +181,7 @@ impl AsciiTextRenderer {
 			let len = (self.buffer.len() * std::mem::size_of::<f32>()) as usize;
 			self.buffer.as_ptr().copy_to(hndl, len);
 			gl::UnmapBuffer(gl::ARRAY_BUFFER);
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 		}
 		
 		unsafe {
@@ -194,7 +195,6 @@ impl AsciiTextRenderer {
 		}
 		
 		unsafe {
-			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 			gl::BindTexture(gl::TEXTURE_2D, 0);
 		}
 	}
