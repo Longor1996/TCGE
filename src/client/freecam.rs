@@ -99,17 +99,17 @@ impl Camera {
 			return;
 		}
 		
-		let mut move_speed = 0.5;
+		let mut move_speed = 2.0 / 30.0;
 		
 		if window.get_key(Key::LeftShift) == Action::Press {
-			move_speed = move_speed * 4.0;
+			move_speed = move_speed * 5.0;
 		}
 		
 		if window.get_key(Key::LeftControl) == Action::Press {
-			self.position += Vector3::new(0.0, -1.0, 0.0) * move_speed;
+			self.velocity += Vector3::new(0.0, -1.0, 0.0) * move_speed;
 		}
 		if window.get_key(Key::Space) == Action::Press {
-			self.position += Vector3::new(0.0, 1.0, 0.0) * move_speed;
+			self.velocity += Vector3::new(0.0, 1.0, 0.0) * move_speed;
 		}
 		
 		let yaw = cgmath::Deg(self.rotation.y);
@@ -118,26 +118,29 @@ impl Camera {
 		let forward = Vector3::new(0.0, 0.0, 1.0);
 		let forward = Matrix4::transform_vector(&mat, forward);
 		if window.get_key(Key::W) == Action::Press {
-			self.position += forward * move_speed;
+			self.velocity += forward * move_speed;
 		}
 		
 		let backward = Vector3::new(0.0, 0.0, -1.0);
 		let backward = Matrix4::transform_vector(&mat, backward);
 		if window.get_key(Key::S) == Action::Press {
-			self.position += backward * move_speed;
+			self.velocity += backward * move_speed;
 		}
 		
 		let left = Vector3::new(-1.0, 0.0, 0.0);
 		let left = Matrix4::transform_vector(&mat, left);
 		if window.get_key(Key::A) == Action::Press {
-			self.position += left * move_speed;
+			self.velocity += left * move_speed;
 		}
 		
 		let right = Vector3::new(1.0, 0.0, 0.0);
 		let right = Matrix4::transform_vector(&mat, right);
 		if window.get_key(Key::D) == Action::Press {
-			self.position += right * move_speed;
+			self.velocity += right * move_speed;
 		}
+		
+		self.position = self.position + self.velocity;
+		self.velocity = self.velocity * 0.5;
 	}
 }
 
