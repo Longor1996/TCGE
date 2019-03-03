@@ -356,35 +356,8 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, s
 		gl::Enable(gl::CULL_FACE);
 	}
 	
-	/*
-	println!("Render Frame [ id: {}, size: {} x {}, time: {}, delta: {}]",
-		render_state.frame_id, size.0, size.1, now, _interpolation
-	);
-	*/
-	
 	let camera_transform = camera.transform(size, _interpolation, true);
 	
-	/*
-	let shader_solid_color = &render_state.shader_solid_color;
-	let grid_color = cgmath::Vector4 {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
-	shader_solid_color.shader_program.set_used();
-	shader_solid_color.shader_program.uniform_matrix4(shader_solid_color.uniform_matrix, camera_transform);
-	shader_solid_color.shader_program.uniform_vector4(shader_solid_color.uniform_color, grid_color);
-	scene.mesh_grid.draw(gl::LINES);
-	*/
-	
-	unsafe {
-		gl::Enable(gl::BLEND);
-		gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-		gl::Disable(gl::DEPTH_TEST);
-	}
-	let shader_grid = &render_state.shader_grid;
-	shader_grid.shader_program.set_used();
-	shader_grid.shader_program.uniform_matrix4(shader_grid.uniform_matrix, camera_transform);
-	scene.mesh_planequad.draw(gl::TRIANGLES);
-	unsafe {
-		gl::Enable(gl::DEPTH_TEST);
-		gl::Disable(gl::BLEND);
 	render::utility::gl_push_debug("Draw Grid");
 	{
 		unsafe {
