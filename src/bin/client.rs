@@ -222,6 +222,13 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			},
 			
 			|now: f64, interpolation: f32| {
+				unsafe {
+					gl::Clear(gl::COLOR_BUFFER_BIT
+							| gl::DEPTH_BUFFER_BIT
+							| gl::STENCIL_BUFFER_BIT
+					);
+				}
+				
 				(&mut render_state).begin();
 				scene.borrow().as_ref().map(|scene| {
 					render(
@@ -341,8 +348,9 @@ impl RenderState {
 }
 
 fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, size: (i32, i32), now: f64, _interpolation:f32) {
+	render::utility::gl_push_debug("Draw Scene");
+	
 	unsafe {
-		gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 		gl::Enable(gl::DEPTH_TEST);
 		gl::CullFace(gl::FRONT);
 		gl::Enable(gl::CULL_FACE);
@@ -387,6 +395,8 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, s
 	for mesh in scene.meshes.iter() {
 		mesh.draw(gl::TRIANGLES);
 	}
+	
+	render::utility::gl_pop_debug();
 }
 
 struct GuiRenderState {
@@ -395,6 +405,7 @@ struct GuiRenderState {
 }
 
 fn render_gui(render_state_gui: &mut GuiRenderState) {
+	render::utility::gl_push_debug("Draw GUI");
 	
 	unsafe {
 		gl::Flush();
@@ -416,4 +427,5 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		16.0, 0.0+2.0, 16.0+2.0
 	);
 	
+	render::utility::gl_pop_debug();
 }

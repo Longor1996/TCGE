@@ -375,4 +375,20 @@ pub fn gl_label_object(identifier: gl::types::GLenum, name: gl::types::GLuint, l
 	}
 }
 
+pub fn gl_push_debug(message: &str) {
+	let msg = CString::new(message).expect("Failed to convert to C-Str.");
+	unsafe {
+		gl::PushDebugGroup(
+			gl::DEBUG_SOURCE_APPLICATION,
+			42,
+			message.len() as i32,
+			msg.as_ptr()
+		);
+	}
+}
+
+pub fn gl_pop_debug() {
+	unsafe {
+		gl::PopDebugGroup();
+	}
 }
