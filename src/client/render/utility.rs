@@ -62,7 +62,15 @@ impl Program {
 		let program_id = unsafe { gl::CreateProgram() };
 		
 		for shader in shaders {
-			unsafe { gl::AttachShader(program_id, shader.id()); }
+			unsafe {
+				gl::AttachShader(program_id, shader.id());
+				
+				gl_label_object(
+					gl::SHADER,
+					shader.id(),
+					&format!("{}{}", name, shader.kind_as_str())
+				);
+			}
 		}
 		
 		unsafe { gl::LinkProgram(program_id); }
@@ -94,6 +102,8 @@ impl Program {
 		for shader in shaders {
 			unsafe { gl::DetachShader(program_id, shader.id()); }
 		}
+		
+		gl_label_object(gl::PROGRAM, program_id, name);
 		
 		Ok(Program { name: name.to_string(), id: program_id })
 	}
@@ -162,12 +172,23 @@ impl Drop for Program {
 
 pub struct Shader {
 	id: gl::types::GLuint,
+	kind: gl::types::GLenum,
 }
 
 impl Shader {
 	pub fn id(&self) -> gl::types::GLuint {
 		self.id
 	}
+	
+	pub fn kind_as_str(&self) -> &str {
+		match self.kind {
+			gl::VERTEX_SHADER   => ".vert",
+			gl::FRAGMENT_SHADER => ".frag",
+			gl::GEOMETRY_SHADER => ".geom",
+			_ => "UNKNOWN"
+		}
+	}
+	
 	pub fn from_res(
 		res: &Resources,
 		name: &str
@@ -201,7 +222,7 @@ impl Shader {
 		kind: gl::types::GLenum
 	) -> Result<Shader, String> {
 		let id = shader_from_source(source, kind)?;
-		Ok(Shader {id})
+		Ok(Shader {id, kind})
 	}
 	
 	pub fn from_vert_source(source: &CStr) -> Result<Shader, String> {
@@ -316,6 +337,12 @@ impl Texture {
 			gl::GenerateMipmap(gl::TEXTURE_2D);
 		}
 		
+		gl_label_object(
+			gl::TEXTURE,
+			handle,
+			name
+		);
+		
 		Ok(Texture{
 			id: handle,
 			width: image_width,
@@ -334,4 +361,18 @@ impl Texture {
 		]
 	}
 	
+}
+
+pub fn gl_label_object(identifier: gl::types::GLenum, name: gl::types::GLuint, label: &str) {
+	let obj_name = CString::new(label).expect("Could not convert name into C-String.");
+	unsafe {
+		gl::ObjectLabel(
+			identifier,
+			name,
+			label.len() as i32,
+			obj_name.as_ptr()
+		);
+	}
+}
+
 }
