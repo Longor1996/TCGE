@@ -9,10 +9,11 @@ use std::thread;
 extern crate time;
 extern crate glfw;
 use glfw::{Context, Key, Action};
+extern crate image;
 extern crate gl;
 
 extern crate tcge;
-use tcge::resources::Resources;
+use tcge::resources;
 use tcge::blocks::universe;
 use tcge::client::cmd_opts;
 use tcge::client::render;
@@ -146,7 +147,7 @@ extern "system" fn on_gl_error(
 
 fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
-	let res = Resources::from_exe_path()?;
+	let res = resources::Resources::from_exe_path()?;
 	
 	// ------------------------------------------
 	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
