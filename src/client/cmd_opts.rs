@@ -19,6 +19,7 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 		
 		.arg(Arg::with_name("width")
 			.help("Sets the width of the primary window.")
+			.long("width")
 			.value_name("WIDTH")
 			.takes_value(true)
 			.require_equals(true)
@@ -31,6 +32,7 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 		
 		.arg(Arg::with_name("height")
 			.help("Sets the height of the primary window.")
+			.long("height")
 			.value_name("HEIGHT")
 			.takes_value(true)
 			.require_equals(true)
@@ -43,6 +45,7 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 		
 		.arg(Arg::with_name("gl_multisample")
 			.help("Sets the amount of samples to use for the framebuffer.")
+			.long("gl_multisample")
 			.value_name("GL_SAMPLES")
 			.takes_value(true)
 			.require_equals(true)
