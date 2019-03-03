@@ -385,7 +385,23 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, s
 	unsafe {
 		gl::Enable(gl::DEPTH_TEST);
 		gl::Disable(gl::BLEND);
+	render::utility::gl_push_debug("Draw Grid");
+	{
+		unsafe {
+			gl::Enable(gl::BLEND);
+			gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+			gl::Disable(gl::DEPTH_TEST);
+		}
+		let shader_grid = &render_state.shader_grid;
+		shader_grid.shader_program.set_used();
+		shader_grid.shader_program.uniform_matrix4(shader_grid.uniform_matrix, camera_transform);
+		scene.mesh_planequad.draw(gl::TRIANGLES);
+		unsafe {
+			gl::Enable(gl::DEPTH_TEST);
+			gl::Disable(gl::BLEND);
+		}
 	}
+	render::utility::gl_pop_debug();
 	
 	let shader_random = &render_state.shader_random;
 	shader_random.shader_program.set_used();
