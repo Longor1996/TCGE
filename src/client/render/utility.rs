@@ -126,7 +126,7 @@ impl Program {
 			
 			if loc == -1 {
 				eprintln!("Uniform location for '{}' in '{}' is invalid.", uniform_name, self.name);
-				return 0;
+				return -1;
 			}
 			
 			loc
