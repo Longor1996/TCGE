@@ -112,9 +112,13 @@ fn new_window(
 	// ------------------------------------------
 	gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 	
-	unsafe {
-		gl::Enable(gl::DEBUG_OUTPUT);
-		gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
+	// ------------------------------------------
+	// Only enable debugging if asked for...
+	if opts.gl_debug {
+		unsafe {
+			gl::Enable(gl::DEBUG_OUTPUT);
+			gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
+		}
 	}
 	
 	// ------------------------------------------
@@ -131,7 +135,7 @@ extern "system" fn on_gl_error(
 	message: *const gl::types::GLchar,
 	userval: *mut std::ffi::c_void,
 ) {
-	if false {
+	if severity != gl::DEBUG_SEVERITY_NOTIFICATION {
 		unsafe {
 			let msg = std::ffi::CStr::from_ptr(message)
 				.to_str().expect("Could not convert GL-Error to &str.");

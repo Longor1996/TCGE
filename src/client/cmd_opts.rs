@@ -5,6 +5,7 @@ use self::clap::{Arg, App};
 pub struct CmdOptions {
 	pub width: u32,
 	pub height: u32,
+	pub gl_debug: bool,
 	pub gl_multisamples: u32,
 }
 
@@ -42,7 +43,7 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 		
 		.arg(Arg::with_name("gl_multisample")
 			.help("Sets the amount of samples to use for the framebuffer.")
-			.value_name("SAMPLES")
+			.value_name("GL_SAMPLES")
 			.takes_value(true)
 			.require_equals(true)
 			.validator(|v: String| {
@@ -50,6 +51,11 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 					.map(|_val| ())
 					.map_err(|err| err.to_string())
 			})
+		)
+		
+		.arg(Arg::with_name("gl_debug")
+			.help("Sets the amount of samples to use for the framebuffer.")
+			.value_name("GL_DEBUG")
 		)
 		
 		// end of command line configuration
@@ -62,7 +68,9 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 		height: matches.value_of("HEIGHT")
 			.unwrap_or("0").parse::<u32>()?
 		,
-		gl_multisamples: matches.value_of("SAMPLES")
+		gl_debug: matches.is_present("gl_debug")
+		,
+		gl_multisamples: matches.value_of("GL_SAMPLES")
 			.unwrap_or("0").parse::<u32>()?
 		,
 	})
