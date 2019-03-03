@@ -54,8 +54,8 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 		)
 		
 		.arg(Arg::with_name("gl_debug")
-			.help("Sets the amount of samples to use for the framebuffer.")
-			.value_name("GL_DEBUG")
+			.long("gl_debug")
+			.help("Enables OpenGL debugging.")
 		)
 		
 		// end of command line configuration
