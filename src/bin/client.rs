@@ -110,6 +110,19 @@ fn new_window(
 		glfw::ffi::DONT_CARE as u32
 	);
 	
+	// Center the clients primary window in the middle of the primary monitor.
+	glfw.with_primary_monitor_mut(|glfw, primary| {
+		if let Some(monitor) = primary {
+			if let Some(vidmod) = monitor.get_video_mode() {
+				let w_size = window.get_size();
+				window.set_pos(
+					(vidmod.width as i32/2) - (w_size.0/2),
+					(vidmod.height as i32/2) - (w_size.1/2)
+				);
+			}
+		}
+	});
+	
 	// ------------------------------------------
 	gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 	
