@@ -36,7 +36,7 @@ impl Router {
 	    
 	    // Remove all lenses that want to self-destruct.
 	    self.lenses.retain(
-		    |lens| lens.state == LensState::Destruction
+		    |lens| lens.state != LensState::Destruction
 	    );
 	    
 	    for (pos, lens) in self.lenses.iter_mut().enumerate() {
