@@ -34,14 +34,9 @@ impl Router {
 	pub fn update(&mut self) -> bool {
 		let mut events: Vec<(usize, Box<Event>)> = vec![];
 		
-		// Remove all lenses that want to self-destruct.
-		self.lenses.retain(
-			|lens| lens.state != LensState::Destruction
-		);
-		
 		for (pos, lens) in self.lenses.iter_mut().enumerate() {
-			// Ignore all idle lenses
-			if lens.state == LensState::Idle {
+			// Ignore all idle and destroying lenses
+			if lens.state == LensState::Idle || lens.state == LensState::Destruction {
 				continue
 			}
 			
@@ -69,8 +64,12 @@ impl Router {
 			);
 		}
 		
-		;
-		false
+		// Remove all lenses that want to self-destruct.
+		self.lenses.retain(
+			|lens| lens.state != LensState::Destruction
+		);
+		
+		return self.lenses.is_empty()
 	}
 	
 	pub fn fire_event_at_lens(&mut self, target: &str, event: &mut Event) {
@@ -97,9 +96,12 @@ impl Router {
 			}
 		}
 		
+		// A lens without path can not receive events
+		/*
 		if lens.path.len() == 0 {
 			return;
 		}
+		*/
 		
 		let mut event_wrapper = EventWrapper {
 			event,
