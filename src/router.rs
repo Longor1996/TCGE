@@ -77,7 +77,12 @@ impl Router {
 		
 		return self.lenses.is_empty()
 	}
-	
+}
+
+/**
+	Implementation details for event handling.
+**/
+impl Router {
 	pub fn fire_event_at_lens(&mut self, target: &str, event: &mut Event) {
 		let lens_id = self.lenses.iter().position(|lens| { lens.name == target });
 		let lens_id = match lens_id {
