@@ -1,10 +1,16 @@
 use core::borrow::{BorrowMut, Borrow};
 
 pub fn new_router() -> Router {
-	let router = Router {
+	let mut router = Router {
 		lenses: vec![],
 		nodes: vec![],
 	};
+	
+	router.nodes.push(Some(Node {
+		id: 0,
+		parent: None,
+		name: "root".to_string(),
+	}));
 	
 	return router;
 }
