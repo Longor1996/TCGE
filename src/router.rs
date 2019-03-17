@@ -23,7 +23,7 @@ impl Router {
 		let mut lens = Lens {
 			name: name.to_string(),
 			path: vec![],
-			handler: Box::new(NullLensHandler {}),
+			handler: Box::new(NULL_HANDLER),
 			state: LensState::Idle,
 		};
 		
@@ -204,8 +204,8 @@ impl LensHandler {
 }
 */
 
+const NULL_HANDLER: NullLensHandler = NullLensHandler {};
 pub struct NullLensHandler {}
-
 impl LensHandler for NullLensHandler {
 	fn on_event(&mut self, event: &mut EventWrapper) -> LensState {
 		LensState::Idle
