@@ -212,11 +212,17 @@ impl LensHandler for NullLensHandler {
 	}
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone)]
 pub enum LensState {
 	Idle,
 	Moving(String),
 	Destruction,
+}
+
+impl PartialEq for LensState {
+	fn eq(&self, other: &LensState) -> bool {
+		std::mem::discriminant(self) == std::mem::discriminant(other)
+	}
 }
 
 enum LensMoveEvent {
