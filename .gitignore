@@ -79,6 +79,5 @@ Cargo.lock
 # End of https://www.gitignore.io/api/rust,intellij+iml
 
 
-.idea/discord.xml
-.idea/inspectionProfiles/*
+.idea/*
 docs/
