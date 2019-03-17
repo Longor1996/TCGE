@@ -4,14 +4,14 @@ use failure::Fail;
 
 extern crate tcge;
 use tcge::resources::Resources;
-use tcge::util::utf8;
 use tcge::router;
-//use tcge::util::cdml;
 
 fn main() {
     let res = Resources::from_exe_path().unwrap();
     
     /*
+    use tcge::util::utf8;
+    use tcge::util::cdml;
     println!("Hello, Server! {}", tcge::MAGIC);
     
     let reader = res.open_stream("test.cdml").unwrap();
@@ -22,9 +22,9 @@ fn main() {
         print!("{}", x)
     }
     println!();
-    */
     
     // let mut cdmlReader = cdml::CDMLReader::read(reader);
+    */
     
     let mut router = router::new_router();
     
