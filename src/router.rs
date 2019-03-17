@@ -247,9 +247,10 @@ impl Event for LensMoveEvent {
 
 /******************************************************************************/
 
-pub trait Event {
+pub trait Event: mopa::Any {
 	fn is_passive(&self) -> bool;
 }
+mopafy!(Event);
 
 pub enum EventPhase {
 	Creation,
@@ -260,7 +261,7 @@ pub enum EventPhase {
 
 pub struct EventWrapper<'a> {
 	#[allow(dead_code)]
-	event: &'a mut Event,
+	pub event: &'a mut Event,
 	
 	// State
 	phase: EventPhase,
