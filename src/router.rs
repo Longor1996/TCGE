@@ -34,8 +34,13 @@ impl Router {
     pub fn update(&mut self) -> bool {
 	    let mut events: Vec<(usize, Box<Event>)> = vec![];
 	    
+	    // Remove all lenses that want to self-destruct.
+	    self.lenses.retain(
+		    |lens| lens.state == LensState::Destruction
+	    );
+	    
 	    for (pos, lens) in self.lenses.iter_mut().enumerate() {
-		    // Find all lenses that have an action running
+		    // Ignore all idle lenses
 		    if lens.state == LensState::Idle {
 			    continue
 		    }
@@ -46,8 +51,8 @@ impl Router {
 		    }
 		    
 		    // TODO: Actually implement routing...
-		    let mut action = lens.state.clone();
-		    match action {
+		    let mut state = lens.state.clone();
+		    match state {
 			    _ => {},
 		    }
 		    
@@ -205,8 +210,9 @@ impl LensHandler for NullLensHandler {
 
 #[derive(PartialEq,Clone)]
 pub enum LensState {
-    Moving(String),
-	Idle
+	Idle,
+	Moving(String),
+	Destruction,
 }
 
 enum LensMoveEvent {
