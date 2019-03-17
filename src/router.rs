@@ -24,7 +24,7 @@ impl Router {
 		    name: name.to_string(),
 		    path: vec![],
 		    handler: Box::new(NullLensHandler {}),
-		    action: LensAction::None,
+		    state: LensState::Idle,
 	    };
 	    
 	    constructor(&mut lens);
@@ -35,17 +35,26 @@ impl Router {
 	    let mut events: Vec<(usize, Box<Event>)> = vec![];
 	    
 	    for (pos, lens) in self.lenses.iter_mut().enumerate() {
-		
 		    // Find all lenses that have an action running
-		    if lens.action == LensAction::None {
+		    if lens.state == LensState::Idle {
 			    continue
 		    }
 		    
+		    if lens.path.is_empty() {
+			    // All lenses must be at least at root-level
+			    lens.state = LensState::Moving("/".to_string());
+		    }
+		    
 		    // TODO: Actually implement routing...
+		    let mut action = lens.state.clone();
+		    match action {
+			    _ => {},
+		    }
+		    
 		    // let mut finish_event = LensMoveEvent::Finished;
 		    // events.push((pos, Box::new(finish_event)));
 		    
-		    lens.action = LensAction::None;
+		    lens.state = LensState::Idle;
 	    }
 	    
 	    while let Some((pos, mut event)) = events.pop() {
@@ -77,7 +86,7 @@ impl Router {
 	    
 	    // A lens can only receive an event if inactive or the event is PASSIVE.
 	    if ! event.is_passive() {
-		    if lens.action != LensAction::None {
+		    if lens.state != LensState::Idle {
 			    return
 		    }
 	    }
@@ -111,7 +120,7 @@ impl Router {
 		    event_wrapper.phase = EventPhase::Action;
 		    (*lens.handler).on_event(&mut event_wrapper)
 	    } else {
-		    LensAction::None
+		    LensState::Idle
 	    };
 	    
 	    if event_wrapper.can_bubble {
@@ -127,13 +136,13 @@ impl Router {
 		    }
 	    }
 		
-	    if lens.action != LensAction::None {
+	    if lens.state != LensState::Idle {
 		    // Do start a new action if one is already running
 		    return
 	    }
 	    
 	    // Swap in the action, kicking off whatever action the lens wants...
-	    lens.action = action
+	    lens.state = action
     }
 }
 
@@ -157,12 +166,12 @@ pub struct Lens {
     pub name: String,
     pub path: Vec<usize>,
     pub handler: Box<LensHandler>,
-	pub action: LensAction,
+	pub state: LensState,
 }
 
 pub trait LensHandler {
     /* Called when the lens receives an event. */
-    fn on_event(&mut self, event: &mut EventWrapper) -> LensAction;
+    fn on_event(&mut self, event: &mut EventWrapper) -> LensState;
 }
 
 /* // TODO: Correctly implement this once https://areweasyncyet.rs/ is ready.
@@ -189,15 +198,15 @@ impl LensHandler {
 
 pub struct NullLensHandler {}
 impl LensHandler for NullLensHandler {
-	fn on_event(&mut self, event: &mut EventWrapper) -> LensAction {
-		LensAction::None
+	fn on_event(&mut self, event: &mut EventWrapper) -> LensState {
+		LensState::Idle
 	}
 }
 
-#[derive(PartialEq)]
-pub enum LensAction {
-    Move(String),
-    None
+#[derive(PartialEq,Clone)]
+pub enum LensState {
+    Moving(String),
+	Idle
 }
 
 enum LensMoveEvent {
