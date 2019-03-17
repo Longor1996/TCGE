@@ -42,8 +42,7 @@ fn main() {
             break;
         }
         
-        let mut ping = Ping {};
-        router.fire_event_at_lens("server", &mut ping);
+        router.fire_event_at_lens("server", &mut Ping {});
     }
 	
     println!("Goodbye!");
@@ -58,6 +57,11 @@ impl router::LensHandler for ServerLens {
         if self.counter > 10 {
             return router::LensState::Destruction
         }
+        
+        // Downcasting by using MOPA::Any
+        event.event.downcast_ref::<Ping>().map(|e| {
+            println!("PONG!");
+        });
         
         println!("Received event: {}", self.counter);
         router::LensState::Idle
