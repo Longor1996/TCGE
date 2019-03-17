@@ -48,19 +48,17 @@ impl Router {
 			
 			if lens.path.is_empty() {
 				// All lenses must be at least at root-level
-				lens.state = LensState::Moving("/".to_string());
+				lens.state = LensState::Moving("/".to_string(), 0);
+				continue
 			}
 			
 			// TODO: Actually implement routing...
-			let mut state = lens.state.clone();
-			match state {
+			match lens.state {
 				_ => {},
 			}
 			
 			// let mut finish_event = LensMoveEvent::Finished;
 			// events.push((pos, Box::new(finish_event)));
-			
-			lens.state = LensState::Idle;
 		}
 		
 		while let Some((pos, mut event)) = events.pop() {
@@ -130,7 +128,9 @@ impl LensHandler {
 */
 
 const NULL_HANDLER: NullLensHandler = NullLensHandler {};
+
 pub struct NullLensHandler {}
+
 impl LensHandler for NullLensHandler {
 	fn on_event(&mut self, event: &mut EventWrapper) -> LensState {
 		LensState::Idle
@@ -140,7 +140,7 @@ impl LensHandler for NullLensHandler {
 #[derive(Clone)]
 pub enum LensState {
 	Idle,
-	Moving(String),
+	Moving(String, usize),
 	Destruction,
 }
 
