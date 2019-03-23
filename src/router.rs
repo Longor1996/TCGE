@@ -1,20 +1,5 @@
 use core::borrow::{BorrowMut, Borrow};
 
-pub fn new_router() -> Router {
-	let mut router = Router {
-		lenses: vec![],
-		nodes: vec![],
-	};
-	
-	router.nodes.push(Some(Node {
-		id: 0,
-		parent: None,
-		name: "root".to_string(),
-	}));
-	
-	return router;
-}
-
 /******************************************************************************/
 
 pub struct Router {
@@ -22,8 +7,23 @@ pub struct Router {
 	nodes: Vec<Option<Node>>,
 }
 
+/// Functions for building the router.
 impl Router {
-	//
+	
+	pub fn new() -> Router {
+		let mut router = Router {
+			lenses: vec![],
+			nodes: vec![],
+		};
+		
+		router.nodes.push(Some(Node {
+			id: 0,
+			parent: None,
+			name: "root".to_string(),
+		}));
+		
+		return router;
+	}
 	
 	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut Lens)) {
 		let mut lens = Lens {
@@ -37,6 +37,43 @@ impl Router {
 		self.lenses.push(lens);
 	}
 	
+	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut Node)) {
+		let parent = parent.or(Some(0));
+		
+		let mut id: Option<usize> = None;
+		
+		let id = id.unwrap_or(self.nodes.len());
+		
+		let mut node = Node {
+			id: id,
+			parent: parent,
+			name: name.to_string(),
+		};
+		
+		constructor(&mut node);
+		
+		self.nodes.push(Some(node));
+	}
+	
+	pub fn get_node_by_id(&self, id: usize) -> &Option<Node> {
+		self.nodes.get(id).unwrap_or(None.borrow())
+	}
+	
+	pub fn get_node_id(&self, name: &str) -> Option<usize> {
+		for (pos, node) in self.nodes.iter().enumerate() {
+			if let Some(node) = node {
+				if node.name == name {
+					return Some(pos)
+				}
+			}
+		}
+		
+		None
+	}
+}
+
+// Router update handling
+impl Router {
 	pub fn update(&mut self) -> bool {
 		let mut events: Vec<(usize, Box<Event>)> = vec![];
 		
@@ -77,6 +114,136 @@ impl Router {
 	}
 }
 
+// Router path handling
+impl Router {
+	
+	/// Resolves the next step towards a node from a path,
+	/// a mutable offset into the path and the current node path.
+	pub fn path_next(&self,
+	                 dst_path: &str,
+	                 dst_off: &mut usize,
+	                 src_path: &[usize]
+	) -> PathItem {
+		// Parsing of root location only happens when `offset = 0`
+		if *dst_off == 0 {
+			if dst_path.starts_with("/") {
+				// Bubbling
+				if ! src_path.is_empty() {
+					return PathItem::ToSuper;
+				}
+				
+				*dst_off += 1;
+				return PathItem::ToRoot
+			}
+			
+			if dst_path.starts_with("./") {
+				*dst_off += 2;
+				return PathItem::ToSelf
+			}
+			
+			if dst_path.starts_with("../") {
+				*dst_off += 3;
+				return PathItem::ToSuper
+			}
+		}
+		
+		// Slice away everything before the offset
+		let mut path = dst_path.split_at(*dst_off).1;
+		
+		// Have we already reached the end?
+		if path.len() == 0 {
+			return PathItem::End;
+		}
+		
+		// Slice away unnecessary slashes
+		while path.starts_with("/") {
+			*dst_off += 1;
+			path = &path[1..];
+		}
+		
+		if path.starts_with("./") {
+			*dst_off += 2;
+			return PathItem::ToSelf
+		}
+		
+		if path.starts_with("../") {
+			*dst_off += 3;
+			return PathItem::ToSuper
+		}
+		
+		let current = src_path.last();
+		let current = match current {
+			Some(x) => &self.nodes[*x],
+			None => &self.nodes[0]
+		};
+		
+		let current = match current {
+			Some(x) => x,
+			None => return PathItem::Error(format!("Could not resolve current.")),
+		};
+		
+		let end = path.find("/")
+			.unwrap_or(path.len());
+		
+		let name = &path[..end];
+		
+		// TODO: This part *should* be possible with iter()...?
+		let mut next: Option<&Node> = None;
+		for node in self.nodes.iter() {
+			next = match node {
+				Some(x) => {
+					if ! x.is_named(name) {
+						continue;
+					}
+					
+					if ! x.is_child_of(current) {
+						continue;
+					}
+					
+					Some(x)
+				},
+				None => None
+			};
+			
+			if let Some(_) = next {
+				break;
+			}
+		}
+		
+		let next = match next {
+			None => return PathItem::Error(format!("Could not find node: {}", name)),
+			Some(x) => x,
+		};
+		
+		*dst_off += end;
+		return PathItem::ToNode(next.id);
+	}
+
+}
+
+#[derive(Debug)]
+pub enum PathItem {
+	ToRoot, // `/`
+	ToSelf, // `./`
+	ToSuper, // `../`
+	ToNode(usize), // `NAME`
+	Error(String),
+	End
+}
+
+impl std::fmt::Display for PathItem {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			PathItem::ToRoot => write!(fmt, "ToRoot"),
+			PathItem::ToSelf => write!(fmt, "ToSelf"),
+			PathItem::ToSuper => write!(fmt, "ToSuper"),
+			PathItem::ToNode(x) => write!(fmt, "ToNode({})", *x),
+			PathItem::Error(x) => write!(fmt, "Error({})", x),
+			PathItem::End => write!(fmt, "End"),
+		}
+	}
+}
+
 /******************************************************************************/
 
 pub struct Node {
@@ -88,6 +255,14 @@ pub struct Node {
 impl Node {
 	pub fn on_event(&mut self, event: &mut EventWrapper) {
 		// TODO: Walk trough event-listeners/components...
+	}
+	
+	pub fn is_child_of(&self, parent: &Node) -> bool {
+		self.parent.map_or(false, |id| id == parent.id)
+	}
+	
+	pub fn is_named(&self, name: &str) -> bool {
+		self.name == name
 	}
 }
 
