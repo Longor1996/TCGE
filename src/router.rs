@@ -119,7 +119,7 @@ impl Router {
 	
 	/// Resolves the next step towards a node from a path,
 	/// a mutable offset into the path and the current node path.
-	pub fn path_next(&self,
+	fn path_next(nodes: &Vec<Option<Node>>,
 	                 dst_path: &str,
 	                 dst_off: &mut usize,
 	                 src_path: &[usize]
@@ -173,8 +173,8 @@ impl Router {
 		
 		let current = src_path.last();
 		let current = match current {
-			Some(x) => &self.nodes[*x],
-			None => &self.nodes[0]
+			Some(x) => &nodes[*x],
+			None => &nodes[0]
 		};
 		
 		let current = match current {
@@ -189,7 +189,7 @@ impl Router {
 		
 		// TODO: This part *should* be possible with iter()...?
 		let mut next: Option<&Node> = None;
-		for node in self.nodes.iter() {
+		for node in nodes.iter() {
 			next = match node {
 				Some(x) => {
 					if ! x.is_named(name) {
@@ -237,7 +237,7 @@ impl std::fmt::Display for PathItem {
 			PathItem::ToRoot => write!(fmt, "ToRoot"),
 			PathItem::ToSelf => write!(fmt, "ToSelf"),
 			PathItem::ToSuper => write!(fmt, "ToSuper"),
-			PathItem::ToNode(x) => write!(fmt, "ToNode({})", *x),
+			PathItem::ToNode(x) => write!(fmt, "ToNode(#{})", *x),
 			PathItem::Error(x) => write!(fmt, "Error({})", x),
 			PathItem::End => write!(fmt, "End"),
 		}
