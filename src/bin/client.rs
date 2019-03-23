@@ -29,7 +29,7 @@ fn main() {
 			use std::fmt::Write;
 			let mut result = String::new();
 			
-			for (i, cause) in e.causes().collect::<Vec<_>>().into_iter().enumerate() {
+			for (i, cause) in e.iter_chain().collect::<Vec<_>>().into_iter().enumerate() {
 				if i > 0 {
 					let _ = write!(&mut result, "   Caused by: ");
 				}
@@ -56,7 +56,7 @@ fn main() {
 		use std::fmt::Write;
 		let mut result = String::new();
 		
-		for (i, cause) in e.causes().collect::<Vec<_>>().into_iter().enumerate() {
+		for (i, cause) in e.iter_chain().collect::<Vec<_>>().into_iter().enumerate() {
 			if i > 0 {
 				let _ = write!(&mut result, "   Caused by: ");
 			}
