@@ -556,11 +556,9 @@ impl Router {
 		}
 		
 		// A lens without path cannot receive events
-		/*
 		if lens.path.len() == 0 {
 			return;
 		}
-		*/
 		
 		let mut event_wrapper = EventWrapper {
 			event,
