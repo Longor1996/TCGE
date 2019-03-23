@@ -31,14 +31,12 @@ fn main() {
     router.new_node("child-A", None, &|_|{});
     router.new_node("child-B", None, &|_|{});
     
-    let childA_id = router.get_node_id("child-A");
+    let childA_id = router.nodes.get_node_id("child-A");
     router.new_node("child-1", childA_id, &|_|{});
     
     router.new_lens("server", &|lens| {
         println!("Server Lens Init");
-        lens.handler = Box::new(ServerLens {
-            counter: 0
-        });
+        
         lens.path.push(1);
         lens.path.push(3);
         lens.state = router::LensState::Moving("/".to_string(), 0);
@@ -61,7 +59,7 @@ struct ServerLens {
     counter: usize
 }
 impl router::LensHandler for ServerLens {
-    fn on_event(&mut self, event: &mut router::EventWrapper) -> router::LensState {
+    fn on_event(&mut self, event: &mut router::EventWrapper, lens: &router::Lens) -> router::LensState {
         self.counter += 1;
         if self.counter > 10 {
             return router::LensState::Destruction

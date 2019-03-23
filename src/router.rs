@@ -3,38 +3,30 @@ use core::borrow::{BorrowMut, Borrow};
 /******************************************************************************/
 
 pub struct Router {
-	lenses: Vec<Lens>,
-	nodes: Vec<Option<Node>>,
+	pub lenses: RouterLenses,
+	pub nodes: RouterNodes,
 }
 
 /// Functions for building the router.
 impl Router {
 	
 	pub fn new() -> Router {
-		let mut router = Router {
-			lenses: vec![],
-			nodes: vec![],
-		};
-		
-		router.nodes.push(Some(Node {
-			id: 0,
-			parent: None,
-			name: "root".to_string(),
-		}));
-		
-		return router;
+		Router {
+			lenses: RouterLenses::new(),
+			nodes: RouterNodes::new(),
+		}
 	}
 	
 	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut Lens)) {
 		let mut lens = Lens {
 			name: name.to_string(),
 			path: vec![],
-			handler: Box::new(NULL_HANDLER),
 			state: LensState::Idle,
 		};
 		
 		constructor(&mut lens);
-		self.lenses.push(lens);
+		self.lenses.lenses.push(lens);
+		self.lenses.handlers.push(Box::new(NULL_HANDLER));
 	}
 	
 	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut Node)) {
@@ -42,7 +34,7 @@ impl Router {
 		
 		let mut id: Option<usize> = None;
 		
-		let id = id.unwrap_or(self.nodes.len());
+		let id = id.unwrap_or(self.nodes.nodes.len());
 		
 		let mut node = Node {
 			id: id,
@@ -52,23 +44,7 @@ impl Router {
 		
 		constructor(&mut node);
 		
-		self.nodes.push(Some(node));
-	}
-	
-	pub fn get_node_by_id(&self, id: usize) -> &Option<Node> {
-		self.nodes.get(id).unwrap_or(None.borrow())
-	}
-	
-	pub fn get_node_id(&self, name: &str) -> Option<usize> {
-		for (pos, node) in self.nodes.iter().enumerate() {
-			if let Some(node) = node {
-				if node.name == name {
-					return Some(pos)
-				}
-			}
-		}
-		
-		None
+		self.nodes.nodes.push(Some(node));
 	}
 }
 
@@ -77,7 +53,7 @@ impl Router {
 	pub fn update(&mut self) -> bool {
 		let mut events: Vec<(usize, Box<Event>)> = vec![];
 		
-		for (pos, lens) in self.lenses.iter_mut().enumerate() {
+		for (pos, lens) in self.lenses.lenses.iter_mut().enumerate() {
 			
 			if lens.path.is_empty() {
 				// All lenses must be at least at root-level
@@ -94,7 +70,7 @@ impl Router {
 				LensState::Moving(path, offset) => {
 					
 					let step = Router::path_next(
-						&self.nodes,
+						&self.nodes.nodes,
 						path,
 						offset,
 						&lens.path
@@ -143,11 +119,11 @@ impl Router {
 		}
 		
 		// Remove all lenses that want to self-destruct.
-		self.lenses.retain(
+		self.lenses.lenses.retain(
 			|lens| lens.state != LensState::Destruction
 		);
 		
-		return self.lenses.is_empty()
+		return self.lenses.lenses.is_empty()
 	}
 }
 
@@ -303,18 +279,87 @@ impl Node {
 	}
 }
 
+pub struct RouterNodes {
+	nodes: Vec<Option<Node>>
+}
+
+impl RouterNodes {
+	
+	pub fn new() -> RouterNodes{
+		let root_node = Some(Node {
+			id: 0,
+			parent: None,
+			name: "root".to_string(),
+		});
+		
+		RouterNodes {
+			nodes: vec![root_node]
+		}
+	}
+	
+	pub fn get_mut_node_by_id(&mut self, id: usize) -> Option<&mut Node> {
+		let node = self.nodes.get_mut(id);
+		
+		match node {
+			None => return None,
+			Some(node) => {
+				match node {
+					None => return None,
+					Some(node) => {
+						return Some(node)
+					}
+				}
+			}
+		}
+	}
+	
+	pub fn get_node_by_id(&self, id: usize) -> &Option<Node> {
+		self.nodes.get(id).unwrap_or(None.borrow())
+	}
+	
+	pub fn get_node_id(&self, name: &str) -> Option<usize> {
+		for (pos, node) in self.nodes.iter().enumerate() {
+			if let Some(node) = node {
+				if node.name == name {
+					return Some(pos)
+				}
+			}
+		}
+		
+		None
+	}
+}
+
 /******************************************************************************/
 
 pub struct Lens {
 	pub name: String,
 	pub path: Vec<usize>,
-	pub handler: Box<LensHandler>,
 	pub state: LensState,
+}
+
+pub struct RouterLenses {
+	lenses: Vec<Lens>,
+	handlers: Vec<Box<LensHandler>>,
+}
+
+impl RouterLenses {
+	
+	pub fn new() -> RouterLenses {
+		RouterLenses {
+			lenses: vec![],
+			handlers: vec![],
+		}
+	}
+	
+	pub fn get_mut_lens_by_id(&mut self, id: usize) -> Option<&mut Lens> {
+		return self.lenses.get_mut(id)
+	}
 }
 
 pub trait LensHandler {
 	/* Called when the lens receives an event. */
-	fn on_event(&mut self, event: &mut EventWrapper) -> LensState;
+	fn on_event(&mut self, event: &mut EventWrapper, lens: &Lens) -> LensState;
 }
 
 /* // TODO: Correctly implement this once https://areweasyncyet.rs/ is ready.
@@ -344,7 +389,7 @@ const NULL_HANDLER: NullLensHandler = NullLensHandler {};
 pub struct NullLensHandler {}
 
 impl LensHandler for NullLensHandler {
-	fn on_event(&mut self, event: &mut EventWrapper) -> LensState {
+	fn on_event(&mut self, _event: &mut EventWrapper, lens: &Lens) -> LensState {
 		LensState::Idle
 	}
 }
@@ -438,7 +483,7 @@ impl<'a> EventWrapper<'a> {
 impl Router {
 	/// Fires a single `Event` at a single `Lens`.
 	pub fn fire_event_at_lens(&mut self, target: &str, event: &mut Event) {
-		let lens_id = self.lenses.iter().position(|lens| { lens.name == target });
+		let lens_id = self.lenses.lenses.iter().position(|lens| { lens.name == target });
 		let lens_id = match lens_id {
 			Some(x) => x,
 			None => return
@@ -448,9 +493,16 @@ impl Router {
 	}
 	
 	/// Actual implementation for `fire_event_at_lens`.
-	fn fire_event_at_lens_id(&mut self, target_id: usize, event: &mut Event) {
-		let lens = self.lenses.get_mut(target_id);
+	fn fire_event_at_lens_id(&mut self, lens_id: usize, event: &mut Event) {
+		let lens = self.lenses.lenses.get_mut(lens_id);
+		
 		let lens = match lens {
+			Some(x) => x,
+			None => return
+		};
+		
+		let lens_handler = self.lenses.handlers.get_mut(lens_id);
+		let lens_handler = match lens_handler {
 			Some(x) => x,
 			None => return
 		};
@@ -481,7 +533,7 @@ impl Router {
 		
 		event_wrapper.phase = EventPhase::Propagation;
 		for node_id in lens.path.iter() {
-			self.nodes[*node_id].as_mut().map(|n|
+			self.nodes.get_mut_node_by_id(*node_id).map(|n|
 				n.on_event(&mut event_wrapper)
 			);
 			
@@ -492,7 +544,8 @@ impl Router {
 		
 		let new_state = if event_wrapper.can_default {
 			event_wrapper.phase = EventPhase::Action;
-			(*lens.handler).on_event(&mut event_wrapper)
+			
+			(*lens_handler).on_event(&mut event_wrapper, lens)
 		} else {
 			LensState::Idle
 		};
@@ -500,7 +553,7 @@ impl Router {
 		if event_wrapper.can_bubble {
 			event_wrapper.phase = EventPhase::Bubbling;
 			for node_id in lens.path.iter().rev() {
-				self.nodes[*node_id].as_mut().map(|n|
+				self.nodes.get_mut_node_by_id(*node_id).map(|n|
 					n.on_event(&mut event_wrapper)
 				);
 				
