@@ -31,8 +31,8 @@ fn main() {
     router.new_node("child-A", None, &|_|{});
     router.new_node("child-B", None, &|_|{});
     
-    let childA_id = router.nodes.get_node_id("child-A");
-    router.new_node("child-1", childA_id, &|_|{});
+    let child_a_id = router.nodes.get_node_id("child-A");
+    router.new_node("child-1", child_a_id, &|_|{});
     
     router.new_lens("server", &|lens| {
         println!("Server Lens Init");

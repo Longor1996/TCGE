@@ -104,7 +104,8 @@ impl Router {
 					};
 					
 					// Rebuild the path (even if it didn't change)
-					lens.path_str = self.nodes.get_path_as_string(&lens.path);
+					lens.path_str = self.nodes.get_path_as_string(&lens.path)
+						.expect("Failed to resolve path for lens.");
 					
 					new_state
 				}
