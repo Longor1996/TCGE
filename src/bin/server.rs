@@ -34,33 +34,14 @@ fn main() {
     let childA_id = router.get_node_id("child-A");
     router.new_node("child-1", childA_id, &|_|{});
     
-    if true || true {
-        let dst_path = "/child-A/child-1";
-        let mut dst_off = 0;
-        let mut src_path = vec![];
-        
-        loop {
-            let step = router.path_next(dst_path, &mut dst_off, &src_path);
-            println!("--- STEP: {}", step);
-            
-            match step {
-                router::PathItem::ToSelf => {continue;},
-                router::PathItem::ToRoot => {&src_path.clear();},
-                router::PathItem::ToSuper => {&src_path.pop();},
-                router::PathItem::ToNode(x) => {&src_path.push(x);},
-                router::PathItem::Error(_) => {break;},
-                router::PathItem::End => {break;},
-            };
-        }
-        
-        return;
-    }
-    
     router.new_lens("server", &|lens| {
         println!("Server Lens Init");
         lens.handler = Box::new(ServerLens {
             counter: 0
         });
+        lens.path.push(1);
+        lens.path.push(3);
+        lens.state = router::LensState::Moving("/".to_string(), 0);
     });
     
     println!("Loop Start");
