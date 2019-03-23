@@ -184,6 +184,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let mut render_state_gui = GuiRenderState {
 		width: 0, height: 0,
 		ascii_renderer,
+		frame_time: 0.0,
 	};
 	
 	// ------------------------------------------
@@ -226,6 +227,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		
 		let window_size = window.get_framebuffer_size();
 		let mut reset_render_state = false;
+		let last_frame_time = gls.get_frame_time();
 		
 		gameloop::gameloop_next(&mut gls,
 			|| {glfw.get_time()},
@@ -262,6 +264,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				let (w, h) = window.get_framebuffer_size();
 				render_state_gui.width = w;
 				render_state_gui.height = h;
+				render_state_gui.frame_time = last_frame_time;
 				render_gui(&mut render_state_gui);
 			}
 		);
@@ -408,6 +411,7 @@ fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, s
 struct GuiRenderState {
 	width: i32, height: i32,
 	ascii_renderer: render::ascii_text::AsciiTextRenderer,
+	frame_time: f64,
 }
 
 fn render_gui(render_state_gui: &mut GuiRenderState) {
@@ -427,9 +431,11 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		-1.0,1.0
 	);
 	
+	let frame_time = (render_state_gui.frame_time * 1000.0).ceil();
+	
 	render_state_gui.ascii_renderer.transform = projection;
 	render_state_gui.ascii_renderer.draw_text(
-		format!("TCGE {}",env!("VERSION")),
+		format!("TCGE {}: {}ms",env!("VERSION"), frame_time),
 		16.0, 0.0+1.0, 16.0
 	);
 	

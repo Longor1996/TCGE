@@ -6,6 +6,13 @@ pub struct GameloopState {
     next_game_tick: f64,
     loops: i32,
     interpolation: f64,
+    frame_time: f64,
+}
+
+impl GameloopState {
+    pub fn get_frame_time(&self) -> f64 {
+        self.frame_time
+    }
 }
 
 pub fn new_gameloop(ticks_per_second: i32) -> GameloopState {
@@ -15,6 +22,7 @@ pub fn new_gameloop(ticks_per_second: i32) -> GameloopState {
         loops: 0,
         next_game_tick: 0.0,
         interpolation: 0.0,
+        frame_time: 0.0,
     }
 }
 
@@ -28,6 +36,7 @@ pub fn gameloop_next<GTC, GT, GD> (
     GT: FnMut(f64),
     GD: FnMut(f64, f32),
 {
+    let frame_start = gtc();
     gls.loops = 0;
     
     while (gtc() > gls.next_game_tick) && (gls.loops < gls.max_frameskip) {
@@ -42,4 +51,7 @@ pub fn gameloop_next<GTC, GT, GD> (
     
     gls.interpolation = (delta + gls.skip_ticks) / gls.skip_ticks;
     game_draw(now, gls.interpolation as f32);
+    
+    let frame_end = gtc();
+    gls.frame_time = frame_end - frame_start;
 }
