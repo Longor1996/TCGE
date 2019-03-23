@@ -36,6 +36,10 @@ fn main() {
     
     router.new_lens("server", &|lens| {
         println!("Server Lens Init");
+        
+        return Some(Box::new(ServerLens {
+            counter: 0
+        }));
     });
     
     println!("Loop Start");

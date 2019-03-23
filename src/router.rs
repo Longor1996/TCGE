@@ -17,7 +17,7 @@ impl Router {
 		}
 	}
 	
-	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut Lens)) {
+	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut Lens) -> Option<Box<LensHandler>>) {
 		let mut lens = Lens {
 			name: name.to_string(),
 			path_str: "".to_string(),
@@ -25,9 +25,10 @@ impl Router {
 			state: LensState::Idle,
 		};
 		
-		constructor(&mut lens);
+		let handler = constructor(&mut lens).unwrap_or(Box::new(NULL_HANDLER));
+		
 		self.lenses.lenses.push(lens);
-		self.lenses.handlers.push(Box::new(NULL_HANDLER));
+		self.lenses.handlers.push(handler);
 	}
 	
 	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut Node)) {
