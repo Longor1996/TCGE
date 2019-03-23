@@ -78,20 +78,57 @@ impl Router {
 		let mut events: Vec<(usize, Box<Event>)> = vec![];
 		
 		for (pos, lens) in self.lenses.iter_mut().enumerate() {
+			
+			if lens.path.is_empty() {
+				// All lenses must be at least at root-level
+				lens.state = LensState::Moving("/".to_string(), 0);
+			}
+			
 			// Ignore all idle and destroying lenses
 			if lens.state == LensState::Idle || lens.state == LensState::Destruction {
 				continue
 			}
 			
-			if lens.path.is_empty() {
-				// All lenses must be at least at root-level
-				lens.state = LensState::Moving("/".to_string(), 0);
-				continue
-			}
-			
 			// TODO: Actually implement routing...
-			match lens.state {
-				_ => {},
+			let new_state = match lens.state.borrow_mut() {
+				LensState::Moving(path, offset) => {
+					
+					let step = Router::path_next(
+						&self.nodes,
+						path,
+						offset,
+						&lens.path
+					);
+					
+					println!("PATHING {} #{} -> {}", path, offset, step);
+					
+					match step {
+						PathItem::ToSelf => None,
+						PathItem::ToRoot => {
+							lens.path.clear();
+							lens.path.push(0);
+							None
+						},
+						PathItem::ToSuper => {
+							lens.path.pop();
+							None
+						},
+						PathItem::ToNode(x) => {
+							lens.path.push(x);
+							None
+						},
+						PathItem::Error(e) => {None},
+						PathItem::End => {
+							Some(LensState::Idle)
+						}
+					}
+				}
+				
+				_ => None
+			};
+			
+			if let Some(new_state) = new_state {
+				lens.state = new_state;
 			}
 			
 			// let mut finish_event = LensMoveEvent::Finished;
