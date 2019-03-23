@@ -380,8 +380,20 @@ impl RouterLenses {
 		}
 	}
 	
+	pub fn get_lens_by_id(&mut self, id: usize) -> Option<&Lens> {
+		return self.lenses.get(id)
+	}
+	
 	pub fn get_mut_lens_by_id(&mut self, id: usize) -> Option<&mut Lens> {
 		return self.lenses.get_mut(id)
+	}
+	
+	pub fn get_lens_by_name(&mut self, name: &str) -> Option<&Lens> {
+		return self.lenses.iter().find(|l| l.name == name)
+	}
+	
+	pub fn get_mut_lens_by_name(&mut self, name: &str) -> Option<&mut Lens> {
+		return self.lenses.iter_mut().find(|l| l.name == name)
 	}
 }
 
