@@ -39,8 +39,8 @@ impl Router {
 		let id = id.unwrap_or(self.nodes.nodes.len());
 		
 		let mut node = Node {
-			id: id,
-			parent: parent,
+			id,
+			parent,
 			name: name.to_string(),
 		};
 		
@@ -92,7 +92,7 @@ impl Router {
 							lens.path.push(x);
 							None
 						},
-						PathItem::Error(e) => {
+						PathItem::Error(_e) => {
 							let event = LensMoveEvent::Aborted;
 							events.push((pos, Box::new(event)));
 							Some(LensState::Idle)
@@ -275,7 +275,7 @@ pub struct Node {
 }
 
 impl Node {
-	pub fn on_event(&mut self, event: &mut EventWrapper) {
+	pub fn on_event(&mut self, _event: &mut EventWrapper) {
 		// TODO: Walk trough event-listeners/components...
 	}
 	
@@ -298,7 +298,7 @@ impl RouterNodes {
 		let root_node = Some(Node {
 			id: 0,
 			parent: None,
-			name: "root".to_string(),
+			name: "".to_string(),
 		});
 		
 		RouterNodes {
@@ -435,7 +435,7 @@ impl LensHandler {
 const NULL_HANDLER: NullLensHandler = NullLensHandler {};
 pub struct NullLensHandler {}
 impl LensHandler for NullLensHandler {
-	fn on_event(&mut self, _event: &mut EventWrapper, lens: &Lens) -> LensState {
+	fn on_event(&mut self, _event: &mut EventWrapper, _lens: &Lens) -> LensState {
 		LensState::Idle
 	}
 }

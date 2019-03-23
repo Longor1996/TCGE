@@ -286,10 +286,21 @@ pub fn create_whitespace_cstring_with_len(len: usize) -> CString {
 }
 
 pub struct Texture {
+	/// OpenGL Texture Object Handle
 	pub id: gl::types::GLuint,
+	
+	/// Horizontal size of the texture in pixels.
+	#[allow(unused)]
 	width: u32,
+	
+	/// Vertical size of the texture in pixels.
+	#[allow(unused)]
 	height: u32,
+	
+	/// Horizontal size of a single pixel within the texture.
 	tx: f32,
+	
+	/// Vertical size of a single pixel within the texture.
 	ty: f32,
 }
 

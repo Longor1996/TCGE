@@ -7,7 +7,7 @@ use tcge::resources::Resources;
 use tcge::router;
 
 fn main() {
-    let res = Resources::from_exe_path().unwrap();
+    let _res = Resources::from_exe_path().unwrap();
     
     /*
     use tcge::util::utf8;
@@ -34,9 +34,8 @@ fn main() {
     let child_a_id = router.nodes.get_node_id("child-A");
     router.new_node("child-1", child_a_id, &|_|{});
     
-    router.new_lens("server", &|lens| {
+    router.new_lens("server", &|_| {
         println!("Server Lens Init");
-        
         return Some(Box::new(ServerLens {
             counter: 0
         }));
@@ -66,11 +65,11 @@ impl router::LensHandler for ServerLens {
         }
         
         // Downcasting by using MOPA::Any
-        event.event.downcast_ref::<Ping>().map(|e| {
+        event.event.downcast_ref::<Ping>().map(|_| {
             println!("PONG!");
         });
         
-        println!("Received event: {}", self.counter);
+        println!("Received event: {} @ {}", self.counter, lens.path_str);
         router::LensState::Idle
     }
 }

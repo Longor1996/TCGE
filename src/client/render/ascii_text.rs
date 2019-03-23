@@ -1,5 +1,4 @@
 use super::super::super::resources;
-use super::super::geometry;
 use super::cgmath::SquareMatrix;
 use super::utility;
 use std::io::{BufRead, BufReader};
@@ -49,8 +48,8 @@ impl AsciiTextRenderer {
 			
 			if line.starts_with("scale ") {
 				let split = line.find(" ").expect("Unexpected error.");
-				let scaleStr = &line.split_at(split).1[1..];
-				scale = scaleStr.parse::<f32>()
+				let scale_str = &line.split_at(split).1[1..];
+				scale = scale_str.parse::<f32>()
 					.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
 			}
 			
@@ -69,11 +68,11 @@ impl AsciiTextRenderer {
 		}
 		
 		Ok(AsciiTextRenderer {
-			material: material,
+			material,
 			characters: chars,
 			transform: cgmath::Matrix4::identity(),
-			scale: scale,
-			buffer: buffer,
+			scale,
+			buffer,
 			buffer_vbo: gpu.0,
 			buffer_vao: gpu.1,
 			buffer_size: gpu.2,
@@ -81,7 +80,7 @@ impl AsciiTextRenderer {
 	}
 	
 	pub fn prepare_gpu_objects(
-		material: &AsciiTextRendererMaterial
+		_material: &AsciiTextRendererMaterial
 	) -> (
 		gl::types::GLuint,
 		gl::types::GLuint,

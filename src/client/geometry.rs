@@ -170,20 +170,20 @@ pub fn geometry_test() -> SimpleVao {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+/// Builder for Meshes with arbitrary-geometry using Vertex-Array-Objects
 struct SimpleVaoBuilder {
-	vertices: Vec<f32>,
-	texcoord: Vec<f32>,
+	vertices: Vec<f32>
 }
 
 impl SimpleVaoBuilder {
 	
 	pub fn new() -> SimpleVaoBuilder {
 		SimpleVaoBuilder {
-			vertices: vec![],
-			texcoord: vec![],
+			vertices: vec![]
 		}
 	}
 	
+	/// Add a new vertex (`x, y, z`) with texture-coordinates `(0.0, 0.0)`.
 	pub fn push_vertex(&mut self, x: f32, y: f32, z: f32) {
 		self.vertices.push(x);
 		self.vertices.push(y);
@@ -192,6 +192,7 @@ impl SimpleVaoBuilder {
 		self.vertices.push(0.0);
 	}
 	
+	/// Add a new vertex (`x, y, z`) with texture-coordinates `(u, v)`.
 	pub fn push_vertex_with_uv(&mut self, x: f32, y: f32, z: f32, u: f32, v: f32) {
 		self.vertices.push(x);
 		self.vertices.push(y);
@@ -200,6 +201,7 @@ impl SimpleVaoBuilder {
 		self.vertices.push(v);
 	}
 	
+	/// Push a large amount of vertices, without texture-coordinates.
 	pub fn push_vertices(&mut self, other: Vec<f32>) {
 		if (other.len() % 3) != 0 {
 			panic!("Attempted to push non-trinary vertex.");
@@ -215,6 +217,7 @@ impl SimpleVaoBuilder {
 		}
 	}
 	
+	/// Push a quad (4 vertices, two triangles) with texture-coordinates.
 	pub fn push_quads(&mut self, quad: Vec<f32>) {
 		if (quad.len() % 3*4) != 0 {
 			panic!("Attempted to push non-quadliteral quads.");
@@ -234,6 +237,7 @@ impl SimpleVaoBuilder {
 		self.push_vertex_with_uv(quad[9], quad[10], quad[11], 0.0, 1.0); // D
 	}
 	
+	/// Uploads the (hopefully valid) mesh to the GPU.
 	pub fn build(&self) -> SimpleVao {
 		let mut vbo_vertex: gl::types::GLuint = 0;
 		unsafe {

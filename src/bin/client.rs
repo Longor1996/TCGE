@@ -5,7 +5,6 @@ extern crate failure;
 #[allow(unused_imports)]
 use failure::Fail;
 
-use std::thread;
 extern crate time;
 extern crate glfw;
 use glfw::{Context, Key, Action};
@@ -111,7 +110,7 @@ fn new_window(
 	);
 	
 	// Center the clients primary window in the middle of the primary monitor.
-	glfw.with_primary_monitor_mut(|glfw, primary| {
+	glfw.with_primary_monitor_mut(|_, primary| {
 		if let Some(monitor) = primary {
 			if let Some(vidmod) = monitor.get_video_mode() {
 				let w_size = window.get_size();
@@ -145,9 +144,9 @@ extern "system" fn on_gl_error(
 	etype: gl::types::GLenum,
 	id: gl::types::GLuint,
 	severity: gl::types::GLenum,
-	length: gl::types::GLsizei,
+	_length: gl::types::GLsizei,
 	message: *const gl::types::GLchar,
-	userval: *mut std::ffi::c_void,
+	_userval: *mut std::ffi::c_void,
 ) {
 	if severity != gl::DEBUG_SEVERITY_NOTIFICATION {
 		unsafe {
@@ -179,7 +178,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let shader_random = render::materials::ShaderRandom::new(&res)?;
 	let shader_solid_color = render::materials::ShaderSolidColor::new(&res)?;
 	
-	let mut ascii_renderer = render::ascii_text::AsciiTextRenderer::load(&res)?;
+	let ascii_renderer = render::ascii_text::AsciiTextRenderer::load(&res)?;
 	
 	// ------------------------------------------
 	let mut render_state_gui = GuiRenderState {
@@ -208,7 +207,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			// geometry::geometry_cube(-512.0),
 		],
 		mesh_planequad: geometry::geometry_planequad(1024.0),
-		block_universe: block_universe
+		block_universe
 	})));
 	
 	// ------------------------------------------
@@ -431,7 +430,7 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	render_state_gui.ascii_renderer.transform = projection;
 	render_state_gui.ascii_renderer.draw_text(
 		format!("TCGE {}",env!("VERSION")),
-		16.0, 0.0+2.0, 16.0+2.0
+		16.0, 0.0+1.0, 16.0
 	);
 	
 	render::utility::gl_pop_debug();

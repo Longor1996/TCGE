@@ -7,6 +7,7 @@
 extern crate glfw;
 use self::glfw::{Key, Action};
 
+#[allow(unused)]
 use super::cgmath::{
 	Vector3, Matrix4, Transform,
 	InnerSpace, ElementWise
