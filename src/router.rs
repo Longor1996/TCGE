@@ -32,7 +32,7 @@ impl Router {
 	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut Node)) {
 		let parent = parent.or(Some(0));
 		
-		let mut id: Option<usize> = None;
+		let id: Option<usize> = None;
 		
 		let id = id.unwrap_or(self.nodes.nodes.len());
 		
@@ -65,7 +65,6 @@ impl Router {
 				continue
 			}
 			
-			// TODO: Actually implement routing...
 			let new_state = match lens.state.borrow_mut() {
 				LensState::Moving(path, offset) => {
 					
@@ -75,8 +74,6 @@ impl Router {
 						offset,
 						&lens.path
 					);
-					
-					println!("PATHING {} #{} -> {}", path, offset, step);
 					
 					match step {
 						PathItem::ToSelf => None,
@@ -93,8 +90,14 @@ impl Router {
 							lens.path.push(x);
 							None
 						},
-						PathItem::Error(e) => {None},
+						PathItem::Error(e) => {
+							let event = LensMoveEvent::Aborted;
+							events.push((pos, Box::new(event)));
+							Some(LensState::Idle)
+						},
 						PathItem::End => {
+							let event = LensMoveEvent::Finished;
+							events.push((pos, Box::new(event)));
 							Some(LensState::Idle)
 						}
 					}
@@ -106,9 +109,6 @@ impl Router {
 			if let Some(new_state) = new_state {
 				lens.state = new_state;
 			}
-			
-			// let mut finish_event = LensMoveEvent::Finished;
-			// events.push((pos, Box::new(finish_event)));
 		}
 		
 		while let Some((pos, mut event)) = events.pop() {
