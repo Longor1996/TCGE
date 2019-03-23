@@ -214,7 +214,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	println!("Initializing gameloop...");
 	
-	let mut gls = gameloop::new_gameloop(30);
+	let mut gls = gameloop::GameloopState::new(30);
 	
 	println!("Starting gameloop...");
 	while !window.should_close() {
@@ -229,8 +229,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		let mut reset_render_state = false;
 		let last_frame_time = gls.get_frame_time();
 		
-		gameloop::gameloop_next(&mut gls,
-			|| {glfw.get_time()},
+		gls.next(|| {glfw.get_time()},
 			
 			|_now:f64| {
 				scene.borrow_mut().as_mut().map(|mut_scene| {
