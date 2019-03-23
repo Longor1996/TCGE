@@ -20,6 +20,7 @@ impl Router {
 	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut Lens)) {
 		let mut lens = Lens {
 			name: name.to_string(),
+			path_str: "".to_string(),
 			path: vec![],
 			state: LensState::Idle,
 		};
@@ -75,7 +76,7 @@ impl Router {
 						&lens.path
 					);
 					
-					match step {
+					let new_state = match step {
 						PathItem::ToSelf => None,
 						PathItem::ToRoot => {
 							lens.path.clear();
@@ -100,11 +101,17 @@ impl Router {
 							events.push((pos, Box::new(event)));
 							Some(LensState::Idle)
 						}
-					}
+					};
+					
+					// Rebuild the path (even if it didn't change)
+					lens.path_str = self.nodes.get_path_as_string(&lens.path);
+					
+					new_state
 				}
 				
 				_ => None
 			};
+			
 			
 			if let Some(new_state) = new_state {
 				lens.state = new_state;
@@ -297,6 +304,26 @@ impl RouterNodes {
 		}
 	}
 	
+	fn get_path_as_string(&self, path: &[usize]) -> Result<String, ()> {
+		let mut path_str = String::new();
+		path_str += "/";
+		
+		for item in path {
+			let node = self.get_node_by_id(*item);
+			if let Some(node) = node {
+				path_str += node.name.as_str();
+			} else {
+				return Err(());
+			}
+		}
+		
+		if path_str.len() > 1 {
+			path_str.trim_end_matches("/");
+		}
+		
+		Ok(path_str)
+	}
+	
 	pub fn get_mut_node_by_id(&mut self, id: usize) -> Option<&mut Node> {
 		let node = self.nodes.get_mut(id);
 		
@@ -334,8 +361,9 @@ impl RouterNodes {
 
 pub struct Lens {
 	pub name: String,
-	pub path: Vec<usize>,
+	pub path_str: String,
 	pub state: LensState,
+	path: Vec<usize>,
 }
 
 pub struct RouterLenses {

@@ -36,10 +36,6 @@ fn main() {
     
     router.new_lens("server", &|lens| {
         println!("Server Lens Init");
-        
-        lens.path.push(1);
-        lens.path.push(3);
-        lens.state = router::LensState::Moving("/".to_string(), 0);
     });
     
     println!("Loop Start");
