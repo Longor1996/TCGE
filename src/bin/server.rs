@@ -9,23 +9,6 @@ use tcge::router;
 fn main() {
     let _res = Resources::from_exe_path().unwrap();
     
-    /*
-    use tcge::util::utf8;
-    use tcge::util::cdml;
-    println!("Hello, Server! {}", tcge::MAGIC);
-    
-    let reader = res.open_stream("test.cdml").unwrap();
-    let mut reader= utf8::UTF8Read::new(reader);
-    
-    println!();
-    while let Ok(x) = reader.read() {
-        print!("{}", x)
-    }
-    println!();
-    
-    // let mut cdmlReader = cdml::CDMLReader::read(reader);
-    */
-    
     let mut router = router::Router::new();
     
     let child_a_id = router.new_node("child-A", None, &|_|{});
