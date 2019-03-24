@@ -94,4 +94,16 @@ impl RouterNodes {
 		
 		None
 	}
+	
+	pub fn get_node_parent_id(&self, node_id: usize) -> Option<usize> {
+		match self.nodes.get(&node_id) {
+			Some(node) => {
+				match node.parent {
+					Some(parent) => Some(parent),
+					None => None
+				}
+			},
+			None => None
+		}
+	}
 }
