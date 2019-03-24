@@ -9,6 +9,8 @@ exclude       = [
   ".gitignore",
   ".idea/",
   "docs/",
+  "*.md",
+  "*.ebnf",
 ]
 
 [dependencies]

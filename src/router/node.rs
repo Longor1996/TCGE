@@ -1,5 +1,4 @@
 use super::rustc_hash::FxHashMap;
-use core::borrow::{Borrow};
 
 pub struct Node {
 	pub parent: Option<usize>,
