@@ -21,7 +21,7 @@ impl Node {
 }
 
 impl PartialEq for Node {
-	/// Partial equality for the state of a lens, using the `LensState` discriminant.
+	/// Partial equality for nodes, using their ID's.
 	fn eq(&self, other: &Node) -> bool {
 		self.id == other.id
 	}
