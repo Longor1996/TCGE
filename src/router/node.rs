@@ -3,6 +3,7 @@ use super::lens::MoveEvent;
 use super::comp;
 use std::any::TypeId;
 
+/// Represents a single named unique node in the routing-tree.
 pub struct Node {
 	pub parent: Option<usize>,
 	pub name: String,
@@ -11,6 +12,7 @@ pub struct Node {
 }
 
 impl Node {
+	/// Creates a new node to be inserted into the routing-tree.
 	pub fn new(id: usize, parent: Option<usize>, name: &str) -> Node {
 		let name = name.to_string();
 		Node {
@@ -21,6 +23,7 @@ impl Node {
 		}
 	}
 	
+	/// Function for processing and acting upon received events.
 	pub fn on_event(&mut self, components: Option<&mut FxHashMap<TypeId, Box<super::comp::Component>>>, event: &mut super::event::Wrapper) {
 		event.event.downcast_ref::<MoveEvent>().map(| move_event | {
 			let old_lens_count = self.lens_count;
@@ -50,10 +53,12 @@ impl Node {
 		// Ignore all other events, for now.
 	}
 	
+	/// Test if this node is a child of the given node.
 	pub fn is_child_of(&self, parent: &Node) -> bool {
 		self.parent.map_or(false, |id| id == parent.id)
 	}
 	
+	/// Test if this node has the given specific name.
 	pub fn is_named(&self, name: &str) -> bool {
 		self.name == name
 	}
@@ -66,14 +71,20 @@ impl PartialEq for Node {
 	}
 }
 
+/// Container for all nodes and components.
 pub struct Nodes {
-	pub nodes: FxHashMap<usize, Node>, // TODO: This is really just a `Map<usize, Node>` ...
+	/// Owner of all nodes and thus the routing-tree.
+	pub nodes: FxHashMap<usize, Node>,
+	
+	/// Container for node components.
 	pub comps: comp::Components,
+	
+	/// Auto-incrementing counter for the next unique node-id.
 	pub next_id: usize,
 }
 
 impl Nodes {
-	
+	/// Effectively creates a new routing tree, though without routing and lenses.
 	pub fn new() -> Nodes {
 		let root_node = Node {
 			id: 0,
@@ -92,12 +103,14 @@ impl Nodes {
 		}
 	}
 	
+	/// Returns the next unique node-id.
 	pub fn next_id(&mut self) -> usize {
 		let id = self.next_id;
 		self.next_id += 1;
 		return id;
 	}
 	
+	/// Returns a formatted string representing the given path.
 	pub fn get_path_as_string(&self, path: &[usize]) -> Result<String, ()> {
 		let mut path_str = String::new();
 		path_str += "/";
@@ -118,14 +131,17 @@ impl Nodes {
 		Ok(path_str)
 	}
 	
+	/// Mutably borrow the node with the given id.
 	pub fn get_mut_node_by_id(&mut self, id: usize) -> Option<&mut Node> {
 		self.nodes.get_mut(&id)
 	}
 	
+	/// Mutably borrow the node (and its components) with the given id.
 	pub fn get_mut_node_with_comps_by_id(&mut self, id: usize) -> (Option<&mut Node>, Option<&mut FxHashMap<TypeId, Box<comp::Component>>>) {
 		(self.nodes.get_mut(&id), self.comps.comps.get_mut(&id))
 	}
 	
+	/// Borrow the node with the given id.
 	pub fn get_node_by_id(&self, id: usize) -> Option<&Node> {
 		self.nodes.get(&id)
 	}
@@ -140,6 +156,7 @@ impl Nodes {
 		None
 	}
 	
+	/// Get the id of the parent of the given node.
 	pub fn get_node_parent_id(&self, node_id: usize) -> Option<usize> {
 		match self.nodes.get(&node_id) {
 			Some(node) => {

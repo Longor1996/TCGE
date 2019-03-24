@@ -2,11 +2,14 @@ use super::rustc_hash::FxHashMap;
 use core::borrow::{Borrow, BorrowMut};
 use std::any::TypeId;
 
+/// Container for all components bound to nodes.
 pub struct Components {
+	/// Collection of collections of components.
 	pub comps: FxHashMap<usize, FxHashMap<TypeId, Box<Component>>>,
 }
 
 impl Components {
+	/// Creates a new empty container for components.
 	pub fn new() -> Components {
 		Components {
 			comps: FxHashMap::default()
@@ -82,6 +85,12 @@ impl super::node::Nodes {
 	}
 }
 
+
+
+
+
+/// A component is a bundle of user-logic and -state attached to a node,
+/// that can be loaded and unloaded depending on the residence of lenses.
 pub trait Component: mopa::Any {
 	/// Returns a engine internal (no i18n) name for the components type.
 	fn get_type_name(&self) -> &'static str;
@@ -97,6 +106,7 @@ pub trait Component: mopa::Any {
 	fn on_unload(&mut self);
 }
 
+// This is 100% necessary until `std::` provides Any for object-traits.
 mopafy!(Component);
 
 impl PartialEq for Component {

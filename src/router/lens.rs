@@ -1,20 +1,32 @@
 use super::event;
 use super::node;
 
+/// Represents a movable pointer into the routing-tree.
 pub struct Lens {
+	/// The unique name of this lens.
 	pub name: String,
-	pub path_str: String,
-	pub state: State,
+	
+	/// The current location of this lens in the routing-tree.
 	pub path: Vec<usize>,
+	
+	/// The current location of this lens in the routing-tree, as a string.
+	pub path_str: String,
+	
+	/// The state of the lens.
+	pub state: State,
 }
 
+/// The owner of all lenses and their handlers.
 pub struct Lenses {
+	/// Collection of all lenses residing in the routing-tree.
 	pub lenses: Vec<Lens>,
+	
+	/// Collection of handlers for individual lenses.
 	pub handlers: Vec<Box<Handler>>,
 }
 
 impl Lenses {
-	
+	/// Creates a new empty collection of lenses.
 	pub fn new() -> Lenses {
 		Lenses {
 			lenses: vec![],
@@ -43,6 +55,12 @@ impl Lenses {
 	}
 }
 
+
+
+
+
+/// A lens-handler is effectively the 'brain' of a lens.
+/// All user-logic and -state for a lens is owned by the handler.
 pub trait Handler {
 	/// Called when the lens receives an event.
 	/// Can return a new state for the lens.
@@ -56,6 +74,7 @@ pub trait Handler {
 
 /* // TODO: Correctly implement this once https://areweasyncyet.rs/ is ready.
 impl LensHandler {
+	/// Creates a new lens from an asynchronous function.
 	pub fn from_fn<'a, FnType: 'a>(handler_fn: FnType) -> Box<LensHandler + 'a>
 		where FnType: Fn(&mut LensHandler, &mut EventWrapper) -> LensAction
 	{
@@ -76,8 +95,10 @@ impl LensHandler {
 }
 */
 
-/// This is a lens-handler that doesn't do anything, ignoring all events.
+/// The only `NullHandler` ever needed, as a singleton.
 pub const NULL_HANDLER: NullHandler = NullHandler {};
+
+/// This is a lens-handler that doesn't do anything, ignoring all events.
 pub struct NullHandler {}
 impl Handler for NullHandler {
 	fn on_event<'a>(
@@ -89,6 +110,10 @@ impl Handler for NullHandler {
 		State::Idle
 	}
 }
+
+
+
+
 
 /// The state of a lens within the router structure.
 #[derive(Clone)]
@@ -109,6 +134,10 @@ impl PartialEq for State {
 		std::mem::discriminant(self) == std::mem::discriminant(other)
 	}
 }
+
+
+
+
 
 /// Event that is fired repeatedly while a lens moves.
 pub enum MoveEvent {

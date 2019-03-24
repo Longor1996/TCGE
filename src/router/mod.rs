@@ -183,6 +183,7 @@ impl Router {
 	
 	/// Resolves the next step towards a node from a path,
 	/// a mutable offset into the path and the current node path.
+	// TODO: Move this function into the nodes container.
 	fn path_next(nodes: &node::Nodes,
 	             dst_path: &str,
 	             dst_off: &mut usize,

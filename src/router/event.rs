@@ -11,6 +11,7 @@ pub trait Event: mopa::Any {
 // This is 100% necessary until `std::` provides Any for object-traits.
 mopafy!(Event);
 
+/// Represents the phase (or state) of an event as it's being processed.
 pub enum Phase {
 	/// The event is being wrapped in a `EventWrapper`.
 	Creation,
