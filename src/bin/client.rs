@@ -13,7 +13,6 @@ extern crate gl;
 
 extern crate tcge;
 use tcge::resources;
-use tcge::blocks::universe;
 use tcge::client::cmd_opts;
 use tcge::client::render;
 use tcge::client::geometry;
@@ -182,7 +181,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	println!("Initializing scene...");
 	
-	let block_universe = universe::define_universe();
 	let scene = Rc::new(RefCell::new(Option::Some(Scene {
 		camera: freecam::Camera::new(),
 		meshes: vec![
@@ -191,7 +189,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			// geometry::geometry_cube(-512.0),
 		],
 		mesh_planequad: geometry::geometry_planequad(1024.0),
-		block_universe
 	})));
 	
 	// ------------------------------------------
@@ -312,7 +309,6 @@ struct Scene {
 	camera: freecam::Camera,
 	meshes: Vec<geometry::SimpleVao>,
 	mesh_planequad: geometry::SimpleVao,
-	block_universe: universe::BlockUniverse,
 }
 
 struct Cursor {
