@@ -3,12 +3,14 @@ use core::borrow::{BorrowMut};
 extern crate rustc_hash;
 
 pub mod node;
+pub mod comp;
 pub mod lens;
 pub mod event;
 
 pub struct Router {
 	pub lenses: lens::RouterLenses,
 	pub nodes: node::RouterNodes,
+	pub comps: comp::Components,
 }
 
 /// Functions for building the router.
@@ -18,6 +20,7 @@ impl Router {
 		Router {
 			lenses: lens::RouterLenses::new(),
 			nodes: node::RouterNodes::new(),
+			comps: comp::Components::new(),
 		}
 	}
 	
