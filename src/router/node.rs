@@ -1,5 +1,4 @@
-extern crate rustc_hash;
-use self::rustc_hash::FxHashMap;
+use super::rustc_hash::FxHashMap;
 use core::borrow::{Borrow};
 
 pub struct Node {

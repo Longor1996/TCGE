@@ -1,5 +1,7 @@
 use core::borrow::{BorrowMut};
 
+extern crate rustc_hash;
+
 pub mod node;
 pub mod lens;
 pub mod event;
