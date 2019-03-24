@@ -8,8 +8,8 @@ pub mod lens;
 pub mod event;
 
 pub struct Router {
-	pub lenses: lens::RouterLenses,
-	pub nodes: node::RouterNodes,
+	pub lenses: lens::Lenses,
+	pub nodes: node::Nodes,
 	pub comps: comp::Components,
 }
 
@@ -18,18 +18,18 @@ impl Router {
 	
 	pub fn new() -> Router {
 		Router {
-			lenses: lens::RouterLenses::new(),
-			nodes: node::RouterNodes::new(),
+			lenses: lens::Lenses::new(),
+			nodes: node::Nodes::new(),
 			comps: comp::Components::new(),
 		}
 	}
 	
-	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut lens::Lens) -> Option<Box<lens::LensHandler>>) {
+	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut lens::Lens) -> Option<Box<lens::Handler>>) {
 		let mut lens = lens::Lens {
 			name: name.to_string(),
 			path_str: "".to_string(),
 			path: vec![],
-			state: lens::LensState::Idle,
+			state: lens::State::Idle,
 		};
 		
 		let handler = constructor(&mut lens).unwrap_or(Box::new(lens::NULL_HANDLER));
@@ -64,16 +64,16 @@ impl Router {
 			
 			if lens.path.is_empty() {
 				// All lenses must be at least at root-level
-				lens.state = lens::LensState::Moving("/".to_string(), 0);
+				lens.state = lens::State::Moving("/".to_string(), 0);
 			}
 			
 			// Ignore all idle and destroying lenses
-			if lens.state == lens::LensState::Idle || lens.state == lens::LensState::Destruction {
+			if lens.state == lens::State::Idle || lens.state == lens::State::Destruction {
 				continue
 			}
 			
 			let new_state = match lens.state.borrow_mut() {
-				lens::LensState::Moving(path, offset) => {
+				lens::State::Moving(path, offset) => {
 					
 					let step = Router::path_next(
 						&self.nodes,
@@ -98,14 +98,14 @@ impl Router {
 							None
 						},
 						PathItem::Error(_e) => {
-							let event = lens::LensMoveEvent::Aborted;
+							let event = lens::MoveCompletionEvent::Aborted;
 							events.push((pos, Box::new(event)));
-							Some(lens::LensState::Idle)
+							Some(lens::State::Idle)
 						},
 						PathItem::End => {
-							let event = lens::LensMoveEvent::Finished;
+							let event = lens::MoveCompletionEvent::Finished;
 							events.push((pos, Box::new(event)));
-							Some(lens::LensState::Idle)
+							Some(lens::State::Idle)
 						}
 					};
 					
@@ -134,7 +134,7 @@ impl Router {
 		
 		// Remove all lenses that want to self-destruct.
 		self.lenses.lenses.retain(
-			|lens| lens.state != lens::LensState::Destruction
+			|lens| lens.state != lens::State::Destruction
 		);
 		
 		return self.lenses.lenses.is_empty()
@@ -146,7 +146,7 @@ impl Router {
 	
 	/// Resolves the next step towards a node from a path,
 	/// a mutable offset into the path and the current node path.
-	fn path_next(nodes: &node::RouterNodes,
+	fn path_next(nodes: &node::Nodes,
 	             dst_path: &str,
 	             dst_off: &mut usize,
 	             src_path: &[usize]

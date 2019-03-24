@@ -11,7 +11,7 @@ pub trait Event: mopa::Any {
 // This is 100% necessary until `std::` provides Any for object-traits.
 mopafy!(Event);
 
-pub enum EventPhase {
+pub enum Phase {
 	/// The event is being wrapped in a `EventWrapper`.
 	Creation,
 	
@@ -26,13 +26,13 @@ pub enum EventPhase {
 }
 
 /// Wraps an event as it is processed by the [Router].
-pub struct EventWrapper<'a> {
+pub struct Wrapper<'a> {
 	#[allow(dead_code)]
 	/// The event being processed.
 	pub event: &'a mut Event,
 	
 	// --- State for the event
-	phase: EventPhase,
+	phase: Phase,
 	
 	/// Can the event flow towards its destination?
 	can_propagate: bool,
@@ -44,7 +44,7 @@ pub struct EventWrapper<'a> {
 	can_bubble: bool,
 }
 
-impl<'a> EventWrapper<'a> {
+impl<'a> Wrapper<'a> {
 	/// Prevents the event from being evaluated by its destination.
 	pub fn prevent_default(&mut self) {
 		self.can_default = false;
@@ -91,7 +91,7 @@ impl super::Router {
 		
 		// A lens can only receive an event if inactive or the event is PASSIVE.
 		if !event.is_passive() {
-			if lens.state != lens::LensState::Idle {
+			if lens.state != lens::State::Idle {
 				return
 			}
 		}
@@ -102,18 +102,18 @@ impl super::Router {
 		}
 		
 		// Holder for event state.
-		let mut event_wrapper = EventWrapper {
+		let mut event_wrapper = Wrapper {
 			event,
 			
 			// Initial State
-			phase: EventPhase::Creation,
+			phase: Phase::Creation,
 			can_propagate: true,
 			can_default: true,
 			can_bubble: true,
 		};
 		
 		// --- Event Propagation
-		event_wrapper.phase = EventPhase::Propagation;
+		event_wrapper.phase = Phase::Propagation;
 		for node_id in lens.path.iter() {
 			self.nodes.get_mut_node_by_id(*node_id).map(|n|
 				n.on_event(&mut event_wrapper)
@@ -126,16 +126,16 @@ impl super::Router {
 		
 		// --- Event Action
 		let new_state = if event_wrapper.can_default {
-			event_wrapper.phase = EventPhase::Action;
+			event_wrapper.phase = Phase::Action;
 			
 			(*lens_handler).on_event(&mut event_wrapper, lens)
 		} else {
-			lens::LensState::Idle
+			lens::State::Idle
 		};
 		
 		// --- Event Bubbling
 		if event_wrapper.can_bubble {
-			event_wrapper.phase = EventPhase::Bubbling;
+			event_wrapper.phase = Phase::Bubbling;
 			for node_id in lens.path.iter().rev() {
 				self.nodes.get_mut_node_by_id(*node_id).map(|n|
 					n.on_event(&mut event_wrapper)
@@ -147,7 +147,7 @@ impl super::Router {
 			}
 		}
 		
-		if lens.state != lens::LensState::Idle {
+		if lens.state != lens::State::Idle {
 			// Don't start a new action if one is already running!
 			return
 		}

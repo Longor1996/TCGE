@@ -55,11 +55,11 @@ fn main() {
 struct ServerLens {
     counter: usize
 }
-impl router::lens::LensHandler for ServerLens {
-    fn on_event(&mut self, event: &mut router::event::EventWrapper, lens: &router::lens::Lens) -> router::lens::LensState {
+impl router::lens::Handler for ServerLens {
+    fn on_event(&mut self, event: &mut router::event::Wrapper, lens: &router::lens::Lens) -> router::lens::State {
         self.counter += 1;
         if self.counter > 10 {
-            return router::lens::LensState::Destruction
+            return router::lens::State::Destruction
         }
         
         // Downcasting by using MOPA::Any
@@ -68,7 +68,7 @@ impl router::lens::LensHandler for ServerLens {
         });
         
         println!("Received event: {} @ {}", self.counter, lens.path_str);
-        router::lens::LensState::Idle
+        router::lens::State::Idle
     }
 }
 

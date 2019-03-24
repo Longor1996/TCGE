@@ -3,19 +3,19 @@ use super::event;
 pub struct Lens {
 	pub name: String,
 	pub path_str: String,
-	pub state: LensState,
+	pub state: State,
 	pub path: Vec<usize>,
 }
 
-pub struct RouterLenses {
+pub struct Lenses {
 	pub lenses: Vec<Lens>,
-	pub handlers: Vec<Box<LensHandler>>,
+	pub handlers: Vec<Box<Handler>>,
 }
 
-impl RouterLenses {
+impl Lenses {
 	
-	pub fn new() -> RouterLenses {
-		RouterLenses {
+	pub fn new() -> Lenses {
+		Lenses {
 			lenses: vec![],
 			handlers: vec![],
 		}
@@ -42,10 +42,10 @@ impl RouterLenses {
 	}
 }
 
-pub trait LensHandler {
+pub trait Handler {
 	/// Called when the lens receives an event.
 	/// Can return a new state for the lens.
-	fn on_event(&mut self, event: &mut event::EventWrapper, lens: &Lens) -> LensState;
+	fn on_event(&mut self, event: &mut event::Wrapper, lens: &Lens) -> State;
 }
 
 /* // TODO: Correctly implement this once https://areweasyncyet.rs/ is ready.
@@ -71,17 +71,17 @@ impl LensHandler {
 */
 
 /// This is a lens-handler that doesn't do anything, ignoring all events.
-pub const NULL_HANDLER: NullLensHandler = NullLensHandler {};
-pub struct NullLensHandler {}
-impl LensHandler for NullLensHandler {
-	fn on_event(&mut self, _event: &mut event::EventWrapper, _lens: &Lens) -> LensState {
-		LensState::Idle
+pub const NULL_HANDLER: NullHandler = NullHandler {};
+pub struct NullHandler {}
+impl Handler for NullHandler {
+	fn on_event(&mut self, _event: &mut event::Wrapper, _lens: &Lens) -> State {
+		State::Idle
 	}
 }
 
 /// The state of a lens within the router structure.
 #[derive(Clone)]
-pub enum LensState {
+pub enum State {
 	/// The lens is idling at a node, doing its thing.
 	Idle,
 	
@@ -92,15 +92,15 @@ pub enum LensState {
 	Destruction,
 }
 
-impl PartialEq for LensState {
+impl PartialEq for State {
 	/// Partial equality for the state of a lens, using the `LensState` discriminant.
-	fn eq(&self, other: &LensState) -> bool {
+	fn eq(&self, other: &State) -> bool {
 		std::mem::discriminant(self) == std::mem::discriminant(other)
 	}
 }
 
 /// Event that is fired when a lens finishes moving.
-pub enum LensMoveEvent {
+pub enum MoveCompletionEvent {
 	/// The lens successfully reached its destination.
 	Finished,
 	
@@ -108,6 +108,6 @@ pub enum LensMoveEvent {
 	Aborted
 }
 
-impl event::Event for LensMoveEvent {
+impl event::Event for MoveCompletionEvent {
 	fn is_passive(&self) -> bool { false }
 }

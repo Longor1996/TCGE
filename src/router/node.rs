@@ -7,7 +7,7 @@ pub struct Node {
 }
 
 impl Node {
-	pub fn on_event(&mut self, _event: &mut super::event::EventWrapper) {
+	pub fn on_event(&mut self, _event: &mut super::event::Wrapper) {
 		// TODO: Walk trough event-listeners/components...
 	}
 	
@@ -27,14 +27,14 @@ impl PartialEq for Node {
 	}
 }
 
-pub struct RouterNodes {
+pub struct Nodes {
 	pub nodes: FxHashMap<usize, Node>, // TODO: This is really just a `Map<usize, Node>` ...
 	pub next_id: usize,
 }
 
-impl RouterNodes {
+impl Nodes {
 	
-	pub fn new() -> RouterNodes {
+	pub fn new() -> Nodes {
 		let root_node = Node {
 			id: 0,
 			parent: None,
@@ -44,7 +44,7 @@ impl RouterNodes {
 		let mut nodes = FxHashMap::default();
 		nodes.insert(root_node.id, root_node);
 		
-		RouterNodes {
+		Nodes {
 			nodes,
 			next_id: 1
 		}
