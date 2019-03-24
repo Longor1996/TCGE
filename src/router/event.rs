@@ -156,6 +156,52 @@ impl super::Router {
 		lens.state = new_state
 	}
 	
+	/// Directly trigger an event for a lens, completely ignoring the normal event flow.
+	pub fn trigger_event_at_lens_id(&mut self, lens_id: usize, event: &mut Event) -> bool {
+		let lens = self.lenses.lenses.get_mut(lens_id);
+		
+		let lens = match lens {
+			Some(x) => x,
+			None => return false
+		};
+		
+		let lens_handler = self.lenses.handlers.get_mut(lens_id);
+		let lens_handler = match lens_handler {
+			Some(x) => x,
+			None => return false
+		};
+		
+		let mut wrapper = Wrapper {
+			event,
+			phase: Phase::Action,
+			can_propagate: false,
+			can_default: true,
+			can_bubble: false,
+		};
+		
+		lens_handler.on_event(&mut wrapper, &lens);
+		false
+	}
+	
+	/// Directly trigger an event for a node, completely ignoring the normal event flow.
+	pub fn trigger_event_at_node_id(&mut self, node_id: usize, event: &mut Event) -> bool {
+		match self.nodes.nodes.get_mut(&node_id) {
+			Some(node) => {
+				let mut wrapper = Wrapper {
+					event,
+					phase: Phase::Action,
+					can_propagate: false,
+					can_default: true,
+					can_bubble: false,
+				};
+				
+				node.on_event(&mut wrapper);
+				true
+			}
+			None => false
+		}
+	}
+	
 	/// Fires a single `Event` at a single `Node`, given a path.
 	#[allow(unused)]
 	pub fn fire_event_at_node(&mut self, path: &str, event: &mut Event) {
