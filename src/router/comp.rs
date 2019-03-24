@@ -14,7 +14,7 @@ impl Components {
 	}
 }
 
-impl super::Router {
+impl super::node::Nodes {
 	/// Set a component of a specific type for the given node.
 	pub fn set_node_component(&mut self, node_id: usize, component: Box<Component>) -> bool {
 		let component_type_id = mopa::Any::get_type_id(&component);
@@ -52,7 +52,7 @@ impl super::Router {
 	/// Borrow a component of the given type from the given node, or any of its parents.
 	pub fn get_node_component(&self, node_id: usize, component_type: TypeId) -> Option<&Component> {
 		return match {self.comps.comps.contains_key(&node_id)} {
-			false => match {self.nodes.get_node_parent_id(node_id)} {
+			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_node_component(next_id, component_type),
 				None => None
 			},
@@ -68,7 +68,7 @@ impl super::Router {
 	/// Mutably borrow a component of the given type from the given node, or any of its parents.
 	pub fn get_mut_node_component(&mut self, node_id: usize, component_type: TypeId) -> Option<&mut Component> {
 		return match {self.comps.comps.contains_key(&node_id)} {
-			false => match {self.nodes.get_node_parent_id(node_id)} {
+			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_mut_node_component(next_id, component_type),
 				None => None
 			},

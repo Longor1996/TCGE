@@ -1,5 +1,6 @@
 use super::rustc_hash::FxHashMap;
 use super::lens::MoveEvent;
+use super::comp;
 use std::any::TypeId;
 
 pub struct Node {
@@ -67,6 +68,7 @@ impl PartialEq for Node {
 
 pub struct Nodes {
 	pub nodes: FxHashMap<usize, Node>, // TODO: This is really just a `Map<usize, Node>` ...
+	pub comps: comp::Components,
 	pub next_id: usize,
 }
 
@@ -85,7 +87,8 @@ impl Nodes {
 		
 		Nodes {
 			nodes,
-			next_id: 1
+			next_id: 1,
+			comps: comp::Components::new(),
 		}
 	}
 	
@@ -117,6 +120,10 @@ impl Nodes {
 	
 	pub fn get_mut_node_by_id(&mut self, id: usize) -> Option<&mut Node> {
 		self.nodes.get_mut(&id)
+	}
+	
+	pub fn get_mut_node_with_comps_by_id(&mut self, id: usize) -> (Option<&mut Node>, Option<&mut FxHashMap<TypeId, Box<comp::Component>>>) {
+		(self.nodes.get_mut(&id), self.comps.comps.get_mut(&id))
 	}
 	
 	pub fn get_node_by_id(&self, id: usize) -> Option<&Node> {

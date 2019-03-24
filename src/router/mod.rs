@@ -10,7 +10,6 @@ pub mod event;
 pub struct Router {
 	pub lenses: lens::Lenses,
 	pub nodes: node::Nodes,
-	pub comps: comp::Components,
 }
 
 /// Functions for building the router.
@@ -20,7 +19,6 @@ impl Router {
 		Router {
 			lenses: lens::Lenses::new(),
 			nodes: node::Nodes::new(),
-			comps: comp::Components::new(),
 		}
 	}
 	
