@@ -33,12 +33,9 @@ impl Router {
 		self.lenses.handlers.push(handler);
 	}
 	
-	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut node::Node)) {
+	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut node::Node)) -> usize {
 		let parent = parent.or(Some(0));
-		
-		let id: Option<usize> = None;
-		
-		let id = id.unwrap_or(self.nodes.nodes.len());
+		let id = self.nodes.next_id();
 		
 		let mut node = node::Node {
 			id,
@@ -49,6 +46,7 @@ impl Router {
 		constructor(&mut node);
 		
 		self.nodes.nodes.push(Some(node));
+		return id;
 	}
 }
 

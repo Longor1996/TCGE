@@ -20,13 +20,21 @@ impl Node {
 	}
 }
 
+impl PartialEq for Node {
+	/// Partial equality for the state of a lens, using the `LensState` discriminant.
+	fn eq(&self, other: &Node) -> bool {
+		self.id == other.id
+	}
+}
+
 pub struct RouterNodes {
-	pub nodes: Vec<Option<Node>>
+	pub nodes: Vec<Option<Node>>, // TODO: This is really just a `Map<usize, Node>` ...
+	pub next_id: usize,
 }
 
 impl RouterNodes {
 	
-	pub fn new() -> RouterNodes{
+	pub fn new() -> RouterNodes {
 		let root_node = Some(Node {
 			id: 0,
 			parent: None,
@@ -34,8 +42,15 @@ impl RouterNodes {
 		});
 		
 		RouterNodes {
-			nodes: vec![root_node]
+			nodes: vec![root_node],
+			next_id: 1
 		}
+	}
+	
+	pub fn next_id(&mut self) -> usize {
+		let id = self.next_id;
+		self.next_id += 1;
+		return id;
 	}
 	
 	pub fn get_path_as_string(&self, path: &[usize]) -> Result<String, ()> {
