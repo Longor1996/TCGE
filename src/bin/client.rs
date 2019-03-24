@@ -22,61 +22,44 @@ use tcge::gameloop;
 use std::sync::mpsc::Receiver;
 
 fn main() {
-	// TODO: Attempt to merge the two separate error-printers into one...
-	
 	let options = match cmd_opts::parse() {
 		Err(e) => {
-			use std::fmt::Write;
-			let mut result = String::new();
-			
-			for (i, cause) in e.iter_chain().collect::<Vec<_>>().into_iter().enumerate() {
-				if i > 0 {
-					let _ = write!(&mut result, "   Caused by: ");
-				}
-				let _ = write!(&mut result, "{}", cause);
-				if let Some(backtrace) = cause.backtrace() {
-					let backtrace_str = format!("{}", backtrace);
-					if !backtrace_str.is_empty() {
-						let _ = writeln!(&mut result, " This happened at {}", backtrace);
-					} else {
-						let _ = writeln!(&mut result);
-					}
-				} else {
-					let _ = writeln!(&mut result);
-				}
-			}
-			
-			println!("{}\n", result);
+			print_error(&e);
 			panic!("Failed to parse command-line arguments! Exiting...");
 		}
 		Ok(o) => o
 	};
 	
 	if let Err(e) = run(options) {
-		use std::fmt::Write;
-		let mut result = String::new();
-		
-		for (i, cause) in e.iter_chain().collect::<Vec<_>>().into_iter().enumerate() {
-			if i > 0 {
-				let _ = write!(&mut result, "   Caused by: ");
-			}
-			let _ = write!(&mut result, "{}", cause);
-			if let Some(backtrace) = cause.backtrace() {
-				let backtrace_str = format!("{}", backtrace);
-				if !backtrace_str.is_empty() {
-					let _ = writeln!(&mut result, " This happened at {}", backtrace);
-				} else {
-					let _ = writeln!(&mut result);
-				}
-			} else {
-				let _ = writeln!(&mut result);
-			}
-		}
-		
-		println!("{}", result);
+		print_error(&e);
+		panic!("A fatal error occurred and the engine had to stop...");
 	}
 	
 	println!("\nGoodbye!\n");
+}
+
+fn print_error(e: &failure::Error) {
+	use std::fmt::Write;
+	let mut result = String::new();
+	
+	for (i, cause) in e.iter_chain().collect::<Vec<_>>().into_iter().enumerate() {
+		if i > 0 {
+			let _ = write!(&mut result, "   Caused by: ");
+		}
+		let _ = write!(&mut result, "{}", cause);
+		if let Some(backtrace) = cause.backtrace() {
+			let backtrace_str = format!("{}", backtrace);
+			if !backtrace_str.is_empty() {
+				let _ = writeln!(&mut result, " This happened at {}", backtrace);
+			} else {
+				let _ = writeln!(&mut result);
+			}
+		} else {
+			let _ = writeln!(&mut result);
+		}
+	}
+	
+	println!("{}\n", result);
 }
 
 fn new_window(
