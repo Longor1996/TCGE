@@ -171,6 +171,13 @@ impl super::Router {
 			None => return false
 		};
 		
+		// A lens can only receive an event if inactive or the event is PASSIVE.
+		if !event.is_passive() {
+			if lens.state != lens::State::Idle {
+				return false
+			}
+		}
+		
 		let mut wrapper = Wrapper {
 			event,
 			phase: Phase::Action,
@@ -180,7 +187,7 @@ impl super::Router {
 		};
 		
 		lens_handler.on_event(&mut wrapper, &lens);
-		false
+		true
 	}
 	
 	/// Directly trigger an event for a node, completely ignoring the normal event flow.
