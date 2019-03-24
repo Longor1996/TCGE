@@ -56,7 +56,12 @@ struct ServerLens {
     counter: usize
 }
 impl router::lens::Handler for ServerLens {
-    fn on_event(&mut self, event: &mut router::event::Wrapper, lens: &router::lens::Lens) -> router::lens::State {
+    fn on_event(
+        &mut self,
+        event: &mut router::event::Wrapper,
+        lens: &router::lens::Lens,
+        _nodes: &mut router::node::Nodes
+    ) -> router::lens::State {
         self.counter += 1;
         if self.counter > 10 {
             return router::lens::State::Destruction

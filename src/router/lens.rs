@@ -1,4 +1,5 @@
 use super::event;
+use super::node;
 
 pub struct Lens {
 	pub name: String,
@@ -45,7 +46,12 @@ impl Lenses {
 pub trait Handler {
 	/// Called when the lens receives an event.
 	/// Can return a new state for the lens.
-	fn on_event(&mut self, event: &mut event::Wrapper, lens: &Lens) -> State;
+	fn on_event<'a>(
+		&mut self,
+		event: &mut event::Wrapper,
+		lens: &Lens,
+		nodes: &mut node::Nodes
+	) -> State;
 }
 
 /* // TODO: Correctly implement this once https://areweasyncyet.rs/ is ready.
@@ -74,7 +80,12 @@ impl LensHandler {
 pub const NULL_HANDLER: NullHandler = NullHandler {};
 pub struct NullHandler {}
 impl Handler for NullHandler {
-	fn on_event(&mut self, _event: &mut event::Wrapper, _lens: &Lens) -> State {
+	fn on_event<'a>(
+		&mut self,
+		_event: &mut event::Wrapper,
+		_lens: &Lens,
+		_nodes: &mut node::Nodes
+	) -> State {
 		State::Idle
 	}
 }
