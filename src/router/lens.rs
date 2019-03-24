@@ -99,6 +99,18 @@ impl PartialEq for State {
 	}
 }
 
+/// Event that is fired repeatedly while a lens moves.
+pub enum MoveEvent {
+	/// Fired when a lens enters a node.
+	EnterNode,
+	/// Fired when a lens leaves a node.
+	LeaveNode,
+}
+
+impl event::Event for MoveEvent {
+	fn is_passive(&self) -> bool { false }
+}
+
 /// Event that is fired when a lens finishes moving.
 pub enum MoveCompletionEvent {
 	/// The lens successfully reached its destination.

@@ -1,14 +1,52 @@
 use super::rustc_hash::FxHashMap;
+use super::lens::MoveEvent;
+use std::any::TypeId;
 
 pub struct Node {
 	pub parent: Option<usize>,
 	pub name: String,
 	pub id: usize,
+	lens_count:usize,
 }
 
 impl Node {
-	pub fn on_event(&mut self, _event: &mut super::event::Wrapper) {
-		// TODO: Walk trough event-listeners/components...
+	pub fn new(id: usize, parent: Option<usize>, name: &str) -> Node {
+		let name = name.to_string();
+		Node {
+			id,
+			parent,
+			name,
+			lens_count: 0,
+		}
+	}
+	
+	pub fn on_event(&mut self, components: Option<&mut FxHashMap<TypeId, Box<super::comp::Component>>>, event: &mut super::event::Wrapper) {
+		event.event.downcast_ref::<MoveEvent>().map(| move_event | {
+			let old_lens_count = self.lens_count;
+			
+			match move_event {
+				MoveEvent::EnterNode => {self.lens_count += 1},
+				MoveEvent::LeaveNode => {self.lens_count -= 1},
+			};
+			
+			if old_lens_count != self.lens_count {
+				if self.lens_count == 0 {
+					if let Some(components) = components {
+						for (_, component) in components {
+							(*component).on_unload();
+						}
+					}
+				} else {
+					if let Some(components) = components {
+						for (_, component) in components {
+							(*component).on_load();
+						}
+					}
+				}
+			}
+		});
+		
+		// Ignore all other events, for now.
 	}
 	
 	pub fn is_child_of(&self, parent: &Node) -> bool {
@@ -39,6 +77,7 @@ impl Nodes {
 			id: 0,
 			parent: None,
 			name: "".to_string(),
+			lens_count: 0,
 		};
 		
 		let mut nodes = FxHashMap::default();

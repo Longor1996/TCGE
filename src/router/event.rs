@@ -115,9 +115,10 @@ impl super::Router {
 		// --- Event Propagation
 		event_wrapper.phase = Phase::Propagation;
 		for node_id in lens.path.iter() {
-			self.nodes.get_mut_node_by_id(*node_id).map(|n|
-				n.on_event(&mut event_wrapper)
-			);
+			let mut comps = self.comps.comps.get_mut(&node_id);
+			self.nodes.get_mut_node_by_id(*node_id).map(|n| {
+				n.on_event(comps, &mut event_wrapper)
+			});
 			
 			if !event_wrapper.can_propagate {
 				break;
@@ -137,9 +138,10 @@ impl super::Router {
 		if event_wrapper.can_bubble {
 			event_wrapper.phase = Phase::Bubbling;
 			for node_id in lens.path.iter().rev() {
-				self.nodes.get_mut_node_by_id(*node_id).map(|n|
-					n.on_event(&mut event_wrapper)
-				);
+				let mut comps = self.comps.comps.get_mut(&node_id);
+				self.nodes.get_mut_node_by_id(*node_id).map(|n| {
+					n.on_event(comps, &mut event_wrapper)
+				});
 				
 				if !event_wrapper.can_bubble {
 					break;
@@ -202,7 +204,8 @@ impl super::Router {
 					can_bubble: false,
 				};
 				
-				node.on_event(&mut wrapper);
+				let mut comps = self.comps.comps.get_mut(&node_id);
+				node.on_event(comps, &mut wrapper);
 				true
 			}
 			None => false

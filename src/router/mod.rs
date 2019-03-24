@@ -42,11 +42,11 @@ impl Router {
 		let parent = parent.or(Some(0));
 		let id = self.nodes.next_id();
 		
-		let mut node = node::Node {
+		let mut node = node::Node::new(
 			id,
 			parent,
-			name: name.to_string(),
-		};
+			name
+		);
 		
 		constructor(&mut node);
 		
@@ -58,17 +58,30 @@ impl Router {
 // Router update handling
 impl Router {
 	pub fn update(&mut self) -> bool {
-		let mut events: Vec<(usize, Box<event::Event>)> = vec![];
+		let mut node_events: Vec<(usize, Box<event::Event>)> = vec![];
+		let mut lens_events: Vec<(usize, Box<event::Event>)> = vec![];
 		
-		for (pos, lens) in self.lenses.lenses.iter_mut().enumerate() {
+		for (lens_id, lens) in self.lenses.lenses.iter_mut().enumerate() {
 			
 			if lens.path.is_empty() {
 				// All lenses must be at least at root-level
 				lens.state = lens::State::Moving("/".to_string(), 0);
 			}
 			
-			// Ignore all idle and destroying lenses
-			if lens.state == lens::State::Idle || lens.state == lens::State::Destruction {
+			// Move the lens up
+			if lens.state == lens::State::Destruction {
+				// Exit *all* of the nodes.
+				while let Some(node_id) = lens.path.pop() {
+					node_events.push((
+						node_id,
+						Box::new(lens::MoveEvent::LeaveNode)
+					));
+				}
+				continue
+			}
+			
+			// Ignore all idle lenses
+			if lens.state == lens::State::Idle {
 				continue
 			}
 			
@@ -84,22 +97,36 @@ impl Router {
 					
 					let new_state = match step {
 						PathItem::ToSelf => None,
+						
+						// Lens leaves a node.
 						PathItem::ToSuper => {
+							node_events.push((
+								*lens.path.last().unwrap(),
+								Box::new(lens::MoveEvent::LeaveNode)
+							));
 							lens.path.pop();
 							None
 						},
+						
+						// Lens enters a node.
 						PathItem::ToNode(x) => {
+							node_events.push((
+								*lens.path.last().unwrap(),
+								Box::new(lens::MoveEvent::EnterNode)
+							));
 							lens.path.push(x);
 							None
 						},
+						
+						// Path Resolving Completion: Failure
 						PathItem::Error(_e) => {
-							let event = lens::MoveCompletionEvent::Aborted;
-							events.push((pos, Box::new(event)));
+							lens_events.push((lens_id, Box::new(lens::MoveCompletionEvent::Aborted)));
 							Some(lens::State::Idle)
 						},
+						
+						// Path Resolving Completion: Success
 						PathItem::End => {
-							let event = lens::MoveCompletionEvent::Finished;
-							events.push((pos, Box::new(event)));
+							lens_events.push((lens_id, Box::new(lens::MoveCompletionEvent::Finished)));
 							Some(lens::State::Idle)
 						}
 					};
@@ -120,17 +147,34 @@ impl Router {
 			}
 		}
 		
-		while let Some((pos, mut event)) = events.pop() {
-			self.fire_event_at_lens_id(
+		// Remove all lenses that want to self-destruct.
+		self.lenses.lenses.retain(
+			|lens| {
+				if lens.state == lens::State::Destruction {
+					if ! lens.path.is_empty() {
+						true
+					} else {
+						false
+					}
+				} else {
+					true
+				}
+			}
+		);
+		
+		while let Some((pos, mut event)) = node_events.pop() {
+			self.trigger_event_at_node_id(
 				pos,
 				(*event).borrow_mut()
 			);
 		}
 		
-		// Remove all lenses that want to self-destruct.
-		self.lenses.lenses.retain(
-			|lens| lens.state != lens::State::Destruction
-		);
+		while let Some((pos, mut event)) = lens_events.pop() {
+			self.fire_event_at_lens_id(
+				pos,
+				(*event).borrow_mut()
+			);
+		}
 		
 		return self.lenses.lenses.is_empty()
 	}
