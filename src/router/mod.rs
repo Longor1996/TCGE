@@ -84,11 +84,6 @@ impl Router {
 					
 					let new_state = match step {
 						PathItem::ToSelf => None,
-						PathItem::ToRoot => {
-							lens.path.clear();
-							lens.path.push(0);
-							None
-						},
 						PathItem::ToSuper => {
 							lens.path.pop();
 							None
@@ -154,13 +149,12 @@ impl Router {
 		// Parsing of root location only happens when `offset = 0`
 		if *dst_off == 0 {
 			if dst_path.starts_with("/") {
-				// Bubbling
-				if ! src_path.is_empty() {
+				// Bubble until you hit the root
+				if src_path.len() != 1 {
 					return PathItem::ToSuper;
 				}
 				
 				*dst_off += 1;
-				return PathItem::ToRoot
 			}
 			
 			if dst_path.starts_with("./") {
@@ -241,7 +235,6 @@ impl Router {
 
 #[derive(Debug)]
 pub enum PathItem {
-	ToRoot, // `/`
 	ToSelf, // `./`
 	ToSuper, // `../`
 	ToNode(usize), // `NAME`
@@ -252,7 +245,6 @@ pub enum PathItem {
 impl std::fmt::Display for PathItem {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			PathItem::ToRoot => write!(fmt, "ToRoot"),
 			PathItem::ToSelf => write!(fmt, "ToSelf"),
 			PathItem::ToSuper => write!(fmt, "ToSuper"),
 			PathItem::ToNode(x) => write!(fmt, "ToNode(#{})", *x),
