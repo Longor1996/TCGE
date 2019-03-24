@@ -146,16 +146,6 @@ impl Nodes {
 		self.nodes.get(&id)
 	}
 	
-	pub fn get_node_id(&self, name: &str) -> Option<usize> {
-		for (pos, node) in self.nodes.iter() {
-			if node.name == name {
-				return Some(*pos)
-			}
-		}
-		
-		None
-	}
-	
 	/// Get the id of the parent of the given node.
 	pub fn get_node_parent_id(&self, node_id: usize) -> Option<usize> {
 		match self.nodes.get(&node_id) {
