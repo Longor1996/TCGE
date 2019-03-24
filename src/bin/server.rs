@@ -28,11 +28,9 @@ fn main() {
     
     let mut router = router::Router::new();
     
-    router.new_node("child-A", None, &|_|{});
+    let child_a_id = router.new_node("child-A", None, &|_|{});
     router.new_node("child-B", None, &|_|{});
-    
-    let child_a_id = router.nodes.get_node_id("child-A");
-    router.new_node("child-1", child_a_id, &|_|{});
+    router.new_node("child-1", Some(child_a_id), &|_|{});
     
     router.new_lens("server", &|_| {
         println!("Server Lens Init");

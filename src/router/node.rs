@@ -1,3 +1,5 @@
+extern crate rustc_hash;
+use self::rustc_hash::FxHashMap;
 use core::borrow::{Borrow};
 
 pub struct Node {
@@ -28,21 +30,24 @@ impl PartialEq for Node {
 }
 
 pub struct RouterNodes {
-	pub nodes: Vec<Option<Node>>, // TODO: This is really just a `Map<usize, Node>` ...
+	pub nodes: FxHashMap<usize, Node>, // TODO: This is really just a `Map<usize, Node>` ...
 	pub next_id: usize,
 }
 
 impl RouterNodes {
 	
 	pub fn new() -> RouterNodes {
-		let root_node = Some(Node {
+		let root_node = Node {
 			id: 0,
 			parent: None,
 			name: "".to_string(),
-		});
+		};
+		
+		let mut nodes = FxHashMap::default();
+		nodes.insert(root_node.id, root_node);
 		
 		RouterNodes {
-			nodes: vec![root_node],
+			nodes,
 			next_id: 1
 		}
 	}
@@ -74,31 +79,17 @@ impl RouterNodes {
 	}
 	
 	pub fn get_mut_node_by_id(&mut self, id: usize) -> Option<&mut Node> {
-		let node = self.nodes.get_mut(id);
-		
-		match node {
-			None => return None,
-			Some(node) => {
-				match node {
-					None => return None,
-					Some(node) => {
-						return Some(node)
-					}
-				}
-			}
-		}
+		self.nodes.get_mut(&id)
 	}
 	
-	pub fn get_node_by_id(&self, id: usize) -> &Option<Node> {
-		self.nodes.get(id).unwrap_or(None.borrow())
+	pub fn get_node_by_id(&self, id: usize) -> Option<&Node> {
+		self.nodes.get(&id)
 	}
 	
 	pub fn get_node_id(&self, name: &str) -> Option<usize> {
-		for (pos, node) in self.nodes.iter().enumerate() {
-			if let Some(node) = node {
-				if node.name == name {
-					return Some(pos)
-				}
+		for (pos, node) in self.nodes.iter() {
+			if node.name == name {
+				return Some(*pos)
 			}
 		}
 		

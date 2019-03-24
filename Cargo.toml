@@ -17,6 +17,7 @@ mopa = "0.2.2"
 time = "*"
 cgmath = "*"
 clap = "~2.32.0"
+rustc-hash = "1.0.1"
 
 # debugging
 # flame = "*"

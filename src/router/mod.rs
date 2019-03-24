@@ -45,7 +45,7 @@ impl Router {
 		
 		constructor(&mut node);
 		
-		self.nodes.nodes.push(Some(node));
+		self.nodes.nodes.insert(node.id, node);
 		return id;
 	}
 }
@@ -71,7 +71,7 @@ impl Router {
 				lens::LensState::Moving(path, offset) => {
 					
 					let step = Router::path_next(
-						&self.nodes.nodes,
+						&self.nodes,
 						path,
 						offset,
 						&lens.path
@@ -141,7 +141,7 @@ impl Router {
 	
 	/// Resolves the next step towards a node from a path,
 	/// a mutable offset into the path and the current node path.
-	fn path_next(nodes: &Vec<Option<node::Node>>,
+	fn path_next(nodes: &node::RouterNodes,
 	             dst_path: &str,
 	             dst_off: &mut usize,
 	             src_path: &[usize]
@@ -195,8 +195,8 @@ impl Router {
 		
 		let current = src_path.last();
 		let current = match current {
-			Some(x) => &nodes[*x],
-			None => &nodes[0]
+			Some(x) => nodes.nodes.get(x),
+			None => nodes.nodes.get(&0)
 		};
 		
 		let current = match current {
@@ -211,25 +211,16 @@ impl Router {
 		
 		// TODO: This part *should* be possible with iter()...?
 		let mut next: Option<&node::Node> = None;
-		for node in nodes.iter() {
-			next = match node {
-				Some(x) => {
-					if ! x.is_named(name) {
-						continue;
-					}
-					
-					if ! x.is_child_of(current) {
-						continue;
-					}
-					
-					Some(x)
-				},
-				None => None
-			};
-			
-			if let Some(_) = next {
-				break;
+		for (_, node) in nodes.nodes.iter() {
+			if ! node.is_named(name) {
+				continue;
 			}
+			
+			if ! node.is_child_of(current) {
+				continue;
+			}
+			
+			next = Some(node);
 		}
 		
 		let next = match next {
