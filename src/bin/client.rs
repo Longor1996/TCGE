@@ -210,7 +210,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	info!("Initializing gameloop...");
 	
-	let mut gls = gameloop::GameloopState::new(30);
+	let mut gls = gameloop::GameloopState::new(30, true);
 	
 	info!("Starting gameloop...");
 	while !window.should_close() {

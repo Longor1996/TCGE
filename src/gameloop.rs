@@ -12,10 +12,11 @@ pub struct GameloopState {
     last_chk: f64,
     last_fps: f64,
     last_tps: f64,
+    print_timers: bool,
 }
 
 impl GameloopState {
-    pub fn new(ticks_per_second: i32) -> GameloopState {
+    pub fn new(ticks_per_second: i32, print_timers: bool) -> GameloopState {
         GameloopState {
             skip_ticks: 1.0 / (ticks_per_second as f64),
             max_frameskip: 5,
@@ -28,6 +29,7 @@ impl GameloopState {
             last_chk: 0.0,
             last_fps: 0.0,
             last_tps: 0.0,
+            print_timers,
         }
     }
     
@@ -72,6 +74,9 @@ impl GameloopState {
             self.tick_count = 0;
             self.last_chk = frame_end;
             
+            if self.print_timers {
+                debug!("{} FPS, {} TPS", self.last_fps, self.last_tps);
+            }
         }
     }
     
