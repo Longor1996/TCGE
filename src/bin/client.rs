@@ -41,6 +41,7 @@ fn main() {
 	let mut log_config = Config::default();
 	log_config.time_format = Some("[%Y-%m-%d %H:%M:%S]");
 	
+	println!("[HINT] Log file location: {}", log_file.to_str().unwrap_or("ERROR"));
 	CombinedLogger::init(
 		vec![
 			TermLogger::new(LevelFilter::Trace, log_config).unwrap(),
