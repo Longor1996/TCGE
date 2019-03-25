@@ -107,12 +107,12 @@ impl Router {
 						},
 						
 						// Lens enters a node.
-						PathItem::ToNode(x) => {
+						PathItem::ToNode(move_to_id) => {
 							node_events.push((
-								*lens.path.last().unwrap(),
+								move_to_id,
 								Box::new(lens::MoveEvent::EnterNode)
 							));
-							lens.path.push(x);
+							lens.path.push(move_to_id);
 							None
 						},
 						
@@ -189,11 +189,16 @@ impl Router {
 	             dst_off: &mut usize,
 	             src_path: &[usize]
 	) -> PathItem {
-		// Parsing of root location only happens when `offset = 0`
+		// If we are not within the routing-tree, move to the root node (#0).
+		if src_path.len() == 0 {
+			return PathItem::ToNode(0);
+		}
+		
+		// Parsing of starting location only happens when `offset = 0`
 		if *dst_off == 0 {
 			if dst_path.starts_with("/") {
 				// Bubble until you hit the root
-				if src_path.len() != 1 {
+				if src_path.len() > 1 {
 					return PathItem::ToSuper;
 				}
 				
