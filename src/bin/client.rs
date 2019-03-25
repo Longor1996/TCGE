@@ -95,8 +95,9 @@ fn new_window(
 	glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
 	
 	// ------------------------------------------
+	let window_title = format!("Talecraft Client: {}", env!("VERSION"));
 	let (mut window, events) = glfw.create_window(
-		1024, 768, "Talecraft",
+		1024, 768, &window_title,
 		glfw::WindowMode::Windowed
 	).expect("Failed to create GLFW window.");
 	
