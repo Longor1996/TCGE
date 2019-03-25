@@ -38,10 +38,13 @@ fn main() {
 	let current_exe = std::env::current_exe().unwrap();
 	let current_dir = current_exe.parent().unwrap();
 	let log_file = current_dir.join("client.log");
+	let mut log_config = Config::default();
+	log_config.time_format = Some("[%Y-%m-%d %H:%M:%S]");
+	
 	CombinedLogger::init(
 		vec![
-			TermLogger::new(LevelFilter::Trace, Config::default()).unwrap(),
-			WriteLogger::new(LevelFilter::Info, Config::default(), File::create(log_file).unwrap()),
+			TermLogger::new(LevelFilter::Trace, log_config).unwrap(),
+			WriteLogger::new(LevelFilter::Info, log_config, File::create(log_file).unwrap()),
 		]
 	).unwrap();
 	
