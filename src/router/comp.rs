@@ -22,6 +22,8 @@ impl super::node::Nodes {
 	pub fn set_node_component(&mut self, node_id: usize, component: Box<Component>) -> bool {
 		let component_type_id = mopa::Any::get_type_id(&component);
 		
+		trace!("Adding component [{}] to node #{}...", component.get_type_name(), node_id);
+		
 		// --- If the node has no components...
 		if ! self.comps.comps.contains_key(&node_id) {
 			let mut new_components = FxHashMap::default();

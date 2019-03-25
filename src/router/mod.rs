@@ -23,6 +23,8 @@ impl Router {
 	}
 	
 	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut lens::Lens) -> Option<Box<lens::Handler>>) {
+		debug!("Creating new router lens '{}'...", name);
+		
 		let mut lens = lens::Lens {
 			name: name.to_string(),
 			path_str: "".to_string(),
@@ -37,6 +39,8 @@ impl Router {
 	}
 	
 	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut node::Node)) -> usize {
+		trace!("Creating new router node '{}' attached to node #{}...", name, parent.unwrap_or(0));
+		
 		let parent = parent.or(Some(0));
 		let id = self.nodes.next_id();
 		

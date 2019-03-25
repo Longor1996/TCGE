@@ -8,10 +8,10 @@ use std::ffi;
 pub enum ResError {
     #[fail(display = "I/O error")]
     Io(#[cause] io::Error),
-
+    
     #[fail(display = "Failed to read CString from file that contains 0")]
     FileContainsNil,
-
+    
     #[fail(display = "Failed get executable path")]
     FailedToGetExePath,
 }
@@ -32,12 +32,17 @@ impl Resources {
             .map_err(|_| ResError::FailedToGetExePath)?;
         let exe_path = exe_file_name.parent()
             .ok_or(ResError::FailedToGetExePath)?;
+        
+        debug!("Creating resource provider at path: {}", exe_path.to_str().unwrap_or("ERROR"));
+        
         Ok(Resources {
             root_path: exe_path.into()
         })
     }
     
     pub fn load_buffer(&self, resource_name: &str) -> Result<Vec<u8>, ResError> {
+        trace!("Attempting to load file into buffer: {}", resource_name);
+        
         let mut file = fs::File::open(
             resource_name_to_path(&self.root_path,resource_name)
         )?;
@@ -51,6 +56,8 @@ impl Resources {
     }
 
     pub fn load_cstring(&self, resource_name: &str) -> Result<ffi::CString, ResError> {
+        trace!("Attempting to load file into cstring: {}", resource_name);
+        
         let mut file = fs::File::open(
             resource_name_to_path(&self.root_path,resource_name)
         )?;
@@ -70,6 +77,8 @@ impl Resources {
     }
 
     pub fn open_stream(&self, resource_name: &str) -> Result<fs::File, ResError> {
+        trace!("Attempting to open file as stream: {}", resource_name);
+        
         let file = fs::File::open(
             resource_name_to_path(&self.root_path,resource_name)
         )?;
@@ -85,14 +94,14 @@ impl Drop for Resources {
 
 fn resource_name_to_path(root_dir: &Path, location: &str) -> PathBuf {
     let mut path: PathBuf = root_dir.into();
-
+    
     path = path.join("assets/");
-
+    
     // TODO: Location package splitting.
-
+    
     for part in location.split("/") {
         path = path.join(part);
     }
-
+    
     path
 }

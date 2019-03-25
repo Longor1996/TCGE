@@ -116,6 +116,7 @@ fn new_window(
 	glfw.with_primary_monitor_mut(|_, primary| {
 		if let Some(monitor) = primary {
 			if let Some(vidmod) = monitor.get_video_mode() {
+				debug!("Centering window on monitor: {}", monitor.get_name());
 				let w_size = window.get_size();
 				window.set_pos(
 					(vidmod.width as i32/2) - (w_size.0/2),
@@ -126,11 +127,13 @@ fn new_window(
 	});
 	
 	// ------------------------------------------
+	debug!("Loading OpenGL function-pointers...");
 	gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 	
 	// ------------------------------------------
 	// Only enable debugging if asked for...
 	if opts.gl_debug {
+		info!("OpenGL debugging is ENABLED.");
 		unsafe {
 			gl::Enable(gl::DEBUG_OUTPUT);
 			gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
@@ -213,11 +216,9 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	})));
 	
 	// ------------------------------------------
-	info!("Initializing gameloop...");
-	
+	info!("Initializing and starting gameloop...");
 	let mut gls = gameloop::GameloopState::new(30, true);
 	
-	info!("Starting gameloop...");
 	while !window.should_close() {
 		process_events(
 			&mut window,
@@ -293,6 +294,7 @@ fn process_events(
 	for(_, event) in glfw::flush_messages(events) {
 		match event {
 			glfw::WindowEvent::FramebufferSize(width, height) => {
+				trace!("Resizing viewport to {}x{}", width, height);
 				unsafe {gl::Viewport(0, 0, width, height)}
 			},
 			
@@ -313,6 +315,7 @@ fn process_events(
 			},
 			
 			glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+				info!("User pressed ESC, shutting down...");
 				window.set_should_close(true)
 			},
 			

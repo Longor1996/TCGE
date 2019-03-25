@@ -284,6 +284,7 @@ impl SimpleVaoBuilder {
 			gl::BindVertexArray(0);
 		}
 		
+		debug!("Built new SimpleVao #{} with {} vertices.", vao, self.vertices.len()/5);
 		SimpleVao {
 			handle: vao,
 			count: (self.vertices.len()/5) as i32
