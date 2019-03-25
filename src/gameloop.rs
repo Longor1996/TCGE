@@ -7,6 +7,9 @@ pub struct GameloopState {
     loops: i32,
     interpolation: f64,
     frame_time: f64,
+    frame_count: usize,
+    last_fps_chk: f64,
+    last_fps: f64,
 }
 
 impl GameloopState {
@@ -18,6 +21,9 @@ impl GameloopState {
             next_game_tick: 0.0,
             interpolation: 0.0,
             frame_time: 0.0,
+            frame_count: 0,
+            last_fps_chk: 0.0,
+            last_fps: 0.0,
         }
     }
     
@@ -49,9 +55,20 @@ impl GameloopState {
         
         let frame_end = gtc();
         self.frame_time = frame_end - frame_start;
+        self.frame_count += 1;
+        
+        if frame_end - self.last_fps_chk > 0.25 && self.frame_count > 10 {
+            self.last_fps = self.frame_count as f64 / (frame_end - self.last_fps_chk);
+            self.last_fps_chk = frame_end;
+            self.frame_count = 0;
+        }
     }
     
     pub fn get_frame_time(&self) -> f64 {
         self.frame_time
+    }
+    
+    pub fn get_frames_per_second(&self) -> f64 {
+        self.last_fps
     }
 }

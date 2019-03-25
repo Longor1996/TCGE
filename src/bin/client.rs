@@ -174,7 +174,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	let shader_grid = render::materials::ShaderGrid::new(&res)?;
 	let shader_random = render::materials::ShaderRandom::new(&res)?;
-	let shader_solid_color = render::materials::ShaderSolidColor::new(&res)?;
 	
 	let ascii_renderer = render::ascii_text::AsciiTextRenderer::load(&res)?;
 	
@@ -183,6 +182,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		width: 0, height: 0,
 		ascii_renderer,
 		frame_time: 0.0,
+		last_fps: 0.0,
 	};
 	
 	// ------------------------------------------
@@ -190,7 +190,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		frame_id: 0,
 		shader_grid,
 		shader_random,
-		shader_solid_color
 	};
 	
 	let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
@@ -223,7 +222,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		
 		let window_size = window.get_framebuffer_size();
 		let mut reset_render_state = false;
-		let last_frame_time = gls.get_frame_time();
+		let frame_time  = gls.get_frame_time();
+		let last_fps = gls.get_frames_per_second();
 		
 		gls.next(|| {glfw.get_time()},
 			
@@ -259,7 +259,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				let (w, h) = window.get_framebuffer_size();
 				render_state_gui.width = w;
 				render_state_gui.height = h;
-				render_state_gui.frame_time = last_frame_time;
+				render_state_gui.frame_time = frame_time;
+				render_state_gui.last_fps = last_fps;
 				render_gui(&mut render_state_gui);
 			}
 		);
@@ -290,8 +291,10 @@ fn process_events(
 			glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
 				if window.get_cursor_mode() == glfw::CursorMode::Disabled {
 					window.set_cursor_mode(glfw::CursorMode::Normal);
+					info!("Enabled mouse.");
 				} else {
 					window.set_cursor_mode(glfw::CursorMode::Disabled);
+					info!("Disabled mouse.");
 				}
 				
 				opt_scene.as_mut()
@@ -347,7 +350,6 @@ struct RenderState {
 	frame_id: i64,
 	shader_grid: render::materials::ShaderGrid,
 	shader_random: render::materials::ShaderRandom,
-	shader_solid_color: render::materials::ShaderSolidColor,
 }
 
 impl RenderState {
@@ -406,6 +408,7 @@ struct GuiRenderState {
 	width: i32, height: i32,
 	ascii_renderer: render::ascii_text::AsciiTextRenderer,
 	frame_time: f64,
+	last_fps: f64,
 }
 
 fn render_gui(render_state_gui: &mut GuiRenderState) {
@@ -426,10 +429,11 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	);
 	
 	let frame_time = (render_state_gui.frame_time * 1000.0).ceil();
+	let last_fps = render_state_gui.last_fps.floor();
 	
 	render_state_gui.ascii_renderer.transform = projection;
 	render_state_gui.ascii_renderer.draw_text(
-		format!("TCGE {}: {}ms",env!("VERSION"), frame_time),
+		format!("TCGE {}: {}ms ({} FPS)", env!("VERSION"), frame_time, last_fps),
 		16.0, 0.0+1.0, 16.0
 	);
 	
