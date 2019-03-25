@@ -183,6 +183,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		ascii_renderer,
 		frame_time: 0.0,
 		last_fps: 0.0,
+		last_tps: 0.0,
 	};
 	
 	// ------------------------------------------
@@ -224,6 +225,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		let mut reset_render_state = false;
 		let frame_time  = gls.get_frame_time();
 		let last_fps = gls.get_frames_per_second();
+		let last_tps = gls.get_ticks_per_second();
 		
 		gls.next(|| {glfw.get_time()},
 			
@@ -261,6 +263,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				render_state_gui.height = h;
 				render_state_gui.frame_time = frame_time;
 				render_state_gui.last_fps = last_fps;
+				render_state_gui.last_tps = last_tps;
 				render_gui(&mut render_state_gui);
 			}
 		);
@@ -409,6 +412,7 @@ struct GuiRenderState {
 	ascii_renderer: render::ascii_text::AsciiTextRenderer,
 	frame_time: f64,
 	last_fps: f64,
+	last_tps: f64,
 }
 
 fn render_gui(render_state_gui: &mut GuiRenderState) {
@@ -430,10 +434,11 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	
 	let frame_time = (render_state_gui.frame_time * 1000.0).ceil();
 	let last_fps = render_state_gui.last_fps.floor();
+	let last_tps = render_state_gui.last_tps.round(); // its impossible to get the exact TPS
 	
 	render_state_gui.ascii_renderer.transform = projection;
 	render_state_gui.ascii_renderer.draw_text(
-		format!("TCGE {}: {}ms ({} FPS)", env!("VERSION"), frame_time, last_fps),
+		format!("TCGE {}: {}ms ({} FPS, {} TPS)", env!("VERSION"), frame_time, last_fps, last_tps),
 		16.0, 0.0+1.0, 16.0
 	);
 	

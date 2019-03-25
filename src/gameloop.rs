@@ -8,8 +8,10 @@ pub struct GameloopState {
     interpolation: f64,
     frame_time: f64,
     frame_count: usize,
-    last_fps_chk: f64,
+    tick_count: i32,
+    last_chk: f64,
     last_fps: f64,
+    last_tps: f64,
 }
 
 impl GameloopState {
@@ -18,12 +20,14 @@ impl GameloopState {
             skip_ticks: 1.0 / (ticks_per_second as f64),
             max_frameskip: 5,
             loops: 0,
+            tick_count: 0,
             next_game_tick: 0.0,
             interpolation: 0.0,
             frame_time: 0.0,
             frame_count: 0,
-            last_fps_chk: 0.0,
+            last_chk: 0.0,
             last_fps: 0.0,
+            last_tps: 0.0,
         }
     }
     
@@ -45,6 +49,7 @@ impl GameloopState {
     
             self.next_game_tick += self.skip_ticks;
             self.loops += 1;
+            self.tick_count += 1;
         }
         
         let now = gtc();
@@ -57,10 +62,16 @@ impl GameloopState {
         self.frame_time = frame_end - frame_start;
         self.frame_count += 1;
         
-        if frame_end - self.last_fps_chk > 0.25 && self.frame_count > 10 {
-            self.last_fps = self.frame_count as f64 / (frame_end - self.last_fps_chk);
-            self.last_fps_chk = frame_end;
+        if frame_end - self.last_chk > 1.0 && self.frame_count > 10 {
+            // calculate averages
+            self.last_fps = self.frame_count as f64 / (frame_end - self.last_chk);
+            self.last_tps = self.tick_count as f64 / (frame_end - self.last_chk);
+            
+            // reset timer
             self.frame_count = 0;
+            self.tick_count = 0;
+            self.last_chk = frame_end;
+            
         }
     }
     
@@ -70,5 +81,9 @@ impl GameloopState {
     
     pub fn get_frames_per_second(&self) -> f64 {
         self.last_fps
+    }
+    
+    pub fn get_ticks_per_second(&self) -> f64 {
+        self.last_tps
     }
 }
