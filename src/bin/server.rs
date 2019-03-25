@@ -64,8 +64,7 @@ impl router::lens::Handler for ServerLens {
     fn on_event(
         &mut self,
         event: &mut router::event::Wrapper,
-        lens: &router::lens::Lens,
-        _nodes: &mut router::node::Nodes
+        context: &mut router::lens::Context
     ) -> router::lens::State {
         self.counter += 1;
         if self.counter > 10 {
@@ -76,8 +75,8 @@ impl router::lens::Handler for ServerLens {
         event.event.downcast_ref::<Ping>().map(|_| {
             info!("Received PONG!");
         });
-    
-        info!("Received event: {} @ {}", self.counter, lens.path_str);
+        
+        info!("Received event: {} @ {}", self.counter, context.get_path_str());
         router::lens::State::Idle
     }
 }

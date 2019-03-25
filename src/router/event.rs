@@ -77,7 +77,7 @@ impl super::Router {
 	
 	/// Actual implementation for `fire_event_at_lens`.
 	pub fn fire_event_at_lens_id(&mut self, lens_id: usize, event: &mut Event) {
-		let mut nodes = &mut self.nodes;
+		let nodes = &mut self.nodes;
 		let lens = self.lenses.lenses.get_mut(lens_id);
 		
 		let lens = match lens {
@@ -133,7 +133,10 @@ impl super::Router {
 		let new_state = if event_wrapper.can_default {
 			event_wrapper.phase = Phase::Action;
 			
-			(*lens_handler).on_event(&mut event_wrapper, lens, &mut nodes)
+			(*lens_handler).on_event(
+				&mut event_wrapper,
+				&mut lens::Context::new(lens, nodes)
+			)
 		} else {
 			lens::State::Idle
 		};
@@ -167,7 +170,7 @@ impl super::Router {
 	
 	/// Directly trigger an event for a lens, completely ignoring the normal event flow.
 	pub fn trigger_event_at_lens_id(&mut self, lens_id: usize, event: &mut Event) -> bool {
-		let mut nodes = &mut self.nodes;
+		let nodes = &mut self.nodes;
 		let lens = self.lenses.lenses.get_mut(lens_id);
 		
 		let lens = match lens {
@@ -196,7 +199,10 @@ impl super::Router {
 			can_bubble: false,
 		};
 		
-		lens_handler.on_event(&mut wrapper, &lens, &mut nodes);
+		lens_handler.on_event(
+			&mut wrapper,
+			&mut lens::Context::new(lens, nodes)
+		);
 		true
 	}
 	
