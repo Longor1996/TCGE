@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate log;
+extern crate simplelog;
+
 extern crate failure;
 #[allow(unused_imports)]
 use failure::Fail;
@@ -7,6 +11,19 @@ use tcge::resources::Resources;
 use tcge::router;
 
 fn main() {
+    use simplelog::*;
+    use std::fs::File;
+    let current_exe = std::env::current_exe().unwrap();
+    let current_dir = current_exe.parent().unwrap();
+    let log_file = current_dir.join("server.log");
+    CombinedLogger::init(
+        vec![
+            TermLogger::new(LevelFilter::Trace, Config::default()).unwrap(),
+            WriteLogger::new(LevelFilter::Info, Config::default(), File::create(log_file).unwrap()),
+        ]
+    ).unwrap();
+    info!("Server startup...");
+    
     let _res = Resources::from_exe_path().unwrap();
     
     let mut router = router::Router::new();
@@ -16,23 +33,23 @@ fn main() {
     router.new_node("child-1", Some(child_a_id), &|_|{});
     
     router.new_lens("server", &|_| {
-        println!("Server Lens Init");
+        info!("Server Lens Init");
         return Some(Box::new(ServerLens {
             counter: 0
         }));
     });
     
-    println!("Loop Start");
+    info!("Loop Start");
     loop {
         if (&mut router).update() {
-            println!("Loop Stop");
+            info!("Loop Stop");
             break;
         }
         
         router.fire_event_at_lens("server", &mut Ping {});
     }
-	
-    println!("Goodbye!");
+    
+    info!("Server shutdown!");
 }
 
 struct ServerLens {
@@ -52,15 +69,15 @@ impl router::lens::Handler for ServerLens {
         
         // Downcasting by using MOPA::Any
         event.event.downcast_ref::<Ping>().map(|_| {
-            println!("PONG!");
+            info!("Received PONG!");
         });
-        
-        println!("Received event: {} @ {}", self.counter, lens.path_str);
+    
+        info!("Received event: {} @ {}", self.counter, lens.path_str);
         router::lens::State::Idle
     }
 }
 
 struct Ping {}
 impl router::event::Event for Ping {
-    fn is_passive(&self) -> bool {true}
+    fn is_passive(&self) -> bool {false}
 }
