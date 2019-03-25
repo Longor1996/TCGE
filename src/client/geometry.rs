@@ -241,7 +241,7 @@ impl SimpleVaoBuilder {
 	pub fn build(&self) -> SimpleVao {
 		let mut vbo_vertex: gl::types::GLuint = 0;
 		unsafe {
-			println!("Allocating vertex buffer for geometry...");
+			trace!("Allocating vertex buffer for geometry...");
 			gl::GenBuffers(1, &mut vbo_vertex);
 			gl::BindBuffer(gl::ARRAY_BUFFER, vbo_vertex);
 			gl::BufferData(
@@ -255,7 +255,7 @@ impl SimpleVaoBuilder {
 		
 		let mut vao: gl::types::GLuint = 0;
 		unsafe {
-			println!("Allocating vertex array for geometry...");
+			trace!("Allocating vertex array for geometry...");
 			gl::GenVertexArrays(1, &mut vao);
 			gl::BindVertexArray(vao);
 			gl::BindBuffer(gl::ARRAY_BUFFER, vbo_vertex);

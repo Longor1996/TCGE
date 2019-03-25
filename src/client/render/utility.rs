@@ -46,14 +46,14 @@ impl Program {
 			.map(|file_extension| format!("{}{}", name, file_extension))
 			.collect::<Vec<String>>();
 		
-		println!("Loading program shaders: {}", name);
+		info!("Loading program shaders: {}", name);
 		let shaders = resource_names.iter()
 			.map(|resource_name| {
 				Shader::from_res(res, resource_name)
 			})
 			.collect::<Result<Vec<Shader>, Error>>()?;
 		
-		println!("Compiling program: {}", name);
+		debug!("Compiling program: {}", name);
 		Program::from_shaders(name, &shaders[..])
 			.map_err(|message| Error::LinkError { name: name.into(), message })
 	}
@@ -125,7 +125,7 @@ impl Program {
 			let loc = gl::GetUniformLocation(self.id, cstr.as_ptr());
 			
 			if loc == -1 {
-				eprintln!("Uniform location for '{}' in '{}' is invalid.", uniform_name, self.name);
+				warn!("Uniform location for '{}' in '{}' is invalid.", uniform_name, self.name);
 				return -1;
 			}
 			
@@ -206,13 +206,13 @@ impl Shader {
 			.map(|&(_, kind)| kind)
 			.ok_or_else(|| Error::CanNotDetermineShaderTypeForResource { name: name.into() })?;
 		
-		println!("Loading shader: {} . {}", name, shader_kind);
+		debug!("Loading shader: {} . {}", name, shader_kind);
 		let source = res.load_cstring(name)
 			.map_err(|e| Error::ResourceLoad { name: name.into(), inner: e })?;
 		
 		// TODO: Allow shader-files to include other shader-files.
 		
-		println!("Compiling shader: {}", name);
+		debug!("Compiling shader: {}", name);
 		Shader::from_source(&source, shader_kind)
 			.map_err(|message| Error::CompileError { name: name.into(), message })
 	}

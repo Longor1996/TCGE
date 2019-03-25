@@ -21,28 +21,28 @@ pub struct AsciiTextRenderer {
 impl AsciiTextRenderer {
 	
 	pub fn load(res: &resources::Resources) -> Result<AsciiTextRenderer, utility::Error> {
-		println!("Loading font: {}, {}", FONT_DATA_TXT, FONT_DATA_PNG);
+		info!("Loading font: {}, {}", FONT_DATA_TXT, FONT_DATA_PNG);
 		let material = AsciiTextRendererMaterial::new(res)?;
 		
-		println!("Preparing GPU resources...");
+		debug!("Preparing GPU resources...");
 		let gpu = AsciiTextRenderer::prepare_gpu_objects(&material);
 		
 		let mut buffer = vec![];
 		buffer.resize(gpu.2 as usize / std::mem::size_of::<f32>(), 0.0);
 		
-		println!("Loading font: {}", FONT_DATA_TXT);
+		debug!("Loading font: {}", FONT_DATA_TXT);
 		let file = res.open_stream(FONT_DATA_TXT)
 			.map_err(|e| utility::Error::ResourceLoad { name: FONT_DATA_TXT.to_string(), inner: e })?;
 		
 		// Allocate character-table and fill it with 'null'
-		let mut chars: Vec<AsciiTextRendererChar> = Vec::with_capacity(256);
+		let mut chars: Vec<AsciiTextRendererChar> = Vec::with_capacity(1+256);
 		for x in 0 .. 256 {
 			chars.push(AsciiTextRendererChar::from_nothing(x));
 		}
 		
 		let mut scale = 48.0; // default
 		
-		println!("Parsing font: {}", FONT_DATA_TXT);
+		debug!("Parsing font: {}", FONT_DATA_TXT);
 		for line in BufReader::new(file).lines() {
 			let line = line.expect("Error while reading font definition.");
 			
@@ -89,7 +89,7 @@ impl AsciiTextRenderer {
 		let buffer_size = (1024*1024) * std::mem::size_of::<f32>() as gl::types::GLsizeiptr;
 		let mut buffer_vbo: gl::types::GLuint = 0;
 		unsafe {
-			println!("Allocating text geometry buffer...");
+			trace!("Allocating text geometry buffer...");
 			gl::GenBuffers(1, &mut buffer_vbo);
 			gl::BindBuffer(gl::ARRAY_BUFFER, buffer_vbo);
 			gl::BufferStorage(
@@ -103,7 +103,7 @@ impl AsciiTextRenderer {
 		
 		let mut buffer_vao: gl::types::GLuint = 0;
 		unsafe {
-			println!("Allocating text geometry descriptor...");
+			trace!("Allocating text geometry descriptor...");
 			gl::GenVertexArrays(1, &mut buffer_vao);
 			gl::BindVertexArray(buffer_vao);
 			gl::BindBuffer(gl::ARRAY_BUFFER, buffer_vbo);
@@ -132,7 +132,7 @@ impl AsciiTextRenderer {
 			gl::BindVertexArray(0);
 		}
 		
-		println!("Allocated text geometry buffers.");
+		trace!("Allocated text geometry buffers.");
 		return (buffer_vbo, buffer_vao, buffer_size);
 	}
 	
@@ -168,7 +168,7 @@ impl AsciiTextRenderer {
 			let buflen_cpu = self.buffer.len(); // individual float elements
 			let buflen_gpu = (self.buffer_size as usize) / 4;
 			if buflen_cpu > buflen_gpu {
-				eprintln!("Text Geometry Buffer Overflow: {} > {}", buflen_cpu, buflen_gpu);
+				warn!("Text Geometry Buffer Overflow: {} > {}", buflen_cpu, buflen_gpu);
 				return;
 			}
 			
@@ -293,10 +293,10 @@ pub struct AsciiTextRendererMaterial {
 
 impl AsciiTextRendererMaterial {
 	pub fn new(res: &resources::Resources) -> Result<AsciiTextRendererMaterial, utility::Error> {
-		println!("Loading font texture...");
+		debug!("Loading font texture...");
 		let sdfmap = utility::Texture::from_res(&res, FONT_DATA_PNG)?;
 		
-		println!("Loading font shader...");
+		debug!("Loading font shader...");
 		let shader = utility::Program::from_res(&res, FONT_MATERIAL)?;
 		
 		let uniform_matrix = shader.uniform_location("transform");

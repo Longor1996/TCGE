@@ -1,6 +1,10 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[macro_use]
+extern crate log;
+extern crate simplelog;
+
 extern crate failure;
 #[allow(unused_imports)]
 use failure::Fail;
@@ -29,12 +33,24 @@ fn main() {
 		Ok(o) => o
 	};
 	
+	use simplelog::*;
+	use std::fs::File;
+	let current_exe = std::env::current_exe().unwrap();
+	let current_dir = current_exe.parent().unwrap();
+	let log_file = current_dir.join("client.log");
+	CombinedLogger::init(
+		vec![
+			TermLogger::new(LevelFilter::Trace, Config::default()).unwrap(),
+			WriteLogger::new(LevelFilter::Info, Config::default(), File::create(log_file).unwrap()),
+		]
+	).unwrap();
+	
 	if let Err(e) = run(options) {
 		print_error(&e);
 		panic!("A fatal error occurred and the engine had to stop...");
 	}
 	
-	println!("\nGoodbye!\n");
+	info!("Goodbye!\n");
 }
 
 fn print_error(e: &failure::Error) {
@@ -58,7 +74,7 @@ fn print_error(e: &failure::Error) {
 		}
 	}
 	
-	println!("{}\n", result);
+	error!("{}\n", result);
 }
 
 fn new_window(
@@ -117,7 +133,7 @@ fn new_window(
 	}
 	
 	// ------------------------------------------
-	println!("Initialized window!");
+	info!("Initialized window!");
 	return (window, events);
 }
 
@@ -134,7 +150,7 @@ extern "system" fn on_gl_error(
 		unsafe {
 			let msg = std::ffi::CStr::from_ptr(message)
 				.to_str().expect("Could not convert GL-Error to &str.");
-			eprintln!("GL CALLBACK [{}, #{}, @{}, !{}]: {}", etype, id, source, severity, msg);
+			error!("GL CALLBACK [{}, #{}, @{}, !{}]: {}", etype, id, source, severity, msg);
 		}
 	}
 }
@@ -151,7 +167,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	unsafe {
 		let depth_bits = glfw::ffi::glfwGetWindowAttrib(window.window_ptr(), glfw::ffi::DEPTH_BITS);
 		let depth_bits = gl::GetFramebufferAttachmentParameteriv(gl::FRAMEBUFFER, gl::GL_DEPTH_ATTACHMENT);
-		println!("Available depth bits: {}", depth_bits);
+		debug!("Available depth bits: {}", depth_bits);
 	}
 	*/
 	
@@ -179,7 +195,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	let mut cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
 	
-	println!("Initializing scene...");
+	info!("Initializing scene...");
 	
 	let scene = Rc::new(RefCell::new(Option::Some(Scene {
 		camera: freecam::Camera::new(),
@@ -192,11 +208,11 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	})));
 	
 	// ------------------------------------------
-	println!("Initializing gameloop...");
+	info!("Initializing gameloop...");
 	
 	let mut gls = gameloop::GameloopState::new(30);
 	
-	println!("Starting gameloop...");
+	info!("Starting gameloop...");
 	while !window.should_close() {
 		process_events(
 			&mut window,
