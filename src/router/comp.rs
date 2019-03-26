@@ -97,6 +97,7 @@ impl super::node::Nodes {
 					let boxed = boxed.downcast_ref::<C>();
 					match boxed {
 						Some(boxed) => boxed.borrow(),
+						// TODO: Find a way to return None instead!
 						None => panic!("The found component is not of the type given as parameter.")
 					}
 				});
@@ -117,6 +118,7 @@ impl super::node::Nodes {
 					let boxed = boxed.downcast_mut::<C>();
 					match boxed {
 						Some(boxed) => boxed.borrow_mut(),
+						// TODO: Find a way to return None instead!
 						None => panic!("The found component is not of the type given as parameter.")
 					}
 				});
