@@ -17,6 +17,7 @@ pub struct Router {
 impl Router {
 	
 	pub fn new() -> Router {
+		info!("Initializing router...");
 		Router {
 			lenses: lens::Lenses::new(),
 			nodes: node::Nodes::new(),

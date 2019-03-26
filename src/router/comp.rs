@@ -144,6 +144,9 @@ pub trait Component: mopa::Any {
 	/// Should not happen unless a component is replaced.
 	fn on_detachment(&mut self, node_id: usize);
 	
+	/// This function is called for all user-defined events.
+	fn on_event(&mut self, event: &mut super::event::Wrapper);
+	
 	fn on_load(&mut self);
 	fn on_unload(&mut self);
 }

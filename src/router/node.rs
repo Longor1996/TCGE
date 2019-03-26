@@ -25,32 +25,41 @@ impl Node {
 	
 	/// Function for processing and acting upon received events.
 	pub fn on_event(&mut self, components: Option<&mut FxHashMap<TypeId, Box<super::comp::Component>>>, event: &mut super::event::Wrapper) {
-		event.event.downcast_ref::<MoveEvent>().map(| move_event | {
-			let old_lens_count = self.lens_count;
-			
-			match move_event {
-				MoveEvent::EnterNode => {self.lens_count += 1},
-				MoveEvent::LeaveNode => {self.lens_count -= 1},
-			};
-			
-			if old_lens_count != self.lens_count {
-				if self.lens_count == 0 {
-					if let Some(components) = components {
-						for (_, component) in components {
-							(*component).on_unload();
+		// This is ugly as heck... but until one can 'forget' a mutable borrow... :(
+		if event.event.is::<MoveEvent>() {
+			let downcast_event = event.event.downcast_ref::<MoveEvent>();
+			downcast_event.map(| move_event | {
+				let old_lens_count = self.lens_count;
+				
+				match move_event {
+					MoveEvent::EnterNode => {self.lens_count += 1},
+					MoveEvent::LeaveNode => {self.lens_count -= 1},
+				};
+				
+				if old_lens_count != self.lens_count {
+					if self.lens_count == 0 {
+						if let Some(components) = components {
+							for (_, component) in components {
+								(*component).on_unload();
+							}
 						}
-					}
-				} else {
-					if let Some(components) = components {
-						for (_, component) in components {
-							(*component).on_load();
+					} else {
+						if let Some(components) = components {
+							for (_, component) in components {
+								(*component).on_load();
+							}
 						}
 					}
 				}
-			}
-		});
-		
-		// Ignore all other events, for now.
+			});
+		} else {
+			// Not a move-event, so give it to the components.
+			components.map(|components| {
+				for (_, component) in components {
+					component.on_event(event);
+				}
+			});
+		}
 	}
 	
 	/// Test if this node is a child of the given node.
