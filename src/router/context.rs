@@ -67,8 +67,23 @@ impl<'a> Context<'a> {
 		}
 	}
 	
+	pub fn get_component_downcast<C: comp::Component>(&self) -> Option<&C> {
+		match self.get_lensed_node_id() {
+			Some(node_id) => self.nodes.get_node_component_downcast::<C>(node_id),
+			None => None
+		}
+	}
+	
+	pub fn get_mut_component_downcast<C: comp::Component>(&mut self) -> Option<&mut C> {
+		match self.get_lensed_node_id() {
+			Some(node_id) => self.nodes.get_mut_node_component_downcast::<C>(node_id),
+			None => None
+		}
+	}
+	
 	pub fn fire_event(&mut self) {
 		// TODO: Implement event handling for the context.
 		// Possibly by splitting it out from the router itself?
+		panic!("Not yet implemented.");
 	}
 }

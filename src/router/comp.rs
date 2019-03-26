@@ -63,8 +63,7 @@ impl super::node::Nodes {
 			},
 			true => {
 				return self.comps.comps.get(&node_id).unwrap().get(&component_type).map(|boxed| {
-					let borrow = boxed.borrow();
-					borrow
+					boxed.borrow()
 				});
 			}
 		};
@@ -79,8 +78,47 @@ impl super::node::Nodes {
 			},
 			true => {
 				return self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type).map(|boxed| {
-					let borrow = boxed.borrow_mut();
-					borrow
+					boxed.borrow_mut()
+				});
+			}
+		};
+	}
+	
+	/// Borrow a component of the given type from the given node, or any of its parents.
+	pub fn get_node_component_downcast<C: Component>(&self, node_id: usize) -> Option<&C> {
+		return match {self.comps.comps.contains_key(&node_id)} {
+			false => match {self.get_node_parent_id(node_id)} {
+				Some(next_id) => return self.get_node_component_downcast::<C>(next_id),
+				None => None
+			},
+			true => {
+				let component_type_id = TypeId::of::<C>();
+				return self.comps.comps.get(&node_id).unwrap().get(&component_type_id).map(|boxed| {
+					let boxed = boxed.downcast_ref::<C>();
+					match boxed {
+						Some(boxed) => boxed.borrow(),
+						None => panic!("The found component is not of the type given as parameter.")
+					}
+				});
+			}
+		};
+	}
+	
+	/// Mutably borrow a component of the given type from the given node, or any of its parents.
+	pub fn get_mut_node_component_downcast<C: Component>(&mut self, node_id: usize) -> Option<&mut C> {
+		return match {self.comps.comps.contains_key(&node_id)} {
+			false => match {self.get_node_parent_id(node_id)} {
+				Some(next_id) => return self.get_mut_node_component_downcast::<C>(next_id),
+				None => None
+			},
+			true => {
+				let component_type_id = TypeId::of::<C>();
+				return self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type_id).map(|boxed| {
+					let boxed = boxed.downcast_mut::<C>();
+					match boxed {
+						Some(boxed) => boxed.borrow_mut(),
+						None => panic!("The found component is not of the type given as parameter.")
+					}
 				});
 			}
 		};
