@@ -1,4 +1,5 @@
 use super::lens;
+use super::context;
 
 /// A event that can be sent trough the router towards various destinations.
 /// At the moment the only possible destination is a Lens.
@@ -135,7 +136,7 @@ impl super::Router {
 			
 			(*lens_handler).on_event(
 				&mut event_wrapper,
-				&mut lens::Context::new(lens, nodes)
+				&mut context::Context::new(lens, nodes)
 			)
 		} else {
 			lens::State::Idle
@@ -201,7 +202,7 @@ impl super::Router {
 		
 		lens_handler.on_event(
 			&mut wrapper,
-			&mut lens::Context::new(lens, nodes)
+			&mut context::Context::new(lens, nodes)
 		);
 		true
 	}

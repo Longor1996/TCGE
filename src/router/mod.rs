@@ -6,6 +6,7 @@ pub mod node;
 pub mod comp;
 pub mod lens;
 pub mod event;
+pub mod context;
 
 pub struct Router {
 	pub lenses: lens::Lenses,

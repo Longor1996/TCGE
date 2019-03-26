@@ -64,7 +64,7 @@ impl router::lens::Handler for ServerLens {
     fn on_event(
         &mut self,
         event: &mut router::event::Wrapper,
-        context: &mut router::lens::Context
+        context: &mut router::context::Context
     ) -> router::lens::State {
         self.counter += 1;
         if self.counter > 10 {
