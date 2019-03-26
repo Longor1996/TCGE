@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::sync::mpsc::Receiver;
 
 #[macro_use]
 extern crate log;
@@ -17,12 +18,12 @@ extern crate gl;
 
 extern crate tcge;
 use tcge::resources;
+use tcge::router;
+use tcge::gameloop;
 use tcge::client::cmd_opts;
 use tcge::client::render;
 use tcge::client::geometry;
 use tcge::client::freecam;
-use tcge::gameloop;
-use std::sync::mpsc::Receiver;
 
 fn main() {
 	let options = match cmd_opts::parse() {
