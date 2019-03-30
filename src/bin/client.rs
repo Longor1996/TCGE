@@ -321,9 +321,17 @@ extern "system" fn on_gl_error(
 
 fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
+	let mut router = router::Router::new();
 	let res = resources::Resources::from_exe_path()?;
 	
+	// ------------------------------------------
 	let gfxroot = GraphicsContextComponent::new(&opts)?;
+	
+	// Give the router ownership of the Graphics-Context... then sneakily grab it back!
+	// This is the **only** place in the code where it's okay to do this.
+	router.nodes.set_node_component(0, Box::new(gfxroot))?;
+	let gfxroot = router.nodes
+		.get_mut_node_component_downcast::<GraphicsContextComponent>(0)?;
 	
 	// ------------------------------------------
 	
@@ -337,17 +345,10 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	};
 	
 	// ------------------------------------------
-	let shader_grid = render::materials::ShaderGrid::new(&res)?;
-	let shader_random = render::materials::ShaderRandom::new(&res)?;
-	let render_state = SceneRenderState {
-		frame_id: 0,
-		shader_grid,
-		shader_random,
-	};
 	
 	info!("Initializing scene...");
 	
-	let scene = Scene {
+	router.nodes.set_node_component(0, Box::new(Scene {
 		camera: freecam::Camera::new(),
 		meshes: vec![
 			geometry::geometry_test(),
@@ -355,27 +356,27 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			// geometry::geometry_cube(-512.0),
 		],
 		mesh_planequad: geometry::geometry_planequad(1024.0),
-	};
+	}))?;
+	
+	let shader_grid = render::materials::ShaderGrid::new(&res)?;
+	let shader_random = render::materials::ShaderRandom::new(&res)?;
+	router.nodes.set_node_component(0, Box::new(SceneRenderState {
+		frame_id: 0,
+		shader_grid,
+		shader_random,
+	}))?;
 	
 	// ------------------------------------------
 	
-	let mut router = router::Router::new();
-	router.nodes.set_node_component(0, Box::new(gfxroot))?;
-	router.nodes.set_node_component(0, Box::new(render_state))?;
-	router.nodes.set_node_component(0, Box::new(scene))?;
-	
+	// Create the client lens...
 	router.new_lens("client", &|_| {
 		Some(Box::new(ClientLens {
 			// nothing here yet
 		}))
 	});
 	
+	// Then put the router into a RefCell and (hopefully) never touch it again!
 	let router = Rc::new(RefCell::new(router));
-	
-	let gfxroot = router.borrow_mut().nodes
-		.get_mut_node_component_downcast::<GraphicsContextComponent>(0)?;
-	
-	
 	
 	// ------------------------------------------
 	info!("Initializing and starting gameloop...");
@@ -390,7 +391,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		let last_tps = gls.get_ticks_per_second();
 		
 		gls.next(|| {gfxroot.glfw.get_time()},
-			
 			|_now:f64| {
 				router.borrow_mut().fire_event_at_lens("client", &mut TickEvent {});
 			},
