@@ -1,6 +1,7 @@
 use super::rustc_hash::FxHashMap;
 use core::borrow::{Borrow, BorrowMut};
 use std::any::TypeId;
+use std::mem::transmute;
 
 /// Container for all components bound to nodes.
 pub struct Components {
@@ -55,7 +56,7 @@ impl super::node::Nodes {
 	}
 	
 	/// Borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_node_component(&self, node_id: usize, component_type: TypeId) -> Option<&Component> {
+	pub fn get_node_component(&self, node_id: usize, component_type: TypeId) -> Option<&'static Component> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_node_component(next_id, component_type),
@@ -63,14 +64,17 @@ impl super::node::Nodes {
 			},
 			true => {
 				return self.comps.comps.get(&node_id).unwrap().get(&component_type).map(|boxed| {
-					boxed.borrow()
+					unsafe {
+						// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
+						transmute::<&Component, &'static Component>(boxed.borrow())
+					}
 				});
 			}
 		};
 	}
 	
 	/// Mutably borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_mut_node_component(&mut self, node_id: usize, component_type: TypeId) -> Option<&mut Component> {
+	pub fn get_mut_node_component(&mut self, node_id: usize, component_type: TypeId) -> Option<&'static mut Component> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_mut_node_component(next_id, component_type),
@@ -78,14 +82,17 @@ impl super::node::Nodes {
 			},
 			true => {
 				return self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type).map(|boxed| {
-					boxed.borrow_mut()
+					unsafe {
+						// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
+						transmute::<&mut Component, &'static mut Component>(boxed.borrow_mut())
+					}
 				});
 			}
 		};
 	}
 	
 	/// Borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_node_component_downcast<C: Component>(&self, node_id: usize) -> Option<&C> {
+	pub fn get_node_component_downcast<C: Component>(&self, node_id: usize) -> Option<&'static C> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_node_component_downcast::<C>(next_id),
@@ -96,7 +103,10 @@ impl super::node::Nodes {
 				return self.comps.comps.get(&node_id).unwrap().get(&component_type_id).map(|boxed| {
 					let boxed = boxed.downcast_ref::<C>();
 					match boxed {
-						Some(boxed) => boxed.borrow(),
+						Some(boxed) => unsafe {
+							// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
+							transmute::<&C, &'static C>(boxed.borrow())
+						},
 						// TODO: Find a way to return None instead!
 						None => panic!("The found component is not of the type given as parameter.")
 					}
@@ -106,7 +116,7 @@ impl super::node::Nodes {
 	}
 	
 	/// Mutably borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_mut_node_component_downcast<C: Component>(&mut self, node_id: usize) -> Option<&mut C> {
+	pub fn get_mut_node_component_downcast<C: Component>(&mut self, node_id: usize) -> Option<&'static mut C> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_mut_node_component_downcast::<C>(next_id),
@@ -117,7 +127,10 @@ impl super::node::Nodes {
 				return self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type_id).map(|boxed| {
 					let boxed = boxed.downcast_mut::<C>();
 					match boxed {
-						Some(boxed) => boxed.borrow_mut(),
+						Some(boxed) => unsafe {
+							// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
+							transmute::<&mut C, &'static mut C>(boxed.borrow_mut())
+						},
 						// TODO: Find a way to return None instead!
 						None => panic!("The found component is not of the type given as parameter.")
 					}
