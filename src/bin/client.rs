@@ -156,15 +156,15 @@ impl router::lens::Handler for ClientLens {
 }
 
 struct GraphicsContextComponent {
+	glfw: glfw::Glfw,
 	window: glfw::Window,
 	events: Receiver<(f64, glfw::WindowEvent)>,
 }
 
 impl GraphicsContextComponent {
-	fn new(
-		glfw: &mut glfw::Glfw,
-		opts: &cmd_opts::CmdOptions
-	) -> GraphicsContextComponent{
+	fn new(opts: &cmd_opts::CmdOptions) -> Result<GraphicsContextComponent, glfw::InitError> {
+		let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
+		
 		glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
 		glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
 		
@@ -222,9 +222,9 @@ impl GraphicsContextComponent {
 		// ------------------------------------------
 		info!("Initialized window!");
 		
-		GraphicsContextComponent {
-			window, events
-		}
+		Ok(GraphicsContextComponent {
+			glfw, window, events
+		})
 	}
 }
 
@@ -266,17 +266,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	let res = resources::Resources::from_exe_path()?;
 	
-	// ------------------------------------------
-	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
-	let gfxroot = GraphicsContextComponent::new(&mut glfw, &opts);
-	
-	/*
-	unsafe {
-		let depth_bits = glfw::ffi::glfwGetWindowAttrib(window.window_ptr(), glfw::ffi::DEPTH_BITS);
-		let depth_bits = gl::GetFramebufferAttachmentParameteriv(gl::FRAMEBUFFER, gl::GL_DEPTH_ATTACHMENT);
-		debug!("Available depth bits: {}", depth_bits);
-	}
-	*/
+	let gfxroot = GraphicsContextComponent::new(&opts)?;
 	
 	// ------------------------------------------
 	
@@ -311,8 +301,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		],
 		mesh_planequad: geometry::geometry_planequad(1024.0),
 	};
-	
-	//let scene = Rc::new(RefCell::new(Option::Some(scene)));
 	
 	// ------------------------------------------
 	
@@ -352,7 +340,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		let last_fps = gls.get_frames_per_second();
 		let last_tps = gls.get_ticks_per_second();
 		
-		gls.next(|| {glfw.get_time()},
+		gls.next(|| {gfxroot.glfw.get_time()},
 			
 			|_now:f64| {
 				router.borrow_mut().fire_event_at_lens("client", &mut TickEvent {});
@@ -382,7 +370,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		);
 		
 		gfxroot.window.swap_buffers();
-		glfw.poll_events();
+		gfxroot.glfw.poll_events();
 	}
 	
 	Ok(())
