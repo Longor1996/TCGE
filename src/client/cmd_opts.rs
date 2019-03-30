@@ -3,6 +3,7 @@ extern crate clap;
 use self::clap::{Arg, App};
 
 pub struct CmdOptions {
+	pub path: String,
 	pub width: u32,
 	pub height: u32,
 	pub gl_debug: bool,
@@ -63,10 +64,18 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 			.help("Enables OpenGL debugging.")
 		)
 		
+		.arg(Arg::with_name("PATH")
+			.help("Where to navigate to when the client-lens is created.")
+			.index(1)
+			.default_value("/")
+		)
+		
 		// end of command line configuration
 		.get_matches();
 	
 	Ok(CmdOptions {
+		path: matches.value_of("PATH").unwrap_or("/").to_string(),
+		
 		width: matches.value_of("WIDTH")
 			.unwrap_or("1024").parse::<u32>()?
 		,

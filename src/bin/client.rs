@@ -95,6 +95,13 @@ impl router::lens::Handler for ClientLens {
 		context: &mut router::context::Context
 	) -> router::lens::State {
 		
+		event.downcast::<router::lens::MoveCompletionEvent>().map(|move_end| {
+			match move_end {
+				router::lens::MoveCompletionEvent::Finished => info!("Reached destination node."),
+				router::lens::MoveCompletionEvent::Aborted => error!("Failed to reach destination node."),
+			}
+		});
+		
 		event.downcast::<TickEvent>().map(|_tick| {
 			let s = context.get_mut_component_downcast::<scene::Scene>();
 			let g = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
@@ -189,7 +196,10 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	
 	// Create the client lens...
-	router.new_lens("client", &|_| {
+	router.new_lens("client", &|lens| {
+		info!("Initial route: {}", opts.path);
+		lens.state = router::lens::State::Moving(opts.path.clone(), 0);
+		
 		Some(Box::new(ClientLens {
 			// nothing here yet
 		}))

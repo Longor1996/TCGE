@@ -67,7 +67,7 @@ impl Router {
 		
 		for (lens_id, lens) in self.lenses.lenses.iter_mut().enumerate() {
 			
-			if lens.path.is_empty() {
+			if lens.path.is_empty() && lens.state != lens::State::Moving("".to_string(),0) {
 				// All lenses must be at least at root-level
 				lens.state = lens::State::Moving("/".to_string(), 0);
 			}
