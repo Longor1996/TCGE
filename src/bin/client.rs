@@ -179,7 +179,9 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	info!("Initializing scene...");
 	
-	router.nodes.set_node_component(0, Box::new(scene::Scene::new()))?;
+	let mut scene = scene::Scene::new();
+	scene.camera.active = gfxroot.window.get_cursor_mode() == glfw::CursorMode::Disabled;
+	router.nodes.set_node_component(0, Box::new(scene))?;
 	
 	let scene_render_state = scene::SceneRenderState::new(&res)?;
 	router.nodes.set_node_component(0, Box::new(scene_render_state))?;

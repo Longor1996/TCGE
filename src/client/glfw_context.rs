@@ -37,7 +37,7 @@ impl GlfwContextComponent {
 		window.make_current();
 		window.set_key_polling(true);
 		window.set_cursor_pos_polling(true);
-		window.set_cursor_mode(glfw::CursorMode::Disabled);
+		window.set_cursor_mode(glfw::CursorMode::Normal);
 		window.set_framebuffer_size_polling(true);
 		window.set_size_limits(
 			320, 225,
