@@ -21,9 +21,13 @@ impl Components {
 impl super::node::Nodes {
 	/// Set a component of a specific type for the given node.
 	pub fn set_node_component(&mut self, node_id: usize, component: Box<Component>) -> bool {
-		let component_type_id = mopa::Any::get_type_id(&component);
+		let component_type_id = component.get_type_id();
 		
-		trace!("Adding component [{}] to node #{}...", component.get_type_name(), node_id);
+		trace!("Adding component [{} #{}] to node #{}...",
+			component.get_type_name(),
+			unsafe {transmute::<TypeId, u64>(component_type_id)},
+			node_id
+		);
 		
 		// --- If the node has no components...
 		if ! self.comps.comps.contains_key(&node_id) {
