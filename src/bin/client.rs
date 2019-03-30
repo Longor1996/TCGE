@@ -168,7 +168,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	// ------------------------------------------
 	
-	let ascii_renderer = render::ascii_text::AsciiTextRenderer::load(&res)?;
+	let ascii_renderer = render::text::AsciiTextRenderer::load(&res)?;
 	let mut render_state_gui = GuiRenderState {
 		width: 0, height: 0,
 		ascii_renderer,
@@ -247,7 +247,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 
 struct GuiRenderState {
 	width: i32, height: i32,
-	ascii_renderer: render::ascii_text::AsciiTextRenderer,
+	ascii_renderer: render::text::AsciiTextRenderer,
 	frame_time: f64,
 	last_fps: f64,
 	last_tps: f64,
