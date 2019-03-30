@@ -85,70 +85,6 @@ fn print_error(e: &failure::Error) {
 	error!("{}\n", result);
 }
 
-fn new_window(
-	glfw: &mut glfw::Glfw,
-	opts: &cmd_opts::CmdOptions
-) -> (glfw::Window, Receiver<(f64, glfw::WindowEvent)>) {
-	
-	glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
-	glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-	
-	#[cfg(target_os = "macos")]
-		glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-	glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
-	glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
-	
-	// ------------------------------------------
-	let window_title = format!("Talecraft Client: {}", env!("VERSION"));
-	let (mut window, events) = glfw.create_window(
-		1024, 768, &window_title,
-		glfw::WindowMode::Windowed
-	).expect("Failed to create GLFW window.");
-	
-	window.make_current();
-	window.set_key_polling(true);
-	window.set_cursor_pos_polling(true);
-	window.set_cursor_mode(glfw::CursorMode::Disabled);
-	window.set_framebuffer_size_polling(true);
-	window.set_size_limits(
-		320, 225,
-		glfw::ffi::DONT_CARE as u32,
-		glfw::ffi::DONT_CARE as u32
-	);
-	
-	// Center the clients primary window in the middle of the primary monitor.
-	glfw.with_primary_monitor_mut(|_, primary| {
-		if let Some(monitor) = primary {
-			if let Some(vidmod) = monitor.get_video_mode() {
-				debug!("Centering window on monitor: {}", monitor.get_name());
-				let w_size = window.get_size();
-				window.set_pos(
-					(vidmod.width as i32/2) - (w_size.0/2),
-					(vidmod.height as i32/2) - (w_size.1/2)
-				);
-			}
-		}
-	});
-	
-	// ------------------------------------------
-	debug!("Loading OpenGL function-pointers...");
-	gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-	
-	// ------------------------------------------
-	// Only enable debugging if asked for...
-	if opts.gl_debug {
-		info!("OpenGL debugging is ENABLED.");
-		unsafe {
-			gl::Enable(gl::DEBUG_OUTPUT);
-			gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
-		}
-	}
-	
-	// ------------------------------------------
-	info!("Initialized window!");
-	return (window, events);
-}
-
 struct ClientLens {
 	// Nothing here yet.
 }
@@ -208,6 +144,74 @@ struct GraphicsContextComponent {
 	events: Receiver<(f64, glfw::WindowEvent)>,
 }
 
+impl GraphicsContextComponent {
+	fn new(
+		glfw: &mut glfw::Glfw,
+		opts: &cmd_opts::CmdOptions
+	) -> GraphicsContextComponent{
+		glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
+		glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+		
+		#[cfg(target_os = "macos")]
+			glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+		glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
+		glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
+		
+		// ------------------------------------------
+		let window_title = format!("Talecraft Client: {}", env!("VERSION"));
+		let (mut window, events) = glfw.create_window(
+			1024, 768, &window_title,
+			glfw::WindowMode::Windowed
+		).expect("Failed to create GLFW window.");
+		
+		window.make_current();
+		window.set_key_polling(true);
+		window.set_cursor_pos_polling(true);
+		window.set_cursor_mode(glfw::CursorMode::Disabled);
+		window.set_framebuffer_size_polling(true);
+		window.set_size_limits(
+			320, 225,
+			glfw::ffi::DONT_CARE as u32,
+			glfw::ffi::DONT_CARE as u32
+		);
+		
+		// Center the clients primary window in the middle of the primary monitor.
+		glfw.with_primary_monitor_mut(|_, primary| {
+			if let Some(monitor) = primary {
+				if let Some(vidmod) = monitor.get_video_mode() {
+					debug!("Centering window on monitor: {}", monitor.get_name());
+					let w_size = window.get_size();
+					window.set_pos(
+						(vidmod.width as i32/2) - (w_size.0/2),
+						(vidmod.height as i32/2) - (w_size.1/2)
+					);
+				}
+			}
+		});
+		
+		// ------------------------------------------
+		debug!("Loading OpenGL function-pointers...");
+		gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+		
+		// ------------------------------------------
+		// Only enable debugging if asked for...
+		if opts.gl_debug {
+			info!("OpenGL debugging is ENABLED.");
+			unsafe {
+				gl::Enable(gl::DEBUG_OUTPUT);
+				gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
+			}
+		}
+		
+		// ------------------------------------------
+		info!("Initialized window!");
+		
+		GraphicsContextComponent {
+			window, events
+		}
+	}
+}
+
 impl router::comp::Component for GraphicsContextComponent {
 	fn get_type_name(&self) -> &'static str {
 		"GraphicsContext"
@@ -248,11 +252,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	// ------------------------------------------
 	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
-	let (mut window, events) = new_window(&mut glfw, &opts);
-	
-	let gfxroot = GraphicsContextComponent {
-		window, events
-	};
+	let gfxroot = GraphicsContextComponent::new(&mut glfw, &opts);
 	
 	/*
 	unsafe {
