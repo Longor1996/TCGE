@@ -96,43 +96,59 @@ impl router::lens::Handler for ClientLens {
 		context: &mut router::context::Context
 	) -> router::lens::State {
 		
-		event.event.downcast_ref::<TickEvent>().map(|tick_event| {
+		event.event.downcast_ref::<TickEvent>().map(|_tick_event| {
 			//
 			let s = context.get_mut_component_downcast::<Scene>();
 			let g = context.get_mut_component_downcast::<GraphicsContextComponent>();
-			s.map(|scene| {
-				g.map(|gfx_root| {
-					scene.camera.update_movement(gfx_root.window.borrow());
-				});
-			});
 			
-			context.get_mut_component_downcast::<SceneRenderState>().map(|srs| {
-				srs.reset();
-			});
+			match s {
+				Ok(scene) => {
+					match g {
+						Ok(gfx_root) => {
+							scene.camera.update_movement(gfx_root.window.borrow());
+						},
+						Err(_) => ()
+					}
+				}
+				Err(_) => ()
+			}
+			
+			match context.get_mut_component_downcast::<SceneRenderState>() {
+				Ok(scene_render_state) => {
+					scene_render_state.reset();
+				},
+				Err(_) => ()
+			};
 		});
 		
 		event.event.downcast_ref::<DrawEvent>().map(|draw_event| {
 			let s = context.get_mut_component_downcast::<Scene>();
 			let sr = context.get_mut_component_downcast::<SceneRenderState>();
 			
-			if s.is_none() {
+			if s.is_err() {
 				panic!("This ain't supposed to happen!");
 			}
 			
-			s.map(|scene| {
-				sr.map(|scene_render_state| {
-					scene_render_state.begin();
-					render(
-						scene_render_state,
-						scene,
-						&scene.camera,
-						draw_event.window_size,
-						draw_event.now,
-						draw_event.interpolation
-					);
-					scene_render_state.end();
-				});
-			});
+			match s {
+				Ok(scene) => {
+					match sr {
+						Ok(scene_render_state) => {
+							scene_render_state.begin();
+							render(
+								scene_render_state,
+								scene,
+								&scene.camera,
+								draw_event.window_size,
+								draw_event.now,
+								draw_event.interpolation
+							);
+							scene_render_state.end();
+						},
+						Err(_) => ()
+					}
+				}
+				Err(_) => ()
+			}
 		});
 		
 		router::lens::State::Idle
@@ -301,9 +317,9 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	
 	let mut router = router::Router::new();
-	router.nodes.set_node_component(0, Box::new(gfxroot));
-	router.nodes.set_node_component(0, Box::new(render_state));
-	router.nodes.set_node_component(0, Box::new(scene));
+	router.nodes.set_node_component(0, Box::new(gfxroot))?;
+	router.nodes.set_node_component(0, Box::new(render_state))?;
+	router.nodes.set_node_component(0, Box::new(scene))?;
 	
 	router.new_lens("client", &|_| {
 		Some(Box::new(ClientLens {
@@ -314,8 +330,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let router = Rc::new(RefCell::new(router));
 	
 	let gfxroot = router.borrow_mut().nodes
-		.get_mut_node_component_downcast::<GraphicsContextComponent>(0)
-		.expect("Failed to get back the reference to the graphics context.");
+		.get_mut_node_component_downcast::<GraphicsContextComponent>(0)?;
 	
 	
 	
@@ -397,11 +412,12 @@ fn process_events(
 					info!("Disabled mouse.");
 				}
 				
-				router.nodes.get_mut_node_component_downcast::<Scene>(0)
-					.map(|mut_scene| &mut mut_scene.camera)
-					.map( |mut_camera| {
-						mut_camera.active = window.get_cursor_mode() == glfw::CursorMode::Disabled;
-					});
+				match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
+					Ok(scene) => {
+						scene.camera.active = window.get_cursor_mode() == glfw::CursorMode::Disabled
+					},
+					Err(_) => ()
+				}
 			},
 			
 			glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
@@ -411,14 +427,16 @@ fn process_events(
 			
 			glfw::WindowEvent::CursorPos(x, y) => {
 				cursor.update(x, y);
-				router.nodes.get_mut_node_component_downcast::<Scene>(0)
-					.map(|mut_scene| &mut mut_scene.camera)
-					.map( |mut_camera| {
-						mut_camera.update_rotation(
+				
+				match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
+					Ok(scene) => {
+						scene.camera.update_rotation(
 							cursor.mov_x,
 							cursor.mov_y
 						);
-					});
+					},
+					Err(_) => ()
+				}
 			},
 			_ => ()
 		}

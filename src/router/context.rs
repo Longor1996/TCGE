@@ -53,31 +53,31 @@ impl<'a> Context<'a> {
 		self.lens.path_str.as_str()
 	}
 	
-	pub fn get_component(&self, component_type_id: TypeId) -> Option<&'a comp::Component> {
+	pub fn get_component(&self, component_type_id: TypeId) -> Result<&'a comp::Component, comp::ComponentAccessError> {
 		match self.get_lensed_node_id() {
 			Some(node_id) => self.nodes.get_node_component(node_id, component_type_id),
-			None => None
+			None => Err(comp::ComponentAccessError::NodeNotFound{node_id:0})
 		}
 	}
 	
-	pub fn get_mut_component(&mut self, component_type_id: TypeId) -> Option<&'a mut comp::Component> {
+	pub fn get_mut_component(&mut self, component_type_id: TypeId) -> Result<&'a mut comp::Component, comp::ComponentAccessError> {
 		match self.get_lensed_node_id() {
 			Some(node_id) => self.nodes.get_mut_node_component(node_id, component_type_id),
-			None => None
+			None => Err(comp::ComponentAccessError::NodeNotFound{node_id:0})
 		}
 	}
 	
-	pub fn get_component_downcast<C: comp::Component>(&self) -> Option<&'a C> {
+	pub fn get_component_downcast<C: comp::Component>(&self) -> Result<&'a C, comp::ComponentAccessError> {
 		match self.get_lensed_node_id() {
 			Some(node_id) => self.nodes.get_node_component_downcast::<C>(node_id),
-			None => None
+			None => Err(comp::ComponentAccessError::NodeNotFound{node_id:0})
 		}
 	}
 	
-	pub fn get_mut_component_downcast<C: comp::Component>(&mut self) -> Option<&'a mut C> {
+	pub fn get_mut_component_downcast<C: comp::Component>(&mut self) -> Result<&'a mut C, comp::ComponentAccessError> {
 		match self.get_lensed_node_id() {
 			Some(node_id) => self.nodes.get_mut_node_component_downcast::<C>(node_id),
-			None => None
+			None => Err(comp::ComponentAccessError::NodeNotFound{node_id:0})
 		}
 	}
 	

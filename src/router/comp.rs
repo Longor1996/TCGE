@@ -18,10 +18,23 @@ impl Components {
 	}
 }
 
+#[derive(Debug, Fail)]
+pub enum ComponentAccessError {
+	#[fail(display = "Could not find node #{}", node_id)]
+	NodeNotFound {node_id: usize },
+	
+	#[fail(display = "Failed to load resource")]
+	CompNotFound,
+}
+
 impl super::node::Nodes {
 	/// Set a component of a specific type for the given node.
-	pub fn set_node_component(&mut self, node_id: usize, component: Box<Component>) -> bool {
+	pub fn set_node_component(&mut self, node_id: usize, component: Box<Component>) -> Result<(), ComponentAccessError> {
 		let component_type_id = component.get_type_id();
+		
+		if ! self.nodes.contains_key(&node_id) {
+			return Err(ComponentAccessError::NodeNotFound{node_id});
+		}
 		
 		trace!("Adding component [{} #{}] to node #{}...",
 			component.get_type_name(),
@@ -42,7 +55,7 @@ impl super::node::Nodes {
 				.get_mut(&component_type_id)
 				.unwrap()
 			).on_attachment(node_id);
-			return true;
+			return Ok(());
 		}
 		
 		let components = self.comps.comps.get_mut(&node_id).unwrap();
@@ -56,51 +69,57 @@ impl super::node::Nodes {
 			.unwrap()
 		).on_attachment(node_id);
 		
-		return true;
+		return Ok(());
 	}
 	
 	/// Borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_node_component(&self, node_id: usize, component_type: TypeId) -> Option<&'static Component> {
+	pub fn get_node_component(&self, node_id: usize, component_type: TypeId) -> Result<&'static Component, ComponentAccessError> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_node_component(next_id, component_type),
-				None => None
+				None => Err(ComponentAccessError::CompNotFound)
 			},
 			true => {
-				return self.comps.comps.get(&node_id).unwrap().get(&component_type).map(|boxed| {
+				return match self.comps.comps.get(&node_id).unwrap().get(&component_type).map(|boxed| {
 					unsafe {
 						// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
 						transmute::<&Component, &'static Component>(boxed.borrow())
 					}
-				});
+				}) {
+					Some(x) => Ok(x),
+					None => Err(ComponentAccessError::CompNotFound)
+				};
 			}
 		};
 	}
 	
 	/// Mutably borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_mut_node_component(&mut self, node_id: usize, component_type: TypeId) -> Option<&'static mut Component> {
+	pub fn get_mut_node_component(&mut self, node_id: usize, component_type: TypeId) -> Result<&'static mut Component, ComponentAccessError> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_mut_node_component(next_id, component_type),
-				None => None
+				None => Err(ComponentAccessError::CompNotFound)
 			},
 			true => {
-				return self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type).map(|boxed| {
+				return match self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type).map(|boxed| {
 					unsafe {
 						// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
 						transmute::<&mut Component, &'static mut Component>(boxed.borrow_mut())
 					}
-				});
+				}) {
+					Some(x) => Ok(x),
+					None => Err(ComponentAccessError::CompNotFound)
+				};
 			}
 		};
 	}
 	
 	/// Borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_node_component_downcast<C: Component>(&self, node_id: usize) -> Option<&'static C> {
+	pub fn get_node_component_downcast<C: Component>(&self, node_id: usize) -> Result<&'static C, ComponentAccessError> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_node_component_downcast::<C>(next_id),
-				None => None
+				None => Err(ComponentAccessError::CompNotFound)
 			},
 			true => {
 				let component_type_id = TypeId::of::<C>();
@@ -114,19 +133,22 @@ impl super::node::Nodes {
 						None => None
 					}
 				}) {
-					Some(x) => x,
-					None => None
+					Some(x) => match x {
+						Some(x) => Ok(x),
+						None => Err(ComponentAccessError::CompNotFound)
+					},
+					None => Err(ComponentAccessError::CompNotFound)
 				};
 			}
 		};
 	}
 	
 	/// Mutably borrow a component of the given type from the given node, or any of its parents.
-	pub fn get_mut_node_component_downcast<C: Component>(&mut self, node_id: usize) -> Option<&'static mut C> {
+	pub fn get_mut_node_component_downcast<C: Component>(&mut self, node_id: usize) -> Result<&'static mut C, ComponentAccessError> {
 		return match {self.comps.comps.contains_key(&node_id)} {
 			false => match {self.get_node_parent_id(node_id)} {
 				Some(next_id) => return self.get_mut_node_component_downcast::<C>(next_id),
-				None => None
+				None => Err(ComponentAccessError::CompNotFound)
 			},
 			true => {
 				let component_type_id = TypeId::of::<C>();
@@ -140,8 +162,11 @@ impl super::node::Nodes {
 						None => None
 					}
 				}) {
-					Some(x) => x,
-					None => None
+					Some(x) => match x {
+						Some(x) => Ok(x),
+						None => Err(ComponentAccessError::CompNotFound)
+					},
+					None => Err(ComponentAccessError::CompNotFound)
 				};
 			}
 		};
