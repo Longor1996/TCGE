@@ -95,8 +95,7 @@ impl router::lens::Handler for ClientLens {
 		context: &mut router::context::Context
 	) -> router::lens::State {
 		
-		event.event.downcast_ref::<TickEvent>().map(|_tick_event| {
-			//
+		event.downcast::<TickEvent>().map(|_tick| {
 			let s = context.get_mut_component_downcast::<scene::Scene>();
 			let g = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
 			
@@ -120,7 +119,7 @@ impl router::lens::Handler for ClientLens {
 			};
 		});
 		
-		event.event.downcast_ref::<DrawEvent>().map(|draw_event| {
+		event.downcast::<DrawEvent>().map(|draw| {
 			let s = context.get_mut_component_downcast::<scene::Scene>();
 			let sr = context.get_mut_component_downcast::<scene::SceneRenderState>();
 			
@@ -136,9 +135,9 @@ impl router::lens::Handler for ClientLens {
 							scene::render(
 								scene_render_state,
 								scene,
-								draw_event.window_size,
-								draw_event.now,
-								draw_event.interpolation
+								draw.window_size,
+								draw.now,
+								draw.interpolation
 							);
 							scene_render_state.end();
 						},

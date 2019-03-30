@@ -47,6 +47,16 @@ pub struct Wrapper<'a> {
 }
 
 impl<'a> Wrapper<'a> {
+	/// Downcast the wrapped event into the given type, if possible.
+	pub fn downcast<E: Event>(&mut self) -> Option<&E> {
+		self.event.downcast_ref()
+	}
+	
+	/// Downcast the wrapped event into the given type, if possible.
+	pub fn downcast_mut<E: Event>(&mut self) -> Option<&mut E> {
+		self.event.downcast_mut()
+	}
+	
 	/// Prevents the event from being evaluated by its destination.
 	pub fn prevent_default(&mut self) {
 		self.can_default = false;
