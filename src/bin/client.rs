@@ -100,7 +100,7 @@ impl router::lens::Handler for ClientLens {
 		event.event.downcast_ref::<TickEvent>().map(|_tick_event| {
 			//
 			let s = context.get_mut_component_downcast::<Scene>();
-			let g = context.get_mut_component_downcast::<GraphicsContextComponent>();
+			let g = context.get_mut_component_downcast::<GlfwContextComponent>();
 			
 			match s {
 				Ok(scene) => {
@@ -156,15 +156,15 @@ impl router::lens::Handler for ClientLens {
 	}
 }
 
-struct GraphicsContextComponent {
+struct GlfwContextComponent {
 	glfw: glfw::Glfw,
 	window: glfw::Window,
 	events: Receiver<(f64, glfw::WindowEvent)>,
 	cursor: Cursor,
 }
 
-impl GraphicsContextComponent {
-	fn new(opts: &cmd_opts::CmdOptions) -> Result<GraphicsContextComponent, glfw::InitError> {
+impl GlfwContextComponent {
+	fn new(opts: &cmd_opts::CmdOptions) -> Result<GlfwContextComponent, glfw::InitError> {
 		let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
 		
 		glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
@@ -226,7 +226,7 @@ impl GraphicsContextComponent {
 		
 		let cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
 		
-		Ok(GraphicsContextComponent {
+		Ok(GlfwContextComponent {
 			glfw,
 			window,
 			events,
@@ -285,7 +285,7 @@ impl GraphicsContextComponent {
 	}
 }
 
-impl router::comp::Component for GraphicsContextComponent {
+impl router::comp::Component for GlfwContextComponent {
 	fn get_type_name(&self) -> &'static str {
 		"GraphicsContext"
 	}
@@ -325,13 +325,13 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let res = resources::Resources::from_exe_path()?;
 	
 	// ------------------------------------------
-	let gfxroot = GraphicsContextComponent::new(&opts)?;
+	let gfxroot = GlfwContextComponent::new(&opts)?;
 	
 	// Give the router ownership of the Graphics-Context... then sneakily grab it back!
 	// This is the **only** place in the code where it's okay to do this.
 	router.nodes.set_node_component(0, Box::new(gfxroot))?;
 	let gfxroot = router.nodes
-		.get_mut_node_component_downcast::<GraphicsContextComponent>(0)?;
+		.get_mut_node_component_downcast::<GlfwContextComponent>(0)?;
 	
 	// ------------------------------------------
 	
