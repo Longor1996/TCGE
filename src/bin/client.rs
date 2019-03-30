@@ -1,6 +1,7 @@
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::sync::mpsc::Receiver;
+use core::borrow::Borrow;
 
 #[macro_use]
 extern crate log;
@@ -17,6 +18,8 @@ extern crate image;
 extern crate gl;
 
 extern crate tcge;
+extern crate core;
+
 use tcge::resources;
 use tcge::router;
 use tcge::gameloop;
@@ -146,6 +149,81 @@ fn new_window(
 	return (window, events);
 }
 
+struct ClientLens {
+	// Nothing here yet.
+}
+
+impl router::lens::Handler for ClientLens {
+	fn on_event<'a>(
+		&mut self,
+		event: &mut router::event::Wrapper,
+		context: &mut router::context::Context
+	) -> router::lens::State {
+		
+		event.event.downcast_ref::<TickEvent>().map(|tick_event| {
+			//
+			let s = context.get_mut_component_downcast::<Scene>();
+			let g = context.get_mut_component_downcast::<GraphicsContextComponent>();
+			s.map(|scene| {
+				g.map(|gfx_root| {
+					scene.camera.update_movement(gfx_root.window.borrow());
+				});
+			});
+			
+			context.get_mut_component_downcast::<SceneRenderState>().map(|srs| {
+				srs.reset();
+			});
+		});
+		
+		event.event.downcast_ref::<DrawEvent>().map(|draw_event| {
+			let s = context.get_mut_component_downcast::<Scene>();
+			let sr = context.get_mut_component_downcast::<SceneRenderState>();
+			
+			if s.is_none() {
+				panic!("This ain't supposed to happen!");
+			}
+			
+			s.map(|scene| {
+				sr.map(|scene_render_state| {
+					scene_render_state.begin();
+					render(
+						scene_render_state,
+						scene,
+						&scene.camera,
+						draw_event.window_size,
+						draw_event.now,
+						draw_event.interpolation
+					);
+					scene_render_state.end();
+				});
+			});
+		});
+		
+		router::lens::State::Idle
+	}
+}
+
+struct GraphicsContextComponent {
+	window: glfw::Window,
+	events: Receiver<(f64, glfw::WindowEvent)>,
+}
+
+impl router::comp::Component for GraphicsContextComponent {
+	fn get_type_name(&self) -> &'static str {
+		"GraphicsContext"
+	}
+	
+	fn on_attachment(&mut self, _node_id: usize) {}
+	fn on_detachment(&mut self, _node_id: usize) {}
+	
+	fn on_load(&mut self) {}
+	fn on_unload(&mut self) {}
+	
+	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
+		//
+	}
+}
+
 extern "system" fn on_gl_error(
 	source: gl::types::GLenum,
 	etype: gl::types::GLenum,
@@ -172,6 +250,10 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
 	let (mut window, events) = new_window(&mut glfw, &opts);
 	
+	let gfxroot = GraphicsContextComponent {
+		window, events
+	};
+	
 	/*
 	unsafe {
 		let depth_bits = glfw::ffi::glfwGetWindowAttrib(window.window_ptr(), glfw::ffi::DEPTH_BITS);
@@ -181,12 +263,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	*/
 	
 	// ------------------------------------------
-	let shader_grid = render::materials::ShaderGrid::new(&res)?;
-	let shader_random = render::materials::ShaderRandom::new(&res)?;
 	
 	let ascii_renderer = render::ascii_text::AsciiTextRenderer::load(&res)?;
-	
-	// ------------------------------------------
 	let mut render_state_gui = GuiRenderState {
 		width: 0, height: 0,
 		ascii_renderer,
@@ -196,7 +274,9 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	};
 	
 	// ------------------------------------------
-	let mut render_state = RenderState {
+	let shader_grid = render::materials::ShaderGrid::new(&res)?;
+	let shader_random = render::materials::ShaderRandom::new(&res)?;
+	let render_state = SceneRenderState {
 		frame_id: 0,
 		shader_grid,
 		shader_random,
@@ -206,7 +286,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	info!("Initializing scene...");
 	
-	let scene = Rc::new(RefCell::new(Option::Some(Scene {
+	let scene = Scene {
 		camera: freecam::Camera::new(),
 		meshes: vec![
 			geometry::geometry_test(),
@@ -214,22 +294,45 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			// geometry::geometry_cube(-512.0),
 		],
 		mesh_planequad: geometry::geometry_planequad(1024.0),
-	})));
+	};
+	
+	//let scene = Rc::new(RefCell::new(Option::Some(scene)));
+	
+	// ------------------------------------------
+	
+	let mut router = router::Router::new();
+	router.nodes.set_node_component(0, Box::new(gfxroot));
+	router.nodes.set_node_component(0, Box::new(render_state));
+	router.nodes.set_node_component(0, Box::new(scene));
+	
+	router.new_lens("client", &|_| {
+		Some(Box::new(ClientLens {
+			// nothing here yet
+		}))
+	});
+	
+	let router = Rc::new(RefCell::new(router));
+	
+	let gfxroot = router.borrow_mut().nodes
+		.get_mut_node_component_downcast::<GraphicsContextComponent>(0)
+		.expect("Failed to get back the reference to the graphics context.");
+	
+	
 	
 	// ------------------------------------------
 	info!("Initializing and starting gameloop...");
 	let mut gls = gameloop::GameloopState::new(30, true);
 	
-	while !window.should_close() {
+	
+	while !router.borrow_mut().update() && !gfxroot.window.should_close() {
 		process_events(
-			&mut window,
-			&events,
-			&mut cursor,
-			&mut *scene.borrow_mut()
+			&mut router.borrow_mut(),
+			&mut gfxroot.window,
+			&gfxroot.events,
+			&mut cursor
 		);
 		
-		let window_size = window.get_framebuffer_size();
-		let mut reset_render_state = false;
+		let window_size = gfxroot.window.get_framebuffer_size();
 		let frame_time  = gls.get_frame_time();
 		let last_fps = gls.get_frames_per_second();
 		let last_tps = gls.get_ticks_per_second();
@@ -237,11 +340,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		gls.next(|| {glfw.get_time()},
 			
 			|_now:f64| {
-				scene.borrow_mut().as_mut().map(|mut_scene| {
-					mut_scene.camera.update_movement(&window);
-				});
-				
-				reset_render_state = true;
+				router.borrow_mut().fire_event_at_lens("client", &mut TickEvent {});
 			},
 			
 			|now: f64, interpolation: f32| {
@@ -252,20 +351,12 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 					);
 				}
 				
-				(&mut render_state).begin();
-				scene.borrow().as_ref().map(|scene| {
-					render(
-						&render_state,
-						&scene,
-						&scene.camera,
-						window_size,
-						now,
-						interpolation
-					);
-				});
-				(&mut render_state).end();
+				let mut draw_event = DrawEvent {
+					window_size, now, interpolation
+				};
+				router.borrow_mut().fire_event_at_lens("client", &mut draw_event);
 				
-				let (w, h) = window.get_framebuffer_size();
+				let (w, h) = gfxroot.window.get_framebuffer_size();
 				render_state_gui.width = w;
 				render_state_gui.height = h;
 				render_state_gui.frame_time = frame_time;
@@ -275,11 +366,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			}
 		);
 		
-		if reset_render_state {
-			(&mut render_state).reset();
-		}
-		
-		window.swap_buffers();
+		gfxroot.window.swap_buffers();
 		glfw.poll_events();
 	}
 	
@@ -287,11 +374,13 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 }
 
 fn process_events(
+	router: &mut RefMut<router::Router>,
 	window: &mut glfw::Window,
 	events: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
 	cursor: &mut Cursor,
-	opt_scene: &mut Option<Scene>
 ) {
+	
+	
 	for(_, event) in glfw::flush_messages(events) {
 		match event {
 			glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -308,7 +397,7 @@ fn process_events(
 					info!("Disabled mouse.");
 				}
 				
-				opt_scene.as_mut()
+				router.nodes.get_mut_node_component_downcast::<Scene>(0)
 					.map(|mut_scene| &mut mut_scene.camera)
 					.map( |mut_camera| {
 						mut_camera.active = window.get_cursor_mode() == glfw::CursorMode::Disabled;
@@ -322,7 +411,7 @@ fn process_events(
 			
 			glfw::WindowEvent::CursorPos(x, y) => {
 				cursor.update(x, y);
-				opt_scene.as_mut()
+				router.nodes.get_mut_node_component_downcast::<Scene>(0)
 					.map(|mut_scene| &mut mut_scene.camera)
 					.map( |mut_camera| {
 						mut_camera.update_rotation(
@@ -342,6 +431,22 @@ struct Scene {
 	mesh_planequad: geometry::SimpleVao,
 }
 
+impl router::comp::Component for Scene {
+	fn get_type_name(&self) -> &'static str {
+		"Scene"
+	}
+	
+	fn on_attachment(&mut self, _node_id: usize) {}
+	fn on_detachment(&mut self, _node_id: usize) {}
+	
+	fn on_load(&mut self) {}
+	fn on_unload(&mut self) {}
+	
+	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
+		//
+	}
+}
+
 struct Cursor {
 	pos_x: f32,
 	pos_y: f32,
@@ -358,13 +463,13 @@ impl Cursor {
 	}
 }
 
-struct RenderState {
+struct SceneRenderState {
 	frame_id: i64,
 	shader_grid: render::materials::ShaderGrid,
 	shader_random: render::materials::ShaderRandom,
 }
 
-impl RenderState {
+impl SceneRenderState {
 	fn begin(&mut self) {
 		self.frame_id = self.frame_id + 1;
 	}
@@ -375,7 +480,23 @@ impl RenderState {
 	}
 }
 
-fn render(render_state: &RenderState, scene: &Scene, camera: &freecam::Camera, size: (i32, i32), now: f64, _interpolation:f32) {
+impl router::comp::Component for SceneRenderState {
+	fn get_type_name(&self) -> &'static str {
+		"SceneRenderState"
+	}
+	
+	fn on_attachment(&mut self, _node_id: usize) {}
+	fn on_detachment(&mut self, _node_id: usize) {}
+	
+	fn on_load(&mut self) {}
+	fn on_unload(&mut self) {}
+	
+	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
+		//
+	}
+}
+
+fn render(render_state: &SceneRenderState, scene: &Scene, camera: &freecam::Camera, size: (i32, i32), now: f64, _interpolation:f32) {
 	render::utility::gl_push_debug("Draw Scene");
 	
 	unsafe {
@@ -452,4 +573,18 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	);
 	
 	render::utility::gl_pop_debug();
+}
+
+struct TickEvent {}
+impl router::event::Event for TickEvent {
+	fn is_passive(&self) -> bool {false}
+}
+
+struct DrawEvent {
+	window_size: (i32, i32),
+	now: f64,
+	interpolation: f32,
+}
+impl router::event::Event for DrawEvent {
+	fn is_passive(&self) -> bool {false}
 }
