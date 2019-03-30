@@ -138,13 +138,10 @@ impl AsciiTextRenderer {
 	
 	pub fn draw_text(&mut self, text: String, font_size: f32, x: f32, y: f32) {
 		
-		let position = cgmath::Vector3::<f32> {x, y, z: 0.0};
-		let transform = self.transform
-			* cgmath::Matrix4::from_translation(position);
 		let color = cgmath::Vector4::<f32> {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
 		
 		self.material.shader.set_used();
-		self.material.shader.uniform_matrix4(self.material.uniform_matrix, transform);
+		self.material.shader.uniform_matrix4(self.material.uniform_matrix, self.transform);
 		self.material.shader.uniform_vector4(self.material.uniform_color, color);
 		self.material.shader.uniform_sampler(self.material.uniform_sdfmap, 0);
 		
@@ -153,9 +150,17 @@ impl AsciiTextRenderer {
 		}
 		
 		self.buffer.clear();
+		let xstart = x;
 		let mut xpos = x;
-		let mut ypos = x;
+		let mut ypos = y;
+		
 		for char in text.chars() {
+			if char == '\n' {
+				xpos = xstart;
+				ypos += font_size;
+				continue;
+			}
+			
 			self.draw_char(
 				&mut xpos,
 				&mut ypos,
@@ -225,7 +230,7 @@ impl AsciiTextRenderer {
 		&self.buffer.append(&mut temp);
 		
 		// increase x position
-		*x += character.xadvance /self.scale*font_size;
+		*x += character.xadvance / self.scale * font_size;
 	}
 	
 }
