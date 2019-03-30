@@ -1,7 +1,5 @@
 use std::rc::Rc;
-use std::cell::{RefCell, RefMut};
-use std::sync::mpsc::Receiver;
-use std::ops::DerefMut;
+use std::cell::{RefCell};
 use core::borrow::Borrow;
 
 #[macro_use]
@@ -14,7 +12,7 @@ use failure::Fail;
 
 extern crate time;
 extern crate glfw;
-use glfw::{Context, Key, Action};
+use glfw::{Context};
 extern crate image;
 extern crate gl;
 
@@ -25,9 +23,9 @@ use tcge::resources;
 use tcge::router;
 use tcge::gameloop;
 use tcge::client::cmd_opts;
+use tcge::client::glfw_context;
+use tcge::client::scene;
 use tcge::client::render;
-use tcge::client::geometry;
-use tcge::client::freecam;
 
 fn main() {
 	let options = match cmd_opts::parse() {
@@ -99,8 +97,8 @@ impl router::lens::Handler for ClientLens {
 		
 		event.event.downcast_ref::<TickEvent>().map(|_tick_event| {
 			//
-			let s = context.get_mut_component_downcast::<Scene>();
-			let g = context.get_mut_component_downcast::<GlfwContextComponent>();
+			let s = context.get_mut_component_downcast::<scene::Scene>();
+			let g = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
 			
 			match s {
 				Ok(scene) => {
@@ -114,7 +112,7 @@ impl router::lens::Handler for ClientLens {
 				Err(_) => ()
 			}
 			
-			match context.get_mut_component_downcast::<SceneRenderState>() {
+			match context.get_mut_component_downcast::<scene::SceneRenderState>() {
 				Ok(scene_render_state) => {
 					scene_render_state.reset();
 				},
@@ -123,8 +121,8 @@ impl router::lens::Handler for ClientLens {
 		});
 		
 		event.event.downcast_ref::<DrawEvent>().map(|draw_event| {
-			let s = context.get_mut_component_downcast::<Scene>();
-			let sr = context.get_mut_component_downcast::<SceneRenderState>();
+			let s = context.get_mut_component_downcast::<scene::Scene>();
+			let sr = context.get_mut_component_downcast::<scene::SceneRenderState>();
 			
 			if s.is_err() {
 				panic!("This ain't supposed to happen!");
@@ -135,10 +133,9 @@ impl router::lens::Handler for ClientLens {
 					match sr {
 						Ok(scene_render_state) => {
 							scene_render_state.begin();
-							render(
+							scene::render(
 								scene_render_state,
 								scene,
-								&scene.camera,
 								draw_event.window_size,
 								draw_event.now,
 								draw_event.interpolation
@@ -156,182 +153,19 @@ impl router::lens::Handler for ClientLens {
 	}
 }
 
-struct GlfwContextComponent {
-	glfw: glfw::Glfw,
-	window: glfw::Window,
-	events: Receiver<(f64, glfw::WindowEvent)>,
-	cursor: Cursor,
-}
-
-impl GlfwContextComponent {
-	fn new(opts: &cmd_opts::CmdOptions) -> Result<GlfwContextComponent, glfw::InitError> {
-		let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS)?;
-		
-		glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
-		glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-		
-		#[cfg(target_os = "macos")]
-			glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-		glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
-		glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
-		
-		// ------------------------------------------
-		let window_title = format!("Talecraft Client: {}", env!("VERSION"));
-		let (mut window, events) = glfw.create_window(
-			1024, 768, &window_title,
-			glfw::WindowMode::Windowed
-		).expect("Failed to create GLFW window.");
-		
-		window.make_current();
-		window.set_key_polling(true);
-		window.set_cursor_pos_polling(true);
-		window.set_cursor_mode(glfw::CursorMode::Disabled);
-		window.set_framebuffer_size_polling(true);
-		window.set_size_limits(
-			320, 225,
-			glfw::ffi::DONT_CARE as u32,
-			glfw::ffi::DONT_CARE as u32
-		);
-		
-		// Center the clients primary window in the middle of the primary monitor.
-		glfw.with_primary_monitor_mut(|_, primary| {
-			if let Some(monitor) = primary {
-				if let Some(vidmod) = monitor.get_video_mode() {
-					debug!("Centering window on monitor: {}", monitor.get_name());
-					let w_size = window.get_size();
-					window.set_pos(
-						(vidmod.width as i32/2) - (w_size.0/2),
-						(vidmod.height as i32/2) - (w_size.1/2)
-					);
-				}
-			}
-		});
-		
-		// ------------------------------------------
-		debug!("Loading OpenGL function-pointers...");
-		gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-		
-		// ------------------------------------------
-		// Only enable debugging if asked for...
-		if opts.gl_debug {
-			info!("OpenGL debugging is ENABLED.");
-			unsafe {
-				gl::Enable(gl::DEBUG_OUTPUT);
-				gl::DebugMessageCallback(on_gl_error, 0 as *const std::ffi::c_void);
-			}
-		}
-		
-		// ------------------------------------------
-		info!("Initialized window!");
-		
-		let cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
-		
-		Ok(GlfwContextComponent {
-			glfw,
-			window,
-			events,
-			cursor
-		})
-	}
-	
-	fn process_events(&mut self, router: &mut RefMut<router::Router>) {
-		let router = router.deref_mut();
-		
-		for(_, event) in glfw::flush_messages(&mut self.events) {
-			match event {
-				glfw::WindowEvent::FramebufferSize(width, height) => {
-					trace!("Resizing viewport to {}x{}", width, height);
-					unsafe {gl::Viewport(0, 0, width, height)}
-				},
-				
-				glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
-					if self.window.get_cursor_mode() == glfw::CursorMode::Disabled {
-						self.window.set_cursor_mode(glfw::CursorMode::Normal);
-						info!("Enabled mouse.");
-					} else {
-						self.window.set_cursor_mode(glfw::CursorMode::Disabled);
-						info!("Disabled mouse.");
-					}
-					
-					match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
-						Ok(scene) => {
-							scene.camera.active = self.window.get_cursor_mode() == glfw::CursorMode::Disabled
-						},
-						Err(_) => ()
-					}
-				},
-				
-				glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-					info!("User pressed ESC, shutting down...");
-					self.window.set_should_close(true)
-				},
-				
-				glfw::WindowEvent::CursorPos(x, y) => {
-					self.cursor.update(x, y);
-					
-					match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
-						Ok(scene) => {
-							scene.camera.update_rotation(
-								self.cursor.mov_x,
-								self.cursor.mov_y
-							);
-						},
-						Err(_) => ()
-					}
-				},
-				_ => ()
-			}
-		}
-	}
-}
-
-impl router::comp::Component for GlfwContextComponent {
-	fn get_type_name(&self) -> &'static str {
-		"GraphicsContext"
-	}
-	
-	fn on_attachment(&mut self, _node_id: usize) {}
-	fn on_detachment(&mut self, _node_id: usize) {}
-	
-	fn on_load(&mut self) {}
-	fn on_unload(&mut self) {}
-	
-	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
-		//
-	}
-}
-
-extern "system" fn on_gl_error(
-	source: gl::types::GLenum,
-	etype: gl::types::GLenum,
-	id: gl::types::GLuint,
-	severity: gl::types::GLenum,
-	_length: gl::types::GLsizei,
-	message: *const gl::types::GLchar,
-	_userval: *mut std::ffi::c_void,
-) {
-	if severity != gl::DEBUG_SEVERITY_NOTIFICATION {
-		unsafe {
-			let msg = std::ffi::CStr::from_ptr(message)
-				.to_str().expect("Could not convert GL-Error to &str.");
-			error!("GL CALLBACK [{}, #{}, @{}, !{}]: {}", etype, id, source, severity, msg);
-		}
-	}
-}
-
 fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	let mut router = router::Router::new();
 	let res = resources::Resources::from_exe_path()?;
 	
 	// ------------------------------------------
-	let gfxroot = GlfwContextComponent::new(&opts)?;
+	let gfxroot = glfw_context::GlfwContextComponent::new(&opts)?;
 	
 	// Give the router ownership of the Graphics-Context... then sneakily grab it back!
 	// This is the **only** place in the code where it's okay to do this.
 	router.nodes.set_node_component(0, Box::new(gfxroot))?;
 	let gfxroot = router.nodes
-		.get_mut_node_component_downcast::<GlfwContextComponent>(0)?;
+		.get_mut_node_component_downcast::<glfw_context::GlfwContextComponent>(0)?;
 	
 	// ------------------------------------------
 	
@@ -348,23 +182,10 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	info!("Initializing scene...");
 	
-	router.nodes.set_node_component(0, Box::new(Scene {
-		camera: freecam::Camera::new(),
-		meshes: vec![
-			geometry::geometry_test(),
-			geometry::geometry_cube(1.0),
-			// geometry::geometry_cube(-512.0),
-		],
-		mesh_planequad: geometry::geometry_planequad(1024.0),
-	}))?;
+	router.nodes.set_node_component(0, Box::new(scene::Scene::new()))?;
 	
-	let shader_grid = render::materials::ShaderGrid::new(&res)?;
-	let shader_random = render::materials::ShaderRandom::new(&res)?;
-	router.nodes.set_node_component(0, Box::new(SceneRenderState {
-		frame_id: 0,
-		shader_grid,
-		shader_random,
-	}))?;
+	let scene_render_state = scene::SceneRenderState::new(&res)?;
+	router.nodes.set_node_component(0, Box::new(scene_render_state))?;
 	
 	// ------------------------------------------
 	
@@ -423,118 +244,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	}
 	
 	Ok(())
-}
-
-struct Scene {
-	camera: freecam::Camera,
-	meshes: Vec<geometry::SimpleVao>,
-	mesh_planequad: geometry::SimpleVao,
-}
-
-impl router::comp::Component for Scene {
-	fn get_type_name(&self) -> &'static str {
-		"Scene"
-	}
-	
-	fn on_attachment(&mut self, _node_id: usize) {}
-	fn on_detachment(&mut self, _node_id: usize) {}
-	
-	fn on_load(&mut self) {}
-	fn on_unload(&mut self) {}
-	
-	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
-		//
-	}
-}
-
-struct Cursor {
-	pos_x: f32,
-	pos_y: f32,
-	mov_x: f32,
-	mov_y: f32,
-}
-
-impl Cursor {
-	fn update(&mut self, x: f64, y: f64) {
-		self.mov_x = (x as f32) - self.pos_x;
-		self.mov_y = (y as f32) - self.pos_y;
-		self.pos_x = x as f32;
-		self.pos_y = y as f32;
-	}
-}
-
-struct SceneRenderState {
-	frame_id: i64,
-	shader_grid: render::materials::ShaderGrid,
-	shader_random: render::materials::ShaderRandom,
-}
-
-impl SceneRenderState {
-	fn begin(&mut self) {
-		self.frame_id = self.frame_id + 1;
-	}
-	fn end(&mut self) {}
-	
-	fn reset(&mut self) {
-		self.frame_id = 0;
-	}
-}
-
-impl router::comp::Component for SceneRenderState {
-	fn get_type_name(&self) -> &'static str {
-		"SceneRenderState"
-	}
-	
-	fn on_attachment(&mut self, _node_id: usize) {}
-	fn on_detachment(&mut self, _node_id: usize) {}
-	
-	fn on_load(&mut self) {}
-	fn on_unload(&mut self) {}
-	
-	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
-		//
-	}
-}
-
-fn render(render_state: &SceneRenderState, scene: &Scene, camera: &freecam::Camera, size: (i32, i32), now: f64, _interpolation:f32) {
-	render::utility::gl_push_debug("Draw Scene");
-	
-	unsafe {
-		gl::Enable(gl::DEPTH_TEST);
-		gl::CullFace(gl::FRONT);
-		gl::Enable(gl::CULL_FACE);
-	}
-	
-	let camera_transform = camera.transform(size, _interpolation, true);
-	
-	render::utility::gl_push_debug("Draw Grid");
-	{
-		unsafe {
-			gl::Enable(gl::BLEND);
-			gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-			gl::Disable(gl::DEPTH_TEST);
-		}
-		let shader_grid = &render_state.shader_grid;
-		shader_grid.shader_program.set_used();
-		shader_grid.shader_program.uniform_matrix4(shader_grid.uniform_matrix, camera_transform);
-		scene.mesh_planequad.draw(gl::TRIANGLES);
-		unsafe {
-			gl::Enable(gl::DEPTH_TEST);
-			gl::Disable(gl::BLEND);
-		}
-	}
-	render::utility::gl_pop_debug();
-	
-	let shader_random = &render_state.shader_random;
-	shader_random.shader_program.set_used();
-	shader_random.shader_program.uniform_matrix4(shader_random.uniform_matrix, camera_transform);
-	shader_random.shader_program.uniform_scalar(shader_random.uniform_time, now as f32);
-	
-	for mesh in scene.meshes.iter() {
-		mesh.draw(gl::TRIANGLES);
-	}
-	
-	render::utility::gl_pop_debug();
 }
 
 struct GuiRenderState {
