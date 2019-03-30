@@ -84,7 +84,7 @@ impl GlfwContextComponent {
 			glfw,
 			window,
 			events,
-			cursor
+			cursor,
 		})
 	}
 	

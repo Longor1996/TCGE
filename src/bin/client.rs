@@ -26,6 +26,7 @@ use tcge::client::cmd_opts;
 use tcge::client::glfw_context;
 use tcge::client::scene;
 use tcge::client::render;
+use tcge::client;
 
 fn main() {
 	let options = match cmd_opts::parse() {
@@ -102,7 +103,7 @@ impl router::lens::Handler for ClientLens {
 			}
 		});
 		
-		event.downcast::<TickEvent>().map(|_tick| {
+		event.downcast::<client::TickEvent>().map(|_tick| {
 			let s = context.get_mut_component_downcast::<scene::Scene>();
 			let g = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
 			
@@ -126,7 +127,7 @@ impl router::lens::Handler for ClientLens {
 			};
 		});
 		
-		event.downcast::<DrawEvent>().map(|draw| {
+		event.downcast::<client::DrawEvent>().map(|draw| {
 			let s = context.get_mut_component_downcast::<scene::Scene>();
 			let sr = context.get_mut_component_downcast::<scene::SceneRenderState>();
 			
@@ -222,7 +223,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 		
 		gls.next(|| {gfxroot.glfw.get_time()},
 			|_now:f64| {
-				router.borrow_mut().fire_event_at_lens("client", &mut TickEvent {});
+				router.borrow_mut().fire_event_at_lens("client", &mut client::TickEvent {});
 			},
 			
 			|now: f64, interpolation: f32| {
@@ -233,7 +234,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 					);
 				}
 				
-				let mut draw_event = DrawEvent {
+				let mut draw_event = client::DrawEvent {
 					window_size, now, interpolation
 				};
 				router.borrow_mut().fire_event_at_lens("client", &mut draw_event);
@@ -317,18 +318,4 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	}
 	
 	render::utility::gl_pop_debug();
-}
-
-struct TickEvent {}
-impl router::event::Event for TickEvent {
-	fn is_passive(&self) -> bool {false}
-}
-
-struct DrawEvent {
-	window_size: (i32, i32),
-	now: f64,
-	interpolation: f32,
-}
-impl router::event::Event for DrawEvent {
-	fn is_passive(&self) -> bool {false}
 }
