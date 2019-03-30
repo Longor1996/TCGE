@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::cell::{RefCell, RefMut};
 use std::sync::mpsc::Receiver;
+use std::ops::DerefMut;
 use core::borrow::Borrow;
 
 #[macro_use]
@@ -232,6 +233,56 @@ impl GraphicsContextComponent {
 			cursor
 		})
 	}
+	
+	fn process_events(&mut self, router: &mut RefMut<router::Router>) {
+		let router = router.deref_mut();
+		
+		for(_, event) in glfw::flush_messages(&mut self.events) {
+			match event {
+				glfw::WindowEvent::FramebufferSize(width, height) => {
+					trace!("Resizing viewport to {}x{}", width, height);
+					unsafe {gl::Viewport(0, 0, width, height)}
+				},
+				
+				glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
+					if self.window.get_cursor_mode() == glfw::CursorMode::Disabled {
+						self.window.set_cursor_mode(glfw::CursorMode::Normal);
+						info!("Enabled mouse.");
+					} else {
+						self.window.set_cursor_mode(glfw::CursorMode::Disabled);
+						info!("Disabled mouse.");
+					}
+					
+					match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
+						Ok(scene) => {
+							scene.camera.active = self.window.get_cursor_mode() == glfw::CursorMode::Disabled
+						},
+						Err(_) => ()
+					}
+				},
+				
+				glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+					info!("User pressed ESC, shutting down...");
+					self.window.set_should_close(true)
+				},
+				
+				glfw::WindowEvent::CursorPos(x, y) => {
+					self.cursor.update(x, y);
+					
+					match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
+						Ok(scene) => {
+							scene.camera.update_rotation(
+								self.cursor.mov_x,
+								self.cursor.mov_y
+							);
+						},
+						Err(_) => ()
+					}
+				},
+				_ => ()
+			}
+		}
+	}
 }
 
 impl router::comp::Component for GraphicsContextComponent {
@@ -330,14 +381,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	info!("Initializing and starting gameloop...");
 	let mut gls = gameloop::GameloopState::new(30, true);
 	
-	
 	while !router.borrow_mut().update() && !gfxroot.window.should_close() {
-		process_events(
-			&mut router.borrow_mut(),
-			&mut gfxroot.window,
-			&gfxroot.events,
-			&mut gfxroot.cursor
-		);
+		gfxroot.process_events(&mut router.borrow_mut());
 		
 		let window_size = gfxroot.window.get_framebuffer_size();
 		let frame_time  = gls.get_frame_time();
@@ -378,59 +423,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	}
 	
 	Ok(())
-}
-
-fn process_events(
-	router: &mut RefMut<router::Router>,
-	window: &mut glfw::Window,
-	events: &std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
-	cursor: &mut Cursor,
-) {
-	for(_, event) in glfw::flush_messages(events) {
-		match event {
-			glfw::WindowEvent::FramebufferSize(width, height) => {
-				trace!("Resizing viewport to {}x{}", width, height);
-				unsafe {gl::Viewport(0, 0, width, height)}
-			},
-			
-			glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
-				if window.get_cursor_mode() == glfw::CursorMode::Disabled {
-					window.set_cursor_mode(glfw::CursorMode::Normal);
-					info!("Enabled mouse.");
-				} else {
-					window.set_cursor_mode(glfw::CursorMode::Disabled);
-					info!("Disabled mouse.");
-				}
-				
-				match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
-					Ok(scene) => {
-						scene.camera.active = window.get_cursor_mode() == glfw::CursorMode::Disabled
-					},
-					Err(_) => ()
-				}
-			},
-			
-			glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-				info!("User pressed ESC, shutting down...");
-				window.set_should_close(true)
-			},
-			
-			glfw::WindowEvent::CursorPos(x, y) => {
-				cursor.update(x, y);
-				
-				match router.nodes.get_mut_node_component_downcast::<Scene>(0) {
-					Ok(scene) => {
-						scene.camera.update_rotation(
-							cursor.mov_x,
-							cursor.mov_y
-						);
-					},
-					Err(_) => ()
-				}
-			},
-			_ => ()
-		}
-	}
 }
 
 struct Scene {
