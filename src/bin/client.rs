@@ -251,10 +251,12 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 						
 						render_state_gui.debug_text.push((
 							0.0, (h as f32) - 2.0,
-							format!("Camera: {:.1}, {:.1}, {:.1}",
+							format!("Camera: {:.1}, {:.1}, {:.1} / {:.0} {:.0}",
 								position.x,
 								position.y,
-								position.z
+								position.z,
+								camera.rotation.x.round(),
+								camera.rotation.y.round()
 							)
 						));
 					},
