@@ -236,11 +236,11 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				
 				render_state_gui.debug_text.push((
 					0.0, 16.0,
-					format!("TCGE {} \nFrametime: {}ms \n{} FPS, {} TPS",
-						env!("VERSION"),
-						(frame_time * 1000.0).ceil(),
-						last_fps.floor(),
-						last_tps.round()
+					format!("TCGE {version} \nFrametime: {mpf}ms \n{fps} FPS, {tps} TPS",
+						version = env!("VERSION"),
+						mpf = (frame_time * 1000.0).ceil(),
+						fps = last_fps.floor(),
+						tps = last_tps.round()
 					)
 				));
 				
@@ -251,12 +251,12 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 						
 						render_state_gui.debug_text.push((
 							0.0, (h as f32) - 2.0,
-							format!("Camera: {:.1}, {:.1}, {:.1} / {:.0} {:.0}",
-								position.x,
-								position.y,
-								position.z,
-								camera.rotation.x.round(),
-								camera.rotation.y.round()
+							format!("Camera: {x:.1}, {y:.1}, {z:.1} / {pitch:.0} {yaw:.0}",
+								x = position.x,
+								y = position.y,
+								z = position.z,
+								pitch = camera.rotation.x.round(),
+								yaw = camera.rotation.y.round()
 							)
 						));
 					},
