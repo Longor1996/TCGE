@@ -7,7 +7,6 @@ use resources::Resources;
 pub struct Scene {
 	pub camera: freecam::Camera,
 	meshes: Vec<geometry::SimpleVao>,
-	mesh_planequad: geometry::SimpleVao,
 }
 
 impl Scene {
@@ -19,7 +18,6 @@ impl Scene {
 				geometry::geometry_cube(1.0),
 				// geometry::geometry_cube(-512.0),
 			],
-			mesh_planequad: geometry::geometry_planequad(1024.0),
 		}
 	}
 }
@@ -42,18 +40,18 @@ impl router::comp::Component for Scene {
 
 pub struct SceneRenderState {
 	frame_id: i64,
-	shader_grid: render::materials::ShaderGrid,
+	grid: render::grid::Grid,
 	shader_random: render::materials::ShaderRandom,
 }
 
 impl SceneRenderState {
 	pub fn new(res: &Resources) -> Result<SceneRenderState, render::utility::Error> {
-		let shader_grid = render::materials::ShaderGrid::new(&res)?;
+		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
 		
 		Ok(SceneRenderState {
 			frame_id: 0,
-			shader_grid,
+			grid: grid,
 			shader_random,
 		})
 	}
@@ -87,7 +85,7 @@ impl router::comp::Component for SceneRenderState {
 	}
 }
 
-pub fn render(render_state: &SceneRenderState, scene: &Scene, size: (i32, i32), now: f64, _interpolation:f32) {
+pub fn render(render_state: &SceneRenderState, scene: &Scene, size: (i32, i32), now: f64, interpolation:f32) {
 	render::utility::gl_push_debug("Draw Scene");
 	
 	unsafe {
@@ -98,25 +96,10 @@ pub fn render(render_state: &SceneRenderState, scene: &Scene, size: (i32, i32), 
 	
 	let camera = &scene.camera;
 	
-	let camera_transform = camera.transform(size, _interpolation, true);
+	let camera_position = camera.get_position(interpolation);
+	let camera_transform = camera.transform(size, interpolation, true);
 	
-	render::utility::gl_push_debug("Draw Grid");
-	{
-		unsafe {
-			gl::Enable(gl::BLEND);
-			gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-			gl::Disable(gl::DEPTH_TEST);
-		}
-		let shader_grid = &render_state.shader_grid;
-		shader_grid.shader_program.set_used();
-		shader_grid.shader_program.uniform_matrix4(shader_grid.uniform_matrix, camera_transform);
-		scene.mesh_planequad.draw(gl::TRIANGLES);
-		unsafe {
-			gl::Enable(gl::DEPTH_TEST);
-			gl::Disable(gl::BLEND);
-		}
-	}
-	render::utility::gl_pop_debug();
+	render_state.grid.draw(&camera_transform, &camera_position);
 	
 	let shader_random = &render_state.shader_random;
 	shader_random.shader_program.set_used();

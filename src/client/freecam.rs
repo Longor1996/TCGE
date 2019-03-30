@@ -38,6 +38,11 @@ impl Camera {
 		}
 	}
 	
+	pub fn get_position(&self, interpolation: f32) -> cgmath::Vector3<f32> {
+		// simple movement prediction formula
+		self.position + (self.velocity * interpolation)
+	}
+	
 	pub fn transform(&self, size: (i32,i32), interpolation: f32, translation: bool ) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
 		let fov = cgmath::Rad::from(cgmath::Deg(90.0));
@@ -66,9 +71,7 @@ impl Camera {
 		camera = camera * Matrix4::from_nonuniform_scale(1.0,1.0,-1.0);
 		
 		if translation {
-			// simple movement prediction formula
-			let pos = self.position + (self.velocity * interpolation);
-			camera = camera * Matrix4::from_translation(-pos);
+			camera = camera * Matrix4::from_translation(-self.get_position(interpolation));
 		}
 		
 		// return multiplied matrix

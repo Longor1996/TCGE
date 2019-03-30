@@ -59,10 +59,13 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+const float grid_level_0 = 1.0 / 1.0;
+const float grid_level_1 = 1.0 / 10.0;
+const float grid_level_2 = 1.0 / 100.0;
 void main() {
-	float A = grid_xyz(position * 0.001f);
-	float B = grid_xyz(position * 0.1f);
-	float C = grid_xyz(position * 1.0f);
+	float A = grid_xyz(position * grid_level_2);
+	float B = grid_xyz(position * grid_level_1);
+	float C = grid_xyz(position * grid_level_0);
 	float s = max(A,max(B,C));
 
 	vec3 hsv = vec3(1f - (C*0.5f + B*0.35f + A*0.15f), 1.0f, 1.0f);
