@@ -104,17 +104,19 @@ impl super::node::Nodes {
 			},
 			true => {
 				let component_type_id = TypeId::of::<C>();
-				return self.comps.comps.get(&node_id).unwrap().get(&component_type_id).map(|boxed| {
+				return match self.comps.comps.get(&node_id).unwrap().get(&component_type_id).map(|boxed| {
 					let boxed = boxed.downcast_ref::<C>();
 					match boxed {
 						Some(boxed) => unsafe {
 							// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
-							transmute::<&C, &'static C>(boxed.borrow())
+							Some(transmute::<&C, &'static C>(boxed.borrow()))
 						},
-						// TODO: Find a way to return None instead!
-						None => panic!("The found component is not of the type given as parameter.")
+						None => None
 					}
-				});
+				}) {
+					Some(x) => x,
+					None => None
+				};
 			}
 		};
 	}
@@ -128,17 +130,19 @@ impl super::node::Nodes {
 			},
 			true => {
 				let component_type_id = TypeId::of::<C>();
-				return self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type_id).map(|boxed| {
+				return match self.comps.comps.get_mut(&node_id).unwrap().get_mut(&component_type_id).map(|boxed| {
 					let boxed = boxed.downcast_mut::<C>();
 					match boxed {
 						Some(boxed) => unsafe {
 							// WARNING: This is terribly, terribly, unsafe, given that it breaks the borrowchecker.
-							transmute::<&mut C, &'static mut C>(boxed.borrow_mut())
+							Some(transmute::<&mut C, &'static mut C>(boxed.borrow_mut()))
 						},
-						// TODO: Find a way to return None instead!
-						None => panic!("The found component is not of the type given as parameter.")
+						None => None
 					}
-				});
+				}) {
+					Some(x) => x,
+					None => None
+				};
 			}
 		};
 	}
