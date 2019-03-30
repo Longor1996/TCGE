@@ -23,6 +23,7 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 			.value_name("WIDTH")
 			.takes_value(true)
 			.require_equals(true)
+			.default_value("1024")
 			.validator(|v: String| {
 				v.parse::<u32>()
 					.map(|_val| ())
@@ -36,6 +37,7 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 			.value_name("HEIGHT")
 			.takes_value(true)
 			.require_equals(true)
+			.default_value("768")
 			.validator(|v: String| {
 				v.parse::<u32>()
 					.map(|_val| ())
@@ -66,10 +68,10 @@ pub fn parse() -> Result<CmdOptions, failure::Error> {
 	
 	Ok(CmdOptions {
 		width: matches.value_of("WIDTH")
-			.unwrap_or("0").parse::<u32>()?
+			.unwrap_or("1024").parse::<u32>()?
 		,
 		height: matches.value_of("HEIGHT")
-			.unwrap_or("0").parse::<u32>()?
+			.unwrap_or("768").parse::<u32>()?
 		,
 		gl_debug: matches.is_present("gl_debug")
 		,

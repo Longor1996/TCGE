@@ -30,7 +30,9 @@ impl GlfwContextComponent {
 		// ------------------------------------------
 		let window_title = format!("Talecraft Client: {}", env!("VERSION"));
 		let (mut window, events) = glfw.create_window(
-			1024, 768, &window_title,
+			opts.width,
+			opts.height,
+			&window_title,
 			glfw::WindowMode::Windowed
 		).expect("Failed to create GLFW window.");
 		
