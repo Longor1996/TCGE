@@ -5,6 +5,7 @@
 */
 
 extern crate glfw;
+
 use self::glfw::{Key, Action};
 
 #[allow(unused)]
@@ -29,12 +30,12 @@ impl Camera {
 	pub fn new() -> Camera {
 		return Camera {
 			active: true,
-			position: cgmath::Vector3 {x: 0.0, y: 1.8, z: -3.0},
-			velocity: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
-			rotation: cgmath::Vector2 {x: 0.0, y: 0.0},
-			position_last: cgmath::Vector3 {x: 0.0, y: 1.8, z: 0.0},
-			velocity_last: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
-			rotation_last: cgmath::Vector2 {x: 0.0, y: 90.0}
+			position: cgmath::Vector3 { x: 0.0, y: 1.8, z: -3.0 },
+			velocity: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+			rotation: cgmath::Vector2 { x: 0.0, y: 0.0 },
+			position_last: cgmath::Vector3 { x: 0.0, y: 1.8, z: 0.0 },
+			velocity_last: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+			rotation_last: cgmath::Vector2 { x: 0.0, y: 90.0 }
 		}
 	}
 	
@@ -43,14 +44,15 @@ impl Camera {
 		self.position + (self.velocity * interpolation)
 	}
 	
-	pub fn transform(&self, size: (i32,i32), interpolation: f32, translation: bool ) -> cgmath::Matrix4<f32> {
+	pub fn transform(&self, size: (i32, i32), interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
 		let fov = cgmath::Rad::from(cgmath::Deg(90.0));
 		
 		let perspective = cgmath::PerspectiveFov {
 			fovy: fov,
 			aspect: width as f32 / height as f32,
-			near: 0.1, far: 1024.0
+			near: 0.1,
+			far: 1024.0
 		};
 		
 		let perspective = Matrix4::from(perspective);
@@ -68,7 +70,7 @@ impl Camera {
 		
 		camera = camera * Matrix4::from_angle_x(pitch);
 		camera = camera * Matrix4::from_angle_y(yaw);
-		camera = camera * Matrix4::from_nonuniform_scale(1.0,1.0,-1.0);
+		camera = camera * Matrix4::from_nonuniform_scale(1.0, 1.0, -1.0);
 		
 		if translation {
 			camera = camera * Matrix4::from_translation(-self.get_position(interpolation));
@@ -79,7 +81,7 @@ impl Camera {
 	}
 	
 	pub fn update_rotation(&mut self, yaw: f32, pitch: f32) {
-		self.rotation_last.clone_from(& self.rotation);
+		self.rotation_last.clone_from(&self.rotation);
 		
 		if !self.active {
 			return;
@@ -91,13 +93,12 @@ impl Camera {
 		self.rotation.x = clamp(self.rotation.x, -90.0, 90.0);
 		
 		self.rotation.y += yaw * mouse_sensivity;
-		self.rotation.y = wrap(self.rotation.y , 360.0);
+		self.rotation.y = wrap(self.rotation.y, 360.0);
 	}
 	
-	pub fn update_movement(&mut self, window: & glfw::Window) {
-		
-		self.position_last.clone_from(& self.position);
-		self.velocity_last.clone_from(& self.velocity);
+	pub fn update_movement(&mut self, window: &glfw::Window) {
+		self.position_last.clone_from(&self.position);
+		self.velocity_last.clone_from(&self.velocity);
 		
 		if !self.active {
 			return;
@@ -150,15 +151,17 @@ impl Camera {
 
 impl std::fmt::Display for Camera {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(fmt, "Camera [x: {}, z: {}, pitch: {}, yaw: {} ] & LastCamera [x: {}, z: {}, pitch: {}, yaw: {} ]",
-		       self.position.x,
-		       self.position.z,
-		       self.rotation.x,
-		       self.rotation.y,
-		       self.position_last.x,
-		       self.position_last.z,
-		       self.rotation_last.x,
-		       self.rotation_last.y
+		write!(fmt, "Camera [x: {}, y: {}, z: {}, pitch: {}, yaw: {} ] & LastCamera [x: {}, y: {}, z: {}, pitch: {}, yaw: {} ]",
+			self.position.x,
+			self.position.y,
+			self.position.z,
+			self.rotation.x,
+			self.rotation.y,
+			self.position_last.x,
+			self.position_last.y,
+			self.position_last.z,
+			self.rotation_last.x,
+			self.rotation_last.y
 		)
 	}
 }
