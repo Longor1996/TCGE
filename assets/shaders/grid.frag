@@ -63,9 +63,9 @@ const float grid_level_0 = 1.0 / 1.0;
 const float grid_level_1 = 1.0 / 10.0;
 const float grid_level_2 = 1.0 / 100.0;
 void main() {
-	float A = grid_xyz(position * grid_level_2);
-	float B = grid_xyz(position * grid_level_1);
-	float C = grid_xyz(position * grid_level_0);
+    float A = grid_xz(position.xz * grid_level_2);
+	float B = grid_xz(position.xz * grid_level_1);
+	float C = grid_xz(position.xz * grid_level_0);
 	float s = max(A,max(B,C));
 
 	vec3 hsv = vec3(1f - (C*0.5f + B*0.35f + A*0.15f), 1.0f, 1.0f);
