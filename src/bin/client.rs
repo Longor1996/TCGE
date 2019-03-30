@@ -172,9 +172,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let mut render_state_gui = GuiRenderState {
 		width: 0, height: 0,
 		ascii_renderer,
-		frame_time: 0.0,
-		last_fps: 0.0,
-		last_tps: 0.0,
+		debug_text: vec![],
 	};
 	
 	// ------------------------------------------
@@ -228,12 +226,42 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				};
 				router.borrow_mut().fire_event_at_lens("client", &mut draw_event);
 				
+				
+				
 				let (w, h) = gfxroot.window.get_framebuffer_size();
 				render_state_gui.width = w;
 				render_state_gui.height = h;
-				render_state_gui.frame_time = frame_time;
-				render_state_gui.last_fps = last_fps;
-				render_state_gui.last_tps = last_tps;
+				
+				render_state_gui.debug_text.clear();
+				
+				render_state_gui.debug_text.push((
+					0.0, 16.0,
+					format!("TCGE {} \nFrametime: {}ms \n{} FPS, {} TPS",
+						env!("VERSION"),
+						(frame_time * 1000.0).ceil(),
+						last_fps.floor(),
+						last_tps.round()
+					)
+				));
+				
+				match router.borrow_mut().nodes.get_node_component_downcast::<scene::Scene>(0) {
+					Ok(scene) => {
+						let camera = scene.camera.borrow();
+						let position = camera.get_position(interpolation);
+						
+						render_state_gui.debug_text.push((
+							0.0, (h as f32) - 2.0,
+							format!("Camera: {:.1}, {:.1}, {:.1}",
+								position.x,
+								position.y,
+								position.z
+							)
+						));
+					},
+					Err(_) => ()
+				}
+				
+				
 				render_gui(&mut render_state_gui);
 			}
 		);
@@ -248,9 +276,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 struct GuiRenderState {
 	width: i32, height: i32,
 	ascii_renderer: render::text::AsciiTextRenderer,
-	frame_time: f64,
-	last_fps: f64,
-	last_tps: f64,
+	debug_text: Vec<(f32,f32,String)>
 }
 
 fn render_gui(render_state_gui: &mut GuiRenderState) {
@@ -270,15 +296,11 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		-1.0,1.0
 	);
 	
-	let frame_time = (render_state_gui.frame_time * 1000.0).ceil();
-	let last_fps = render_state_gui.last_fps.floor();
-	let last_tps = render_state_gui.last_tps.round(); // its impossible to get the exact TPS
-	
 	render_state_gui.ascii_renderer.transform = projection;
-	render_state_gui.ascii_renderer.draw_text(
-		format!("TCGE {}: {}ms ({} FPS, {} TPS)", env!("VERSION"), frame_time, last_fps, last_tps),
-		16.0, 0.0+1.0, 16.0
-	);
+	
+	while let Some((x,y,text)) = render_state_gui.debug_text.pop() {
+		render_state_gui.ascii_renderer.draw_text(text, 16.0, x, y);
+	}
 	
 	render::utility::gl_pop_debug();
 }
