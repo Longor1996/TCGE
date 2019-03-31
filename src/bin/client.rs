@@ -21,7 +21,7 @@ extern crate core;
 
 use tcge::resources;
 use tcge::router;
-use tcge::gameloop;
+use tcge::util::gameloop;
 use tcge::client::cmd_opts;
 use tcge::client::glfw_context;
 use tcge::client::scene;

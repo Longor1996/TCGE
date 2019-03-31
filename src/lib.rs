@@ -4,7 +4,6 @@
 extern crate core;
 
 pub mod resources;
-pub mod gameloop;
 pub mod router;
 //pub mod blocks; // We will get back to this later...
 pub mod client;
