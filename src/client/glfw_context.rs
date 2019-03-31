@@ -2,8 +2,7 @@ use super::super::router;
 use super::cmd_opts;
 use super::scene;
 
-extern crate glfw;
-use self::glfw::{Context, Key, Action};
+use super::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
 use std::cell::RefMut;
 use std::ops::DerefMut;

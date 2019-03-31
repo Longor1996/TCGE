@@ -1,4 +1,5 @@
 extern crate cgmath;
+extern crate glfw;
 
 pub mod cmd_opts;
 pub mod glfw_context;

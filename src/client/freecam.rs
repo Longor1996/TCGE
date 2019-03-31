@@ -4,9 +4,8 @@
 	TODO: Integrate the debug-camera with the ECS once it comes up.
 */
 
-extern crate glfw;
 
-use self::glfw::{Key, Action};
+use super::glfw::{Key, Action};
 
 #[allow(unused)]
 use super::cgmath::{
