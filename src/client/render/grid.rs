@@ -6,7 +6,7 @@ use super::materials::ShaderGrid;
 
 pub struct Grid {
 	size: f32,
-	mesh: geometry::SimpleVao,
+	mesh: geometry::SimpleMesh,
 	shader: ShaderGrid,
 }
 

@@ -6,12 +6,12 @@
 extern crate cgmath;
 extern crate gl;
 
-pub struct SimpleVao {
+pub struct SimpleMesh {
 	handle: gl::types::GLuint,
 	count: i32,
 }
 
-impl SimpleVao {
+impl SimpleMesh {
 	pub fn draw(&self, mode: u32) {
 		unsafe {
 			gl::BindVertexArray(self.handle);
@@ -22,7 +22,7 @@ impl SimpleVao {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_cube(s: f32) -> SimpleVao {
+pub fn geometry_cube(s: f32) -> SimpleMesh {
 	let mut builder = SimpleVaoBuilder::new();
 	
 	builder.push_quads(vec![ // top
@@ -72,7 +72,7 @@ pub fn geometry_cube(s: f32) -> SimpleVao {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_planequad(s: f32) -> SimpleVao {
+pub fn geometry_planequad(s: f32) -> SimpleMesh {
 	let mut builder = SimpleVaoBuilder::new();
 	builder.push_quads(vec![
 		-s, 0.0,  s,
@@ -85,7 +85,7 @@ pub fn geometry_planequad(s: f32) -> SimpleVao {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_grid() -> SimpleVao {
+pub fn geometry_grid() -> SimpleMesh {
 	let mut vertices: Vec<f32> = vec![];
 	
 	let range: i32 = 256;
@@ -136,7 +136,7 @@ pub fn geometry_grid() -> SimpleVao {
 		gl::BindVertexArray(0);
 	}
 	
-	SimpleVao {
+	SimpleMesh {
 		handle: vao,
 		count: (vertices.len()/2) as i32
 	}
@@ -144,7 +144,7 @@ pub fn geometry_grid() -> SimpleVao {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn geometry_test() -> SimpleVao {
+pub fn geometry_test() -> SimpleMesh {
 	let mut builder = SimpleVaoBuilder::new();
 	
 	builder.push_vertices(vec![
@@ -238,7 +238,7 @@ impl SimpleVaoBuilder {
 	}
 	
 	/// Uploads the (hopefully valid) mesh to the GPU.
-	pub fn build(&self) -> SimpleVao {
+	pub fn build(&self) -> SimpleMesh {
 		let mut vbo_vertex: gl::types::GLuint = 0;
 		unsafe {
 			trace!("Allocating vertex buffer for geometry...");
@@ -285,7 +285,7 @@ impl SimpleVaoBuilder {
 		}
 		
 		debug!("Built new SimpleVao #{} with {} vertices.", vao, self.vertices.len()/5);
-		SimpleVao {
+		SimpleMesh {
 			handle: vao,
 			count: (self.vertices.len()/5) as i32
 		}

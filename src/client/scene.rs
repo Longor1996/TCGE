@@ -6,7 +6,7 @@ use super::freecam;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
-	meshes: Vec<geometry::SimpleVao>,
+	meshes: Vec<geometry::SimpleMesh>,
 }
 
 impl Scene {
