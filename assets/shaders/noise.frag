@@ -38,9 +38,9 @@ float iqnoise( in vec2 x, float u, float v ) {
 }
 
 void main() {
-  float n_xy = iqnoise(outPosition.xy*1f, 1f, 0f);
-	float n_xz = iqnoise(outPosition.xz*1f, 1f, 0f);
-  float n_yz = iqnoise(outPosition.yz*1f, 1f, 0f);
+  float n_xy = iqnoise(outPosition.xy*1.0, 1.0, 0.0);
+	float n_xz = iqnoise(outPosition.xz*1.0, 1.0, 0.0);
+  float n_yz = iqnoise(outPosition.yz*1.0, 1.0, 0.0);
 
-  Color = vec4(n_xy,n_xz,n_yz,1.0f);
+  Color = vec4(n_xy,n_xz,n_yz,1.0);
 }

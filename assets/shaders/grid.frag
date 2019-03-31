@@ -68,7 +68,7 @@ void main() {
 	float C = grid_xz(position.xz * grid_level_0);
 	float s = max(A,max(B,C));
 
-	vec3 hsv = vec3(1f - (C*0.5f + B*0.35f + A*0.15f), 1.0f, 1.0f);
+	vec3 hsv = vec3(1.0 - (C*0.5 + B*0.35 + A*0.15), 1.0, 1.0);
 
 	Color = vec4(hsv2rgb(hsv), s);
 }
