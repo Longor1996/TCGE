@@ -1,9 +1,7 @@
-/*
-	This file defines a free-flying camera for debugging purposes.
-	
-	TODO: Integrate the debug-camera with the ECS once it comes up.
-*/
+//! This module defines a free-flying camera for debugging purposes.
 
+// TODO: Integrate the debug-camera with the ECS once it comes up...
+// TODO: The camera will need to be abstracted into a PlayerController...
 
 use super::glfw::{Key, Action};
 
@@ -13,7 +11,7 @@ use super::cgmath::{
 	InnerSpace, ElementWise
 };
 
-// TODO: Camera needs PlayerController/ClientInput...
+/// A simple free-flying camera for debugging purposes.
 #[derive(Debug)]
 pub struct Camera {
 	pub active: bool,
@@ -32,6 +30,9 @@ pub struct Camera {
 }
 
 impl Camera {
+	/// Creates a new camera.
+	///
+	/// TODO: Add some parameters.
 	pub fn new() -> Camera {
 		return Camera {
 			active: true,
@@ -50,16 +51,23 @@ impl Camera {
 		}
 	}
 	
+	/// Returns the predicted position of the camera for a given interpolation factor.
+	/// Pass in `0` to get the current position as updated in the last tick.
 	pub fn get_position(&self, interpolation: f32) -> cgmath::Vector3<f32> {
 		// simple movement prediction formula
 		self.position + (self.velocity * interpolation)
 	}
 	
-	pub fn get_rotation(&self, interpolation: f32) -> cgmath::Vector2<f32> {
+	/// Returns the predicted rotation of the camera for a given interpolation factor.
+	/// Pass in `0` to get the current rotation as updated in the last tick.
+	pub fn get_rotation(&self, _interpolation: f32) -> cgmath::Vector2<f32> {
 		// TODO: movement prediction
 		self.rotation // + ((self.rotation_last - self.rotation) * interpolation)
 	}
 	
+	/// Given a viewport-size and an interpolation factor, compute the View-Projection-Matrix for this camera.
+	///
+	/// If `translation` is `false`, the camera position is ignored in the computation.
 	pub fn transform(&self, size: (i32, i32), interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
 		let fov = cgmath::Rad::from(cgmath::Deg(self.field_of_view));
@@ -96,6 +104,7 @@ impl Camera {
 		perspective * camera
 	}
 	
+	/// Updates the camera rotation by adding the given pitch/yaw euler-deltas.
 	pub fn update_rotation(&mut self, yaw: f32, pitch: f32) {
 		self.rotation_last.clone_from(&self.rotation);
 		
@@ -112,6 +121,7 @@ impl Camera {
 		self.rotation.y = wrap(self.rotation.y, 360.0);
 	}
 	
+	/// Updates the camera position by querying key-states and changing the velocity accordingly.
 	pub fn update_movement(&mut self, window: &glfw::Window) {
 		self.position_last.clone_from(&self.position);
 		self.velocity_last.clone_from(&self.velocity);
@@ -122,13 +132,17 @@ impl Camera {
 		
 		let mut move_speed = self.move_speed;
 		
+		// --- Apply speed multiplier?
 		if window.get_key(Key::LeftShift) == Action::Press {
 			move_speed = move_speed * 5.0;
 		}
 		
+		// --- Move downwards?
 		if window.get_key(Key::LeftControl) == Action::Press {
 			self.velocity += Vector3::new(0.0, -1.0, 0.0) * move_speed;
 		}
+		
+		// --- Move upwards?
 		if window.get_key(Key::Space) == Action::Press {
 			self.velocity += Vector3::new(0.0, 1.0, 0.0) * move_speed;
 		}
@@ -136,31 +150,38 @@ impl Camera {
 		let yaw = cgmath::Deg(self.rotation.y);
 		let mat = Matrix4::from_angle_y(yaw);
 		
+		// --- Move forwards?
 		let forward = Vector3::new(0.0, 0.0, 1.0);
 		let forward = Matrix4::transform_vector(&mat, forward);
 		if window.get_key(Key::W) == Action::Press {
 			self.velocity += forward * move_speed;
 		}
 		
+		// --- Move backwards?
 		let backward = Vector3::new(0.0, 0.0, -1.0);
 		let backward = Matrix4::transform_vector(&mat, backward);
 		if window.get_key(Key::S) == Action::Press {
 			self.velocity += backward * move_speed;
 		}
 		
+		// --- Move sideways to the left?
 		let left = Vector3::new(-1.0, 0.0, 0.0);
 		let left = Matrix4::transform_vector(&mat, left);
 		if window.get_key(Key::A) == Action::Press {
 			self.velocity += left * move_speed;
 		}
 		
+		// --- Move sideways to the right?
 		let right = Vector3::new(1.0, 0.0, 0.0);
 		let right = Matrix4::transform_vector(&mat, right);
 		if window.get_key(Key::D) == Action::Press {
 			self.velocity += right * move_speed;
 		}
 		
+		// Apply velocity
 		self.position = self.position + self.velocity;
+		
+		// Reduce velocity
 		self.velocity = self.velocity * 0.5;
 	}
 }
