@@ -104,14 +104,14 @@ impl router::lens::Handler for ClientLens {
 		});
 		
 		event.downcast::<client::TickEvent>().map(|_tick| {
-			let g = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
 			let scene = context.get_mut_component_downcast::<scene::Scene>();
+			let gfx = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
 			
 			match scene {
 				Ok(scene) => {
-					match g {
-						Ok(gfx_root) => {
-							scene.camera.update_movement(gfx_root.window.borrow());
+					match gfx {
+						Ok(gfx) => {
+							scene.camera.update_movement(gfx.window.borrow());
 						},
 						Err(_) => ()
 					}
@@ -166,12 +166,12 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let res = resources::Resources::from_exe_path()?;
 	
 	// ------------------------------------------
-	let gfxroot = glfw_context::GlfwContextComponent::new(&opts)?;
+	let gfx = glfw_context::GlfwContextComponent::new(&opts)?;
 	
 	// Give the router ownership of the Graphics-Context... then sneakily grab it back!
 	// This is the **only** place in the code where it's okay to do this.
-	router.nodes.set_node_component(0, Box::new(gfxroot))?;
-	let gfxroot = router.nodes
+	router.nodes.set_node_component(0, Box::new(gfx))?;
+	let gfx = router.nodes
 		.get_mut_node_component_downcast::<glfw_context::GlfwContextComponent>(0)?;
 	
 	// ------------------------------------------
@@ -188,7 +188,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	info!("Initializing scene...");
 	
 	let mut scene = scene::Scene::new();
-	scene.camera.active = gfxroot.window.get_cursor_mode() == glfw::CursorMode::Disabled;
+	scene.camera.active = gfx.window.get_cursor_mode() == glfw::CursorMode::Disabled;
 	router.nodes.set_node_component(0, Box::new(scene))?;
 	
 	let scene_renderer = scene::SceneRenderer::new(&res)?;
@@ -211,17 +211,17 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	// ------------------------------------------
 	info!("Initializing and starting gameloop...");
-	let mut gls = gameloop::GameloopState::new(30, true);
+	let mut gameloop = gameloop::GameloopState::new(30, true);
 	
-	while !router.borrow_mut().update() && !gfxroot.window.should_close() {
-		gfxroot.process_events(&mut router.borrow_mut());
+	while !router.borrow_mut().update() && !gfx.window.should_close() {
+		gfx.process_events(&mut router.borrow_mut());
 		
-		let window_size = gfxroot.window.get_framebuffer_size();
-		let frame_time  = gls.get_frame_time();
-		let last_fps = gls.get_frames_per_second();
-		let last_tps = gls.get_ticks_per_second();
+		let window_size = gfx.window.get_framebuffer_size();
+		let frame_time  = gameloop.get_frame_time();
+		let last_fps = gameloop.get_frames_per_second();
+		let last_tps = gameloop.get_ticks_per_second();
 		
-		gls.next(|| {gfxroot.glfw.get_time()},
+		gameloop.next(|| {gfx.glfw.get_time()},
 			|_now:f64| {
 				router.borrow_mut().fire_event_at_lens("client", &mut client::TickEvent {});
 			},
@@ -241,7 +241,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				
 				
 				
-				let (w, h) = gfxroot.window.get_framebuffer_size();
+				let (w, h) = gfx.window.get_framebuffer_size();
 				render_state_gui.width = w;
 				render_state_gui.height = h;
 				
@@ -281,8 +281,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			}
 		);
 		
-		gfxroot.window.swap_buffers();
-		gfxroot.glfw.poll_events();
+		gfx.window.swap_buffers();
+		gfx.glfw.poll_events();
 	}
 	
 	Ok(())
