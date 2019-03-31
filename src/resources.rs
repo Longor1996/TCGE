@@ -1,3 +1,9 @@
+//! Simple provider for resources.
+
+// TODO: Make it possible to load resources from Zip-files?
+// TODO: Make it possible to load resources from the executable?
+// TODO: Make it possible to load resources from a server (once networking works).
+
 use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
