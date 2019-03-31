@@ -1,3 +1,5 @@
+//! Simple UTF-8 decoder with a pushback of `1`.
+
 use std;
 use std::fmt;
 use std::io::Read;
@@ -12,6 +14,7 @@ pub struct UTF8Read<R> {
 	unread: bool
 }
 
+/// Position of the UTF-8 decoder within the current stream.
 #[derive(Debug, Copy, Clone)]
 pub struct FilePosition {
 	row: usize,
@@ -47,6 +50,7 @@ impl<R: Read> UTF8Read<R> {
 		}
 	}
 	
+	/// Reads and returns single `u8`/`byte`, or an END-OF-FILE error.
 	fn onebyte(&mut self) -> Result<u8, UTF8ReadError> {
 		let mut b0 = [0];
 		if self.input.read(&mut b0)? == 1 {
@@ -55,6 +59,7 @@ impl<R: Read> UTF8Read<R> {
 		Result::Err(UTF8ReadError::EOF(self.nowpos))
 	}
 	
+	/// Reads and returns a single `char`, or some error.
 	pub fn read(&mut self) -> Result<char, UTF8ReadError> {
 		if self.unread {
 			self.unread = false;
@@ -130,6 +135,8 @@ impl<R: Read> UTF8Read<R> {
 		}
 	}
 	
+	/// Pushes the previously read `char` back into stream,
+	/// so that the next `read`-call will return that char.
 	pub fn unread(&mut self) -> Result<(),UTF8ReadError> {
 		if self.unread {
 			return Err(UTF8ReadError::DblUnread);
