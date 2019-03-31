@@ -22,10 +22,18 @@ impl GlfwContextComponent {
 		glfw.window_hint(glfw::WindowHint::ContextVersion(3,2));
 		glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
 		
-		#[cfg(target_os = "macos")]
+		if cfg!(macos) {
+			#[cfg(target_os = "macos")]
 			glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-		glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
-		glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
+		}
+		
+		if opts.gl_multisamples != 0 {
+			glfw.window_hint(glfw::WindowHint::Samples(Some(opts.gl_multisamples)));
+		}
+		
+		if opts.gl_debug {
+			glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
+		}
 		
 		// ------------------------------------------
 		let window_title = format!("Talecraft Client: {}", env!("VERSION"));
