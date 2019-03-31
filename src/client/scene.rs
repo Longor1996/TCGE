@@ -1,3 +1,5 @@
+//! Represents a simple prototypical 'game'-session.
+
 use super::super::resources;
 use super::super::router;
 use super::render;

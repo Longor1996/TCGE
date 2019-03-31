@@ -1,3 +1,5 @@
+//! Module for rendering text in the extended ASCII-range, by using signed-distance fields.
+
 use super::super::super::resources;
 use super::cgmath::SquareMatrix;
 use super::utility;

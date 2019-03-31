@@ -1,3 +1,8 @@
+//! Complete implementation of a 'good' gameloop.
+
+// TODO: Turn the gameloop struct into an iterator.
+// ALT: Turn the 'next' function into a generator (once possible).
+
 /// Represents a gameloop; contains the necessary state.
 pub struct GameloopState {
 	/// The normal duration between individual ticks.
@@ -69,9 +74,6 @@ impl GameloopState {
 			print_timers,
 		}
 	}
-	
-	// TODO: Make this function a iterator.
-	// ALT: Make this function a generator (once possible).
 	
 	/// Applies any number of ticks trough the tick-callback and then calls the draw-callback once.
 	/// This function requires a 'timer'-closure yielding high-resolution time in seconds.

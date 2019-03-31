@@ -1,3 +1,5 @@
+//! All of the code that deals with rendering.
+
 extern crate std;
 extern crate gl;
 extern crate cgmath;

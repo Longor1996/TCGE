@@ -1,7 +1,5 @@
-/*
-	This file contains functions to generate geometry of various kinds.
-	it also contains the SimpleVAO-struct for easy rendering.
-*/
+//! This module contains functions to generate geometry of various kinds.
+//! It also contains the SimpleVAO-struct for easy rendering of meshes.
 
 extern crate cgmath;
 extern crate gl;

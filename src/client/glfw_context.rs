@@ -1,3 +1,5 @@
+//! Module for managing the game-window and associated events (mostly GLFW).
+
 use super::super::router;
 use super::cmd_opts;
 use super::scene;

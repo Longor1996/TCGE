@@ -1,8 +1,6 @@
-/*
-	This file contains utilities for interfacing with OpenGL.
-	
-	TODO: Once CDML is implemented, rewrite loading to be more... dynamic.
-*/
+//! A collection of often-used utilities for interfacing with OpenGL.
+
+// TODO: Once CDML is implemented, rewrite loading to be more... dynamic.
 
 use super::super::super::resources;
 use std::ffi::{CString, CStr};

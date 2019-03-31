@@ -1,3 +1,5 @@
+//! A simple pseudo-infinite (very colorful) 'grid'.
+
 use super::super::super::resources;
 use super::super::geometry;
 use super::cgmath::Matrix4;

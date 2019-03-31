@@ -1,7 +1,10 @@
+//! Module for managing the various commandline arguments/options of the client.
+
 extern crate clap;
 
 use self::clap::{Arg, App};
 
+/// Holds the parsed and ready-to-use commandline-options for the client.
 pub struct CmdOptions {
 	pub path: String,
 	pub width: u32,
