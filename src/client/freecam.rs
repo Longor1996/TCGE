@@ -24,6 +24,12 @@ pub struct Camera {
 	pub position_last: cgmath::Vector3<f32>,
 	pub velocity_last: cgmath::Vector3<f32>,
 	pub rotation_last: cgmath::Vector2<f32>,
+	min_depth: f32,
+	max_depth: f32,
+	field_of_view: f32,
+	mouse_sensivity: f32,
+	invert_mouse: bool,
+	move_speed: f32,
 }
 
 impl Camera {
@@ -35,7 +41,13 @@ impl Camera {
 			rotation: cgmath::Vector2 { x: 0.0, y: 0.0 },
 			position_last: cgmath::Vector3 { x: 0.0, y: 1.8, z: 0.0 },
 			velocity_last: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
-			rotation_last: cgmath::Vector2 { x: 0.0, y: 90.0 }
+			rotation_last: cgmath::Vector2 { x: 0.0, y: 90.0 },
+			min_depth: 0.1,
+			max_depth: 1024.0,
+			field_of_view: 90.0,
+			mouse_sensivity: 0.5,
+			invert_mouse: false,
+			move_speed: 2.0 / 30.0,
 		}
 	}
 	
@@ -51,34 +63,33 @@ impl Camera {
 	
 	pub fn transform(&self, size: (i32, i32), interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
-		let fov = cgmath::Rad::from(cgmath::Deg(90.0));
+		let fov = cgmath::Rad::from(cgmath::Deg(self.field_of_view));
 		
+		// --- First compute the projection matrix...
 		let perspective = cgmath::PerspectiveFov {
 			fovy: fov,
 			aspect: width as f32 / height as f32,
-			near: 0.1,
-			far: 1024.0
+			near: self.min_depth,
+			far: self.max_depth,
 		};
 		
 		let perspective = Matrix4::from(perspective);
 		
-		// this next section can most certainly be written with less code...
-		let mut camera = Matrix4::new(
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0
-		);
-		
+		// --- Now compute the rotation matrix...
 		let rotation = self.get_rotation(interpolation);
 		let pitch = cgmath::Deg(rotation.x);
 		let yaw = cgmath::Deg(rotation.y);
 		
+		let mut camera = Matrix4::one();
 		camera = camera * Matrix4::from_angle_x(pitch);
 		camera = camera * Matrix4::from_angle_y(yaw);
+		
+		// This line 'synchronizes' the coordinate systems of OpenGL and basic
+		// trigonometry, such that sin(theta) means the same in both systems.
 		camera = camera * Matrix4::from_nonuniform_scale(1.0, 1.0, -1.0);
 		
 		if translation {
+			// And optionally compute and multiply with the translation matrix...
 			camera = camera * Matrix4::from_translation(-self.get_position(interpolation));
 		}
 		
@@ -93,12 +104,12 @@ impl Camera {
 			return;
 		}
 		
-		let mouse_sensivity = 0.5;
+		let pitch = if self.invert_mouse { -pitch } else { pitch };
 		
-		self.rotation.x += pitch * mouse_sensivity;
+		self.rotation.x += pitch * self.mouse_sensivity;
 		self.rotation.x = clamp(self.rotation.x, -90.0, 90.0);
 		
-		self.rotation.y += yaw * mouse_sensivity;
+		self.rotation.y += yaw * self.mouse_sensivity;
 		self.rotation.y = wrap(self.rotation.y, 360.0);
 	}
 	
@@ -110,7 +121,7 @@ impl Camera {
 			return;
 		}
 		
-		let mut move_speed = 2.0 / 30.0;
+		let mut move_speed = self.move_speed;
 		
 		if window.get_key(Key::LeftShift) == Action::Press {
 			move_speed = move_speed * 5.0;
