@@ -44,6 +44,11 @@ impl Camera {
 		self.position + (self.velocity * interpolation)
 	}
 	
+	pub fn get_rotation(&self, interpolation: f32) -> cgmath::Vector2<f32> {
+		// TODO: movement prediction
+		self.rotation // + ((self.rotation_last - self.rotation) * interpolation)
+	}
+	
 	pub fn transform(&self, size: (i32, i32), interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
 		let fov = cgmath::Rad::from(cgmath::Deg(90.0));
@@ -65,8 +70,9 @@ impl Camera {
 			0.0, 0.0, 0.0, 1.0
 		);
 		
-		let pitch = cgmath::Deg(self.rotation.x);
-		let yaw = cgmath::Deg(self.rotation.y);
+		let rotation = self.get_rotation(interpolation);
+		let pitch = cgmath::Deg(rotation.x);
+		let yaw = cgmath::Deg(rotation.y);
 		
 		camera = camera * Matrix4::from_angle_x(pitch);
 		camera = camera * Matrix4::from_angle_y(yaw);
