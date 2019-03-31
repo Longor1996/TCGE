@@ -38,18 +38,18 @@ impl router::comp::Component for Scene {
 	}
 }
 
-pub struct SceneRenderState {
+pub struct SceneRenderer {
 	frame_id: i64,
 	grid: render::grid::Grid,
 	shader_random: render::materials::ShaderRandom,
 }
 
-impl SceneRenderState {
-	pub fn new(res: &resources::Resources) -> Result<SceneRenderState, render::utility::Error> {
+impl SceneRenderer {
+	pub fn new(res: &resources::Resources) -> Result<SceneRenderer, render::utility::Error> {
 		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
 		
-		Ok(SceneRenderState {
+		Ok(SceneRenderer {
 			frame_id: 0,
 			grid: grid,
 			shader_random,
@@ -69,7 +69,7 @@ impl SceneRenderState {
 	}
 }
 
-impl router::comp::Component for SceneRenderState {
+impl router::comp::Component for SceneRenderer {
 	fn get_type_name(&self) -> &'static str {
 		"SceneRenderState"
 	}
@@ -85,7 +85,7 @@ impl router::comp::Component for SceneRenderState {
 	}
 }
 
-pub fn render(render_state: &SceneRenderState, scene: &Scene, size: (i32, i32), now: f64, interpolation:f32) {
+pub fn render(render_state: &SceneRenderer, scene: &Scene, size: (i32, i32), now: f64, interpolation:f32) {
 	render::utility::gl_push_debug("Draw Scene");
 	
 	unsafe {

@@ -104,10 +104,10 @@ impl router::lens::Handler for ClientLens {
 		});
 		
 		event.downcast::<client::TickEvent>().map(|_tick| {
-			let s = context.get_mut_component_downcast::<scene::Scene>();
 			let g = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
+			let scene = context.get_mut_component_downcast::<scene::Scene>();
 			
-			match s {
+			match scene {
 				Ok(scene) => {
 					match g {
 						Ok(gfx_root) => {
@@ -119,7 +119,7 @@ impl router::lens::Handler for ClientLens {
 				Err(_) => ()
 			}
 			
-			match context.get_mut_component_downcast::<scene::SceneRenderState>() {
+			match context.get_mut_component_downcast::<scene::SceneRenderer>() {
 				Ok(scene_render_state) => {
 					scene_render_state.reset();
 				},
@@ -128,26 +128,26 @@ impl router::lens::Handler for ClientLens {
 		});
 		
 		event.downcast::<client::DrawEvent>().map(|draw| {
-			let s = context.get_mut_component_downcast::<scene::Scene>();
-			let sr = context.get_mut_component_downcast::<scene::SceneRenderState>();
+			let scene = context.get_mut_component_downcast::<scene::Scene>();
+			let scene_renderer = context.get_mut_component_downcast::<scene::SceneRenderer>();
 			
-			if s.is_err() {
+			if scene.is_err() {
 				panic!("This ain't supposed to happen!");
 			}
 			
-			match s {
+			match scene {
 				Ok(scene) => {
-					match sr {
-						Ok(scene_render_state) => {
-							scene_render_state.begin();
+					match scene_renderer {
+						Ok(scene_renderer) => {
+							scene_renderer.begin();
 							scene::render(
-								scene_render_state,
+								scene_renderer,
 								scene,
 								draw.window_size,
 								draw.now,
 								draw.interpolation
 							);
-							scene_render_state.end();
+							scene_renderer.end();
 						},
 						Err(_) => ()
 					}
@@ -191,8 +191,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	scene.camera.active = gfxroot.window.get_cursor_mode() == glfw::CursorMode::Disabled;
 	router.nodes.set_node_component(0, Box::new(scene))?;
 	
-	let scene_render_state = scene::SceneRenderState::new(&res)?;
-	router.nodes.set_node_component(0, Box::new(scene_render_state))?;
+	let scene_renderer = scene::SceneRenderer::new(&res)?;
+	router.nodes.set_node_component(0, Box::new(scene_renderer))?;
 	
 	// ------------------------------------------
 	
