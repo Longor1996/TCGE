@@ -1,17 +1,22 @@
 [package]
 name = "tcge"
+publish = false
 license = "MIT"
 version = "0.1.0"
 authors = ["Lars Longor K <lalongok@gmail.com>"]
 description = "Game Engine"
 readme  = "README.md"
-exclude       = [
+exclude = [
   ".gitignore",
   ".idea/",
   "docs/",
   "*.md",
   "*.ebnf",
 ]
+
+links = "glfw3"
+build = "build.rs"
+edition = '2018'
 
 [dependencies]
 log = "0.4.6"
@@ -22,6 +27,7 @@ time = "*"
 cgmath = "*"
 clap = "~2.32.0"
 rustc-hash = "1.0.1"
+# machine = "0.2.0"
 
 # debugging
 # flame = "*"
@@ -36,7 +42,7 @@ rustc-hash = "1.0.1"
 
 # graphics
 gl = "*"
-glfw = "*"
+glfw = {version = "*"}
 image = "*"
 # https://crates.io/keywords/renderdoc
 
