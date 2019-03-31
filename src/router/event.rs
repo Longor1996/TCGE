@@ -229,7 +229,7 @@ impl super::Router {
 					can_bubble: false,
 				};
 				
-				let mut comps = self.nodes.comps.comps.get_mut(&node_id);
+				let comps = self.nodes.comps.comps.get_mut(&node_id);
 				node.on_event(comps, &mut wrapper);
 				true
 			}
