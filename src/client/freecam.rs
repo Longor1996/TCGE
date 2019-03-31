@@ -15,12 +15,12 @@ use super::cgmath::{
 #[derive(Debug)]
 pub struct Camera {
 	pub active: bool,
-	pub position: cgmath::Vector3<f32>,
-	pub velocity: cgmath::Vector3<f32>,
-	pub rotation: cgmath::Vector2<f32>,
-	pub position_last: cgmath::Vector3<f32>,
-	pub velocity_last: cgmath::Vector3<f32>,
-	pub rotation_last: cgmath::Vector2<f32>,
+	position: cgmath::Vector3<f32>,
+	velocity: cgmath::Vector3<f32>,
+	rotation: cgmath::Vector2<f32>,
+	position_last: cgmath::Vector3<f32>,
+	velocity_last: cgmath::Vector3<f32>,
+	rotation_last: cgmath::Vector2<f32>,
 	min_depth: f32,
 	max_depth: f32,
 	field_of_view: f32,

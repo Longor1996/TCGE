@@ -261,6 +261,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 					Ok(scene) => {
 						let camera = scene.camera.borrow();
 						let position = camera.get_position(interpolation);
+						let rotation = camera.get_rotation(interpolation);
 						
 						render_state_gui.debug_text.push((
 							0.0, (h as f32) - 2.0,
@@ -268,8 +269,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 								x = position.x,
 								y = position.y,
 								z = position.z,
-								pitch = camera.rotation.x.round(),
-								yaw = camera.rotation.y.round()
+								pitch = rotation.x.round(),
+								yaw   = rotation.y.round()
 							)
 						));
 					},
