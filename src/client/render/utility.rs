@@ -4,8 +4,7 @@
 	TODO: Once CDML is implemented, rewrite loading to be more... dynamic.
 */
 
-use ::resources;
-use ::resources::Resources;
+use super::super::super::resources;
 use std::ffi::{CString, CStr};
 use super::cgmath::prelude::*;
 
@@ -36,7 +35,7 @@ pub struct Program {
 }
 
 impl Program {
-	pub fn from_res(res: &Resources, name: &str) -> Result<Program, Error> {
+	pub fn from_res(res: &resources::Resources, name: &str) -> Result<Program, Error> {
 		const POSSIBLE_EXT: [&str; 2] = [
 			".vert",
 			".frag",
@@ -190,7 +189,7 @@ impl Shader {
 	}
 	
 	pub fn from_res(
-		res: &Resources,
+		res: &resources::Resources,
 		name: &str
 	) -> Result<Shader, Error>{
 		const POSSIBLE_EXT: [(&str, gl::types::GLenum); 3] = [
@@ -306,7 +305,7 @@ pub struct Texture {
 
 impl Texture {
 	
-	pub fn from_res(res: &Resources, name: &str) -> Result<Texture, Error> {
+	pub fn from_res(res: &resources::Resources, name: &str) -> Result<Texture, Error> {
 		// TODO: The following is rather horrible code. Causes way too many copies.
 		
 		let buffer = res.load_buffer(name)

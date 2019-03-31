@@ -1,8 +1,8 @@
+use super::super::resources;
 use super::super::router;
 use super::render;
 use super::geometry;
 use super::freecam;
-use resources::Resources;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
@@ -45,7 +45,7 @@ pub struct SceneRenderState {
 }
 
 impl SceneRenderState {
-	pub fn new(res: &Resources) -> Result<SceneRenderState, render::utility::Error> {
+	pub fn new(res: &resources::Resources) -> Result<SceneRenderState, render::utility::Error> {
 		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
 		

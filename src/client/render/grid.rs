@@ -1,5 +1,5 @@
+use super::super::super::resources;
 use super::super::geometry;
-use resources::Resources;
 use super::cgmath::Matrix4;
 use super::cgmath::Vector3;
 use super::materials::ShaderGrid;
@@ -11,7 +11,7 @@ pub struct Grid {
 }
 
 impl Grid {
-	pub fn new(res: &Resources) -> Result<Grid, super::utility::Error> {
+	pub fn new(res: &resources::Resources) -> Result<Grid, super::utility::Error> {
 		let shader = ShaderGrid::new(&res)?;
 		let mesh = geometry::geometry_planequad(2000.0);
 		
