@@ -19,11 +19,26 @@ fn main() {
     let executable_path = locate_target_dir_from_output_dir(&out_dir)
         .expect("failed to find target dir")
         .join(env::var("PROFILE").unwrap());
-
+    
+    println!("Executable Path: {}", executable_path.to_str().unwrap_or("ERROR"));
+    
     copy(
         &manifest_dir.join("assets"),
         &executable_path.join("assets"),
     );
+    
+    let target_triple = env::var("TARGET").unwrap_or("".to_string());
+    
+    if target_triple.contains("windows") {
+        let lib_name = "glfw3.dll";
+        
+        let lib_dir = PathBuf::from(env!("GLFW_LIB_DIR"));
+        let lib_path = lib_dir.join(lib_name);
+        println!("GLFW Lib Dir: {}", lib_dir.to_str().unwrap());
+        println!("GLFW Lib: {}", lib_path.to_str().unwrap());
+        
+        fs::copy(lib_path.as_path(), executable_path.join(lib_name)).expect("Failed to copy GLFW-lib");
+    }
 }
 
 fn locate_target_dir_from_output_dir(mut target_dir_search: &Path) -> Option<&Path> {
