@@ -1,3 +1,14 @@
+//! The backbone represents and owns and manages the architecture and internal structure of the entire engine.
+//!
+//! It handles all application state, data and code by splitting it into components attached to nodes.
+//!
+//! This is done by representing the application as a tree of 'nodes',
+//! over which 'lenses' can move and interact with the app trough a 'context'.
+//!
+//! The movement of lenses is asynchronous and entirely handled by the router.
+
+// TODO: Use the text from Issue #6 as module documentation. Must be cleaned up beforehand tho'...
+
 use core::borrow::{BorrowMut};
 
 extern crate rustc_hash;
@@ -8,14 +19,19 @@ pub mod lens;
 pub mod event;
 pub mod context;
 
+/// The primary container (/owner) for all lenses, nodes and their components.
 pub struct Router {
+	/// All of the lenses known to the router.
 	pub lenses: lens::Lenses,
+	
+	/// The nodes and their components representing the routing tree.
 	pub nodes: node::Nodes,
 }
 
 /// Functions for building the router.
 impl Router {
 	
+	/// Creates a new (empty) router with a single root-node.
 	pub fn new() -> Router {
 		info!("Initializing router...");
 		Router {
@@ -24,6 +40,12 @@ impl Router {
 		}
 	}
 	
+	/// Creates and attaches a new lens to the router.
+	///
+	/// # Parameters
+	///
+	/// - `name`: The name of the lens; must be unique for the entire router.
+	/// - `constructor`: A closure for configuring the lens.
 	pub fn new_lens(&mut self, name: &str, constructor: &Fn(&mut lens::Lens) -> Option<Box<lens::Handler>>) {
 		debug!("Creating new router lens '{}'...", name);
 		
@@ -40,6 +62,13 @@ impl Router {
 		self.lenses.handlers.push(handler);
 	}
 	
+	/// Creates and attaches a new node to the router.
+	///
+	/// # Parameters
+	///
+	/// - `name`: The name of the node; must be unique amongst the nodes siblings.
+	/// - `parent`: The optional parent of the node; if `None` is given the root-node is used.
+	/// - `constructor`: A closure for further configuring the node.
 	pub fn new_node(&mut self, name: &str, parent: Option<usize>, constructor: &Fn(&mut node::Node)) -> usize {
 		trace!("Creating new router node '{}' attached to node #{}...", name, parent.unwrap_or(0));
 		
@@ -61,6 +90,8 @@ impl Router {
 
 // Router update handling
 impl Router {
+	
+	/// Update lenses that are moving and fire any necessary events.
 	pub fn update(&mut self) -> bool {
 		let mut node_events: Vec<(usize, Box<event::Event>)> = vec![];
 		let mut lens_events: Vec<(usize, Box<event::Event>)> = vec![];
