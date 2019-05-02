@@ -5,6 +5,8 @@ use super::super::router;
 use super::render;
 use super::geometry;
 use super::freecam;
+use crate::client::geometry::SimpleMesh;
+use crate::client::geometry::SimpleMeshBuilder;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
@@ -19,8 +21,74 @@ impl Scene {
 				geometry::geometry_test(),
 				geometry::geometry_cube(1.0),
 				// geometry::geometry_cube(-512.0),
+				Scene::chunk()
 			],
 		}
+	}
+	
+	fn chunk() -> SimpleMesh {
+		let mut builder = SimpleMeshBuilder::new();
+		const SIZE: usize = 16;
+		const S: f32 = 0.25;
+		
+		for y in 0..SIZE {
+			for z in 0..SIZE {
+				for x in 0..SIZE {
+					
+					let cbp = builder.current();
+					
+					builder.push_quads(vec![ // top
+						-S, S, S, // a
+						S, S, S, // b
+						S, S, -S, // c
+						-S, S, -S, // d
+					]);
+					
+					builder.push_quads(vec![ // bottom
+						-S, -S, -S, // d
+						S, -S, -S, // c
+						S, -S, S, // b
+						-S, -S, S, // a
+					]);
+					
+					builder.push_quads(vec![ // front
+						-S, S, -S, // a
+						S, S, -S, // b
+						S, -S, -S, // c
+						-S, -S, -S, // d
+					]);
+					
+					builder.push_quads(vec![ // back
+						-S, -S, S, // d
+						S, -S, S, // c
+						S, S, S, // b
+						-S, S, S, // a
+					]);
+					
+					builder.push_quads(vec![ // left
+						-S, S, S, // a
+						-S, S, -S, // b
+						-S, -S, -S, // c
+						-S, -S, S, // d
+					]);
+					
+					builder.push_quads(vec![ // right
+						S, -S, S, // d
+						S, -S, -S, // c
+						S, S, -S, // b
+						S, S, S, // a
+					]);
+					
+					builder.translate_range(cbp, None,
+						x as f32,
+						y as f32,
+						z as f32
+					);
+				}
+			}
+		}
+		
+		return builder.build();
 	}
 }
 
