@@ -15,81 +15,28 @@ pub struct Scene {
 
 impl Scene {
 	pub fn new() -> Scene {
-		Scene {
-			camera: freecam::Camera::new(),
-			meshes: vec![
-				geometry::geometry_test(),
-				geometry::geometry_cube(1.0),
-				// geometry::geometry_cube(-512.0),
-				Scene::chunk()
-			],
-		}
-	}
-	
-	fn chunk() -> SimpleMesh {
-		let mut builder = SimpleMeshBuilder::new();
-		const SIZE: usize = 16;
-		const S: f32 = 0.25;
+		let mut meshes = vec![
+			geometry::geometry_test(),
+			geometry::geometry_cube(1.0),
+			// geometry::geometry_cube(-512.0),
+		];
 		
-		for y in 0..SIZE {
-			for z in 0..SIZE {
-				for x in 0..SIZE {
-					
-					let cbp = builder.current();
-					
-					builder.push_quads(vec![ // top
-						-S, S, S, // a
-						S, S, S, // b
-						S, S, -S, // c
-						-S, S, -S, // d
-					]);
-					
-					builder.push_quads(vec![ // bottom
-						-S, -S, -S, // d
-						S, -S, -S, // c
-						S, -S, S, // b
-						-S, -S, S, // a
-					]);
-					
-					builder.push_quads(vec![ // front
-						-S, S, -S, // a
-						S, S, -S, // b
-						S, -S, -S, // c
-						-S, -S, -S, // d
-					]);
-					
-					builder.push_quads(vec![ // back
-						-S, -S, S, // d
-						S, -S, S, // c
-						S, S, S, // b
-						-S, S, S, // a
-					]);
-					
-					builder.push_quads(vec![ // left
-						-S, S, S, // a
-						-S, S, -S, // b
-						-S, -S, -S, // c
-						-S, -S, S, // d
-					]);
-					
-					builder.push_quads(vec![ // right
-						S, -S, S, // d
-						S, -S, -S, // c
-						S, S, -S, // b
-						S, S, S, // a
-					]);
-					
-					builder.translate_range(cbp, None,
-						x as f32,
-						y as f32,
-						z as f32
-					);
+		for y in 0..=2 {
+			for z in 0..=2 {
+				for x in 0..=2 {
+					let chunk = Chunk::new(x, y, z);
+					let mesh = chunk.render_into_simple_mesh();
+					meshes.push(mesh);
 				}
 			}
 		}
 		
-		return builder.build();
+		Scene {
+			camera: freecam::Camera::new(),
+			meshes: meshes
+		}
 	}
+	
 }
 
 impl router::comp::Component for Scene {
@@ -106,6 +53,148 @@ impl router::comp::Component for Scene {
 	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
 		//
 	}
+}
+
+type Block = u8;
+const BLOCK_AIR: Block = 0;
+const CHUNK_SIZE: usize = 16;
+const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
+const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
+
+pub struct Chunk {
+	pub x: isize,
+	pub y: isize,
+	pub z: isize,
+	pub blocks: [Block; CHUNK_VOLUME],
+}
+
+fn clamp_chunk_coord(value: isize) -> Option<usize> {
+	if value < 0 {
+		return None
+	}
+	
+	if value >= CHUNK_SIZE as isize {
+		return None
+	}
+	
+	return Some(value as usize)
+}
+
+impl Chunk {
+	
+	pub fn new(x: isize, y: isize, z: isize) -> Chunk {
+		let mut new = Chunk {
+			x, y, z,
+			blocks: [0 as Block; CHUNK_VOLUME]
+		};
+		
+		extern crate rand;
+		use rand::prelude::*;
+		let mut rng = thread_rng();
+		
+		for i in 0..new.blocks.len() {
+			new.blocks[i] = if rng.gen::<u8>() > 200 {255} else {0};
+		}
+		
+		new
+	}
+	
+	pub fn get_block(&self, x: isize, y: isize, z: isize) -> Option<Block> {
+		let x = clamp_chunk_coord(x)?;
+		let y = clamp_chunk_coord(y)?;
+		let z = clamp_chunk_coord(z)?;
+		
+		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
+		match self.blocks.get(index) {
+			Some(x) => Some(*x),
+			None => None
+		}
+	}
+	
+	pub fn render_into_simple_mesh(&self) -> SimpleMesh {
+		let mut builder = SimpleMeshBuilder::new();
+		const S: f32 = 0.5;
+		
+		for y in 0..CHUNK_SIZE {
+			for z in 0..CHUNK_SIZE {
+				for x in 0..CHUNK_SIZE {
+					let x = x as isize;
+					let y = y as isize;
+					let z = z as isize;
+					let block = self.get_block(x, y, z).unwrap_or(BLOCK_AIR);
+					
+					if block < 127 {
+						continue;
+					}
+					
+					let cbp = builder.current();
+					
+					if self.get_block(x,y+1,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+						builder.push_quads(vec![ // top
+							-S, S, S, // a
+							S, S, S, // b
+							S, S, -S, // c
+							-S, S, -S, // d
+						]);
+					}
+					
+					if self.get_block(x,y-1,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+						builder.push_quads(vec![ // bottom
+							-S, -S, -S, // d
+							S, -S, -S, // c
+							S, -S, S, // b
+							-S, -S, S, // a
+						]);
+					}
+					
+					if self.get_block(x,y,z-1).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+						builder.push_quads(vec![ // front
+							-S, S, -S, // a
+							S, S, -S, // b
+							S, -S, -S, // c
+							-S, -S, -S, // d
+						]);
+					}
+					
+					if self.get_block(x,y,z+1).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+						builder.push_quads(vec![ // back
+							-S, -S, S, // d
+							S, -S, S, // c
+							S, S, S, // b
+							-S, S, S, // a
+						]);
+					}
+					
+					if self.get_block(x-1,y,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+						builder.push_quads(vec![ // left
+							-S, S, S, // a
+							-S, S, -S, // b
+							-S, -S, -S, // c
+							-S, -S, S, // d
+						]);
+					}
+					
+					if self.get_block(x+1,y,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+						builder.push_quads(vec![ // right
+							S, -S, S, // d
+							S, -S, -S, // c
+							S, S, -S, // b
+							S, S, S, // a
+						]);
+					}
+					
+					builder.translate_range(cbp, None,
+						(x + self.x*CHUNK_SIZE as isize) as f32,
+						(y + self.y*CHUNK_SIZE as isize) as f32,
+						(z + self.z*CHUNK_SIZE as isize) as f32
+					);
+				}
+			}
+		}
+		
+		return builder.build();
+	}
+	
 }
 
 pub struct SceneRenderer {
