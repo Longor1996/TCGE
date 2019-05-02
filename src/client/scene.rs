@@ -124,7 +124,7 @@ impl Chunk {
 					let z = z as isize;
 					let block = self.get_block(x, y, z).unwrap_or(BLOCK_AIR);
 					
-					if block < 127 {
+					if block == BLOCK_AIR {
 						continue;
 					}
 					
