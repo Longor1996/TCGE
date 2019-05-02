@@ -8,6 +8,7 @@ use super::freecam;
 use crate::client::geometry::SimpleMesh;
 use crate::client::geometry::SimpleMeshBuilder;
 use rustc_hash::FxHashMap;
+use super::cgmath::Matrix;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
@@ -261,18 +262,66 @@ impl ChunkStorage {
 }
 
 pub struct ChunkRenderManager {
-	chunks: FxHashMap<ChunkCoord, SimpleMesh>
+	chunks: FxHashMap<ChunkCoord, SimpleMesh>,
+	material: ShaderBlocks,
 }
 
+
+pub struct ShaderBlocks {
+	pub shader: render::utility::Program,
+	pub texatlas: render::utility::Texture,
+	pub uniform_matrix: i32,
+	pub uniform_atlas: i32,
+}
+
+impl ShaderBlocks {
+	pub fn new(res: &resources::Resources) -> Result<ShaderBlocks, render::utility::Error> {
+		debug!("Loading blocks texture...");
+		let texatlas = render::utility::Texture::from_res(&res, "textures/atlas.png", &||{
+			unsafe {
+				// wrapping
+				gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+				gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+				// sampling
+				gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST_MIPMAP_LINEAR as i32);
+				gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+			}
+		})?;
+		
+		debug!("Loading blocks shader...");
+		let shader = render::utility::Program::from_res(&res, "shaders/blocks")?;
+		
+		let uniform_matrix = shader.uniform_location("transform");
+		let uniform_atlas = shader.uniform_location("atlas");
+		
+		Ok(ShaderBlocks {shader, texatlas,
+			uniform_matrix,
+			uniform_atlas,
+		})
+	}
+}
+
+
 impl ChunkRenderManager {
-	fn new() -> ChunkRenderManager {
-		ChunkRenderManager {
-			chunks: FxHashMap::default()
-		}
+	fn new(res: &resources::Resources) -> Result<ChunkRenderManager, render::utility::Error> {
+		let material = ShaderBlocks::new(res)?;
+		
+		Ok(ChunkRenderManager {
+			chunks: FxHashMap::default(),
+			material,
+		})
 	}
 	
-	fn render(&mut self, scene: &Scene) {
+	fn render(&mut self, scene: &Scene, transform: cgmath::Matrix4<f32>) {
 		render::utility::gl_push_debug("chunks");
+		
+		self.material.shader.set_used();
+		self.material.shader.uniform_matrix4(self.material.uniform_matrix, transform);
+		self.material.shader.uniform_sampler(self.material.uniform_atlas, 0);
+		
+		unsafe {
+			gl::BindTexture(gl::TEXTURE_2D, self.material.texatlas.id);
+		}
 		
 		let mut max_uploads_per_frame: usize = 1;
 		for chunk in scene.chunks.chunks.iter() {
@@ -300,6 +349,10 @@ impl ChunkRenderManager {
 			}
 		}
 		
+		unsafe {
+			gl::BindTexture(gl::TEXTURE_2D, 0);
+		}
+		
 		render::utility::gl_pop_debug();
 	}
 }
@@ -315,7 +368,7 @@ impl SceneRenderer {
 	pub fn new(res: &resources::Resources) -> Result<SceneRenderer, render::utility::Error> {
 		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
-		let chunk_rmng = ChunkRenderManager::new();
+		let chunk_rmng = ChunkRenderManager::new(res)?;
 		
 		Ok(SceneRenderer {
 			frame_id: 0,
@@ -375,12 +428,12 @@ pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32),
 	shader_random.shader_program.uniform_matrix4(shader_random.uniform_matrix, camera_transform);
 	shader_random.shader_program.uniform_scalar(shader_random.uniform_time, now as f32);
 	
-	// Render chunks!
-	render_state.chunk_rmng.render(scene);
-	
 	for mesh in scene.meshes.iter() {
 		mesh.draw(gl::TRIANGLES);
 	}
+	
+	// Render chunks!
+	render_state.chunk_rmng.render(scene, camera_transform);
 	
 	render::utility::gl_pop_debug();
 }
