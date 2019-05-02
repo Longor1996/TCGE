@@ -105,9 +105,8 @@ impl Chunk {
 		let z = clamp_chunk_coord(z)?;
 		
 		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
-		match self.blocks.get(index) {
-			Some(x) => Some(*x),
-			None => None
+		unsafe {
+			Some(*self.blocks.get_unchecked(index))
 		}
 	}
 	
