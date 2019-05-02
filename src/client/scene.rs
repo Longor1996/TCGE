@@ -247,13 +247,11 @@ impl ChunkStorage {
 			chunks: vec![]
 		};
 		
-		for y in 0..4 {
-			for z in 0..4 {
-				for x in 0..4 {
+		for y in 0..3 {
+			for z in 0..16 {
+				for x in 0..16 {
 					let chunk = Chunk::new(x, y, z);
 					storage.chunks.push(chunk);
-					//let mesh = chunk.render_into_simple_mesh();
-					//meshes.push(mesh);
 				}
 			}
 		}
