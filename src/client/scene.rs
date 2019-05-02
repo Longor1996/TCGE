@@ -7,33 +7,26 @@ use super::geometry;
 use super::freecam;
 use crate::client::geometry::SimpleMesh;
 use crate::client::geometry::SimpleMeshBuilder;
+use rustc_hash::FxHashMap;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
 	meshes: Vec<geometry::SimpleMesh>,
+	chunks: ChunkStorage,
 }
 
 impl Scene {
 	pub fn new() -> Scene {
-		let mut meshes = vec![
-			// geometry::geometry_test(),
-			// geometry::geometry_cube(1.0),
-			// geometry::geometry_cube(-512.0),
-		];
-		
-		for y in 0..=2 {
-			for z in 0..=2 {
-				for x in 0..=2 {
-					let chunk = Chunk::new(x, y, z);
-					let mesh = chunk.render_into_simple_mesh();
-					meshes.push(mesh);
-				}
-			}
-		}
+		let chunks = ChunkStorage::new();
 		
 		Scene {
 			camera: freecam::Camera::new(),
-			meshes: meshes
+			meshes: vec![
+				// geometry::geometry_test(),
+				// geometry::geometry_cube(1.0),
+				// geometry::geometry_cube(-512.0),
+			],
+			chunks
 		}
 	}
 	
@@ -62,10 +55,23 @@ const CHUNK_SIZE: usize = 16;
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
 
-pub struct Chunk {
+#[derive(Eq, Hash, Clone)]
+pub struct ChunkCoord {
 	pub x: isize,
 	pub y: isize,
 	pub z: isize,
+}
+
+impl PartialEq for ChunkCoord {
+	fn eq(&self, other: &ChunkCoord) -> bool {
+		self.x == other.x
+		&& self.y == other.y
+		&& self.z == other.z
+	}
+}
+
+pub struct Chunk {
+	pub pos: ChunkCoord,
 	pub blocks: [Block; CHUNK_VOLUME],
 }
 
@@ -73,7 +79,7 @@ impl Chunk {
 	
 	pub fn new(x: isize, y: isize, z: isize) -> Chunk {
 		let mut new = Chunk {
-			x, y, z,
+			pos: ChunkCoord {x,y,z},
 			blocks: [0 as Block; CHUNK_VOLUME]
 		};
 		
@@ -218,9 +224,9 @@ impl Chunk {
 					}
 					
 					builder.translate_range(cbp, None,
-						(x + self.x*CHUNK_SIZE as isize) as f32,
-						(y + self.y*CHUNK_SIZE as isize) as f32,
-						(z + self.z*CHUNK_SIZE as isize) as f32
+						(x + self.pos.x*CHUNK_SIZE as isize) as f32,
+						(y + self.pos.y*CHUNK_SIZE as isize) as f32,
+						(z + self.pos.z*CHUNK_SIZE as isize) as f32
 					);
 				}
 			}
@@ -231,21 +237,76 @@ impl Chunk {
 	
 }
 
+pub struct ChunkStorage {
+	chunks: Vec<Chunk>
+}
+
+impl ChunkStorage {
+	fn new() -> ChunkStorage {
+		let mut storage = ChunkStorage {
+			chunks: vec![]
+		};
+		
+		for y in 0..4 {
+			for z in 0..4 {
+				for x in 0..4 {
+					let chunk = Chunk::new(x, y, z);
+					storage.chunks.push(chunk);
+					//let mesh = chunk.render_into_simple_mesh();
+					//meshes.push(mesh);
+				}
+			}
+		}
+		
+		storage
+	}
+}
+
+pub struct ChunkRenderManager {
+	chunks: FxHashMap<ChunkCoord, SimpleMesh>
+}
+
+impl ChunkRenderManager {
+	fn new() -> ChunkRenderManager {
+		ChunkRenderManager {
+			chunks: FxHashMap::default()
+		}
+	}
+	
+	fn render(&mut self, scene: &Scene) {
+		let mut max_uploads_per_frame: usize = 1;
+		for chunk in scene.chunks.chunks.iter() {
+			if self.chunks.contains_key(&chunk.pos) {
+				self.chunks.get(&chunk.pos).unwrap().draw(gl::TRIANGLES);
+			} else {
+				if max_uploads_per_frame > 0 {
+					max_uploads_per_frame -= 1;
+					let mesh = chunk.render_into_simple_mesh();
+					self.chunks.insert(chunk.pos.clone(), mesh);
+				}
+			}
+		}
+	}
+}
+
 pub struct SceneRenderer {
 	frame_id: i64,
 	grid: render::grid::Grid,
 	shader_random: render::materials::ShaderRandom,
+	chunk_rmng: ChunkRenderManager,
 }
 
 impl SceneRenderer {
 	pub fn new(res: &resources::Resources) -> Result<SceneRenderer, render::utility::Error> {
 		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
+		let chunk_rmng = ChunkRenderManager::new();
 		
 		Ok(SceneRenderer {
 			frame_id: 0,
 			grid: grid,
 			shader_random,
+			chunk_rmng,
 		})
 	}
 	
@@ -278,7 +339,7 @@ impl router::comp::Component for SceneRenderer {
 	}
 }
 
-pub fn render(render_state: &SceneRenderer, scene: &Scene, size: (i32, i32), now: f64, interpolation:f32) {
+pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32), now: f64, interpolation:f32) {
 	render::utility::gl_push_debug("Draw Scene");
 	
 	unsafe {
@@ -298,6 +359,9 @@ pub fn render(render_state: &SceneRenderer, scene: &Scene, size: (i32, i32), now
 	shader_random.shader_program.set_used();
 	shader_random.shader_program.uniform_matrix4(shader_random.uniform_matrix, camera_transform);
 	shader_random.shader_program.uniform_scalar(shader_random.uniform_time, now as f32);
+	
+	// Render chunks!
+	render_state.chunk_rmng.render(scene);
 	
 	for mesh in scene.meshes.iter() {
 		mesh.draw(gl::TRIANGLES);
