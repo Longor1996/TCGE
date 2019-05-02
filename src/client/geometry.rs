@@ -5,14 +5,26 @@ extern crate cgmath;
 extern crate gl;
 
 pub struct SimpleMesh {
-	handle: gl::types::GLuint,
+	descriptor: gl::types::GLuint,
+	vertex_buf: gl::types::GLuint,
 	count: i32,
 }
 
 impl SimpleMesh {
+	pub fn get_gl_descriptor(&self) -> gl::types::GLuint{
+		self.descriptor
+	}
+	pub fn get_gl_vertex_buf(&self) -> gl::types::GLuint{
+		self.vertex_buf
+	}
+	
+	pub fn get_vertex_count(&self) -> i32 {
+		self.count
+	}
+	
 	pub fn draw(&self, mode: u32) {
 		unsafe {
-			gl::BindVertexArray(self.handle);
+			gl::BindVertexArray(self.descriptor);
 			gl::DrawArrays(mode, 0, self.count);
 		}
 	}
@@ -135,7 +147,8 @@ pub fn geometry_grid() -> SimpleMesh {
 	}
 	
 	SimpleMesh {
-		handle: vao,
+		descriptor: vao,
+		vertex_buf: vbo,
 		count: (vertices.len()/2) as i32
 	}
 }
@@ -299,7 +312,8 @@ impl SimpleMeshBuilder {
 		
 		debug!("Built new SimpleVao #{} with {} vertices.", vao, self.vertices.len()/5);
 		SimpleMesh {
-			handle: vao,
+			descriptor: vao,
+			vertex_buf: vbo_vertex,
 			count: (self.vertices.len()/5) as i32
 		}
 	}
