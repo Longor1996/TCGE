@@ -60,7 +60,7 @@ impl GlfwContextComponent {
 		glfw.with_primary_monitor_mut(|_, primary| {
 			if let Some(monitor) = primary {
 				if let Some(vidmod) = monitor.get_video_mode() {
-					debug!("Centering window on monitor: {}", monitor.get_name());
+					debug!("Centering window on monitor: {}", monitor.get_name().unwrap_or(String::from("???")));
 					let w_size = window.get_size();
 					window.set_pos(
 						(vidmod.width as i32/2) - (w_size.0/2),
