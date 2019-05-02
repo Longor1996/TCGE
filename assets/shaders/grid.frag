@@ -60,8 +60,8 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 const float grid_level_0 = 1.0 / 1.0;
-const float grid_level_1 = 1.0 / 10.0;
-const float grid_level_2 = 1.0 / 100.0;
+const float grid_level_1 = 1.0 / 16.0;
+const float grid_level_2 = 1.0 / 256.0;
 void main() {
     float A = grid_xz(position.xz * grid_level_2);
 	float B = grid_xz(position.xz * grid_level_1);

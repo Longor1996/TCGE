@@ -15,10 +15,10 @@ pub struct Grid {
 impl Grid {
 	pub fn new(res: &resources::Resources) -> Result<Grid, super::utility::Error> {
 		let shader = ShaderGrid::new(&res)?;
-		let mesh = geometry::geometry_planequad(2000.0);
+		let mesh = geometry::geometry_planequad(2048.0);
 		
 		Ok(Grid {
-			size: 100.0,
+			size: 256.0,
 			mesh,
 			shader,
 		})
