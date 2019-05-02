@@ -134,7 +134,7 @@ impl Nodes {
 		}
 		
 		if path_str.len() > 1 {
-			path_str.trim_end_matches("/");
+			path_str = path_str.trim_end_matches("/").to_string();
 		}
 		
 		Ok(path_str)
