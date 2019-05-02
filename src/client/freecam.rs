@@ -45,7 +45,7 @@ impl Camera {
 			min_depth: 0.1,
 			max_depth: 1024.0,
 			field_of_view: 90.0,
-			mouse_sensivity: 0.5,
+			mouse_sensivity: 0.25,
 			invert_mouse: false,
 			move_speed: 2.0 / 30.0,
 		}
