@@ -181,6 +181,21 @@ impl SimpleMeshBuilder {
 		}
 	}
 	
+	pub fn current(&self) -> usize {
+		self.vertices.len() / 5
+	}
+	
+	pub fn translate_range(&mut self, from: usize, to: Option<usize>, x: f32, y: f32, z: f32) {
+		let to = to.unwrap_or(self.vertices.len() / 5);
+		
+		for vertex in from..to {
+			let pos = vertex * 5;
+			self.vertices[pos + 0] += x;
+			self.vertices[pos + 1] += y;
+			self.vertices[pos + 2] += z;
+		}
+	}
+	
 	/// Add a new vertex (`x, y, z`) with texture-coordinates `(0.0, 0.0)`.
 	pub fn push_vertex(&mut self, x: f32, y: f32, z: f32) {
 		self.vertices.push(x);
