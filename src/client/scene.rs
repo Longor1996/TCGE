@@ -113,7 +113,8 @@ impl Chunk {
 	
 	pub fn render_into_simple_mesh(&self) -> SimpleMesh {
 		let mut builder = SimpleMeshBuilder::new();
-		const S: f32 = 0.5;
+		const N: f32 = 0.0;
+		const S: f32 = 1.0;
 		
 		for y in 0..CHUNK_SIZE {
 			for z in 0..CHUNK_SIZE {
@@ -131,54 +132,54 @@ impl Chunk {
 					
 					if self.get_block(x,y+1,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
 						builder.push_quads(vec![ // top
-							-S, S, S, // a
+							N, S, S, // a
 							S, S, S, // b
-							S, S, -S, // c
-							-S, S, -S, // d
+							S, S, N, // c
+							N, S, N, // d
 						]);
 					}
 					
 					if self.get_block(x,y-1,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
 						builder.push_quads(vec![ // bottom
-							-S, -S, -S, // d
-							S, -S, -S, // c
-							S, -S, S, // b
-							-S, -S, S, // a
+							N, N, N, // d
+							S, N, N, // c
+							S, N, S, // b
+							N, N, S, // a
 						]);
 					}
 					
 					if self.get_block(x,y,z-1).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
 						builder.push_quads(vec![ // front
-							-S, S, -S, // a
-							S, S, -S, // b
-							S, -S, -S, // c
-							-S, -S, -S, // d
+							N, S, N, // a
+							S, S, N, // b
+							S, N, N, // c
+							N, N, N, // d
 						]);
 					}
 					
 					if self.get_block(x,y,z+1).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
 						builder.push_quads(vec![ // back
-							-S, -S, S, // d
-							S, -S, S, // c
+							N, N, S, // d
+							S, N, S, // c
 							S, S, S, // b
-							-S, S, S, // a
+							N, S, S, // a
 						]);
 					}
 					
 					if self.get_block(x-1,y,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
 						builder.push_quads(vec![ // left
-							-S, S, S, // a
-							-S, S, -S, // b
-							-S, -S, -S, // c
-							-S, -S, S, // d
+							N, S, S, // a
+							N, S, N, // b
+							N, N, N, // c
+							N, N, S, // d
 						]);
 					}
 					
 					if self.get_block(x+1,y,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
 						builder.push_quads(vec![ // right
-							S, -S, S, // d
-							S, -S, -S, // c
-							S, S, -S, // b
+							S, N, S, // d
+							S, N, N, // c
+							S, S, N, // b
 							S, S, S, // a
 						]);
 					}
