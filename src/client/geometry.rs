@@ -3,6 +3,7 @@
 
 extern crate cgmath;
 extern crate gl;
+use super::render;
 
 pub struct SimpleMesh {
 	descriptor: gl::types::GLuint,
@@ -14,12 +15,27 @@ impl SimpleMesh {
 	pub fn get_gl_descriptor(&self) -> gl::types::GLuint{
 		self.descriptor
 	}
+	
 	pub fn get_gl_vertex_buf(&self) -> gl::types::GLuint{
 		self.vertex_buf
 	}
 	
 	pub fn get_vertex_count(&self) -> i32 {
 		self.count
+	}
+	
+	pub fn set_gl_label(&self, label: &str) {
+		render::utility::gl_label_object(
+			gl::VERTEX_ARRAY,
+			self.descriptor,
+			&format!("{} Descriptor", label)
+		);
+		
+		render::utility::gl_label_object(
+			gl::BUFFER,
+			self.vertex_buf,
+			&format!("{} Geometry", label)
+		);
 	}
 	
 	pub fn draw(&self, mode: u32) {
