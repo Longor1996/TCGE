@@ -134,6 +134,18 @@ impl AsciiTextRenderer {
 			gl::BindVertexArray(0);
 		}
 		
+		utility::gl_label_object(
+			gl::VERTEX_ARRAY,
+			buffer_vao,
+			"Dynamic Text Renderer Descriptor"
+		);
+		
+		utility::gl_label_object(
+			gl::BUFFER,
+			buffer_vbo,
+			"Dynamic Text Renderer Geometry"
+		);
+		
 		trace!("Allocated text geometry buffers.");
 		return (buffer_vbo, buffer_vao, buffer_size);
 	}
