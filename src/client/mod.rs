@@ -9,6 +9,7 @@ pub mod scene;
 pub mod geometry;
 pub mod render;
 pub mod freecam;
+pub mod blocks;
 
 
 
