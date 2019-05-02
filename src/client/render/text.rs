@@ -313,7 +313,7 @@ pub struct AsciiTextRendererMaterial {
 impl AsciiTextRendererMaterial {
 	pub fn new(res: &resources::Resources) -> Result<AsciiTextRendererMaterial, utility::Error> {
 		debug!("Loading font texture...");
-		let sdfmap = utility::Texture::from_res(&res, FONT_DATA_PNG)?;
+		let sdfmap = utility::Texture::from_res(&res, FONT_DATA_PNG, &||{})?;
 		
 		debug!("Loading font shader...");
 		let shader = utility::Program::from_res(&res, FONT_MATERIAL)?;

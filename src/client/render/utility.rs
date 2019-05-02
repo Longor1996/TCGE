@@ -303,7 +303,7 @@ pub struct Texture {
 
 impl Texture {
 	
-	pub fn from_res(res: &resources::Resources, name: &str) -> Result<Texture, Error> {
+	pub fn from_res(res: &resources::Resources, name: &str, gl_setup: &Fn() -> ()) -> Result<Texture, Error> {
 		// TODO: The following is rather horrible code. Causes way too many copies.
 		
 		let buffer = res.load_buffer(name)
@@ -312,8 +312,7 @@ impl Texture {
 		let image = image::load_from_memory(&buffer)
 			.map_err(|e| Error::ImageParse { name: name.into(), inner: e })?;
 		
-		let image = image.as_rgba8()
-			.expect("Failed to convert Image to RGBA8.");
+		let image = image.to_rgba();
 		
 		let image_size = image.dimensions();
 		let image_width = image_size.0;
@@ -332,6 +331,8 @@ impl Texture {
 			// sampling
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
 			gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+			
+			gl_setup();
 			
 			// uploading
 			gl::TexImage2D(gl::TEXTURE_2D,
