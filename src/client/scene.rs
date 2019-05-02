@@ -16,8 +16,8 @@ pub struct Scene {
 impl Scene {
 	pub fn new() -> Scene {
 		let mut meshes = vec![
-			geometry::geometry_test(),
-			geometry::geometry_cube(1.0),
+			// geometry::geometry_test(),
+			// geometry::geometry_cube(1.0),
 			// geometry::geometry_cube(-512.0),
 		];
 		
