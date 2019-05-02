@@ -169,7 +169,7 @@ pub fn geometry_test() -> SimpleMesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Builder for Meshes with arbitrary-geometry using Vertex-Array-Objects
-struct SimpleMeshBuilder {
+pub struct SimpleMeshBuilder {
 	vertices: Vec<f32>
 }
 
