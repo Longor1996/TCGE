@@ -88,12 +88,25 @@ impl Chunk {
 			blocks: [0 as Block; CHUNK_VOLUME]
 		};
 		
-		extern crate rand;
-		use rand::prelude::*;
-		let mut rng = thread_rng();
+		// extern crate rand;
+		// use rand::prelude::*;
+		// let mut rng = thread_rng();
 		
-		for i in 0..new.blocks.len() {
-			new.blocks[i] = if rng.gen::<u8>() > 200 {255} else {0};
+		const I: isize = (CHUNK_SIZE - 1) as isize;
+		const B: Block = 1;
+		for i in 0..=I {
+			new.set_block(i,0,0,B);
+			new.set_block(i,I,0,B);
+			new.set_block(i,0,I,B);
+			new.set_block(i,I,I,B);
+			new.set_block(0,i,0,B);
+			new.set_block(I,i,0,B);
+			new.set_block(0,i,I,B);
+			new.set_block(I,i,I,B);
+			new.set_block(0,0,i,B);
+			new.set_block(I,0,i,B);
+			new.set_block(0,I,i,B);
+			new.set_block(I,I,i,B);
 		}
 		
 		new
