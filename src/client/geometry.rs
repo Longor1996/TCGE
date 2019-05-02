@@ -21,7 +21,7 @@ impl SimpleMesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub fn geometry_cube(s: f32) -> SimpleMesh {
-	let mut builder = SimpleVaoBuilder::new();
+	let mut builder = SimpleMeshBuilder::new();
 	
 	builder.push_quads(vec![ // top
 		-s, s,  s, // a
@@ -71,7 +71,7 @@ pub fn geometry_cube(s: f32) -> SimpleMesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub fn geometry_planequad(s: f32) -> SimpleMesh {
-	let mut builder = SimpleVaoBuilder::new();
+	let mut builder = SimpleMeshBuilder::new();
 	builder.push_quads(vec![
 		-s, 0.0,  s,
 		s, 0.0,  s,
@@ -143,7 +143,7 @@ pub fn geometry_grid() -> SimpleMesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub fn geometry_test() -> SimpleMesh {
-	let mut builder = SimpleVaoBuilder::new();
+	let mut builder = SimpleMeshBuilder::new();
 	
 	builder.push_vertices(vec![
 		-0.5, -0.5, -10.0,
@@ -169,14 +169,14 @@ pub fn geometry_test() -> SimpleMesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Builder for Meshes with arbitrary-geometry using Vertex-Array-Objects
-struct SimpleVaoBuilder {
+struct SimpleMeshBuilder {
 	vertices: Vec<f32>
 }
 
-impl SimpleVaoBuilder {
+impl SimpleMeshBuilder {
 	
-	pub fn new() -> SimpleVaoBuilder {
-		SimpleVaoBuilder {
+	pub fn new() -> SimpleMeshBuilder {
+		SimpleMeshBuilder {
 			vertices: vec![]
 		}
 	}
