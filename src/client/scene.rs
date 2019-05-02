@@ -110,6 +110,16 @@ impl Chunk {
 		}
 	}
 	
+	pub fn set_block(&mut self, x: isize, y: isize, z: isize, state: Block) -> Option<()> {
+		let x = clamp_chunk_coord(x)?;
+		let y = clamp_chunk_coord(y)?;
+		let z = clamp_chunk_coord(z)?;
+		
+		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
+		self.blocks[index] = state;
+		Some(())
+	}
+	
 	pub fn render_into_simple_mesh(&self) -> SimpleMesh {
 		let mut builder = SimpleMeshBuilder::new();
 		const N: f32 = 0.0;
