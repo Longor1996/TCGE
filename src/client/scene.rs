@@ -248,8 +248,8 @@ impl ChunkStorage {
 		};
 		
 		for y in 0..3 {
-			for z in 0..16 {
-				for x in 0..16 {
+			for z in 0..8 {
+				for x in 0..8 {
 					let chunk = Chunk::new(x, y, z);
 					storage.chunks.push(chunk);
 				}
@@ -272,6 +272,8 @@ impl ChunkRenderManager {
 	}
 	
 	fn render(&mut self, scene: &Scene) {
+		render::utility::gl_push_debug("chunks");
+		
 		let mut max_uploads_per_frame: usize = 1;
 		for chunk in scene.chunks.chunks.iter() {
 			if self.chunks.contains_key(&chunk.pos) {
@@ -280,10 +282,25 @@ impl ChunkRenderManager {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
 					let mesh = chunk.render_into_simple_mesh();
+					
+					render::utility::gl_label_object(
+						gl::VERTEX_ARRAY,
+						mesh.get_gl_descriptor(),
+						&format!("Chunk({}, {}, {}): Descriptor", chunk.pos.x, chunk.pos.y, chunk.pos.z)
+					);
+					
+					render::utility::gl_label_object(
+						gl::BUFFER,
+						mesh.get_gl_vertex_buf(),
+						&format!("Chunk({}, {}, {}): Geometry", chunk.pos.x, chunk.pos.y, chunk.pos.z)
+					);
+					
 					self.chunks.insert(chunk.pos.clone(), mesh);
 				}
 			}
 		}
+		
+		render::utility::gl_pop_debug();
 	}
 }
 
