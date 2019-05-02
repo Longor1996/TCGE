@@ -17,6 +17,8 @@ impl Grid {
 		let shader = ShaderGrid::new(&res)?;
 		let mesh = geometry::geometry_planequad(2048.0);
 		
+		mesh.set_gl_label("PoT Debug Grid");
+		
 		Ok(Grid {
 			size: 256.0,
 			mesh,
