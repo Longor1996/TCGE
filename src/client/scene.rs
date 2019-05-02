@@ -57,6 +57,7 @@ impl router::comp::Component for Scene {
 
 type Block = u8;
 const BLOCK_AIR: Block = 0;
+const BLOCK_ADM: Block = 1;
 const CHUNK_SIZE: usize = 16;
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
@@ -68,18 +69,6 @@ pub struct Chunk {
 	pub blocks: [Block; CHUNK_VOLUME],
 }
 
-fn clamp_chunk_coord(value: isize) -> Option<usize> {
-	if value < 0 {
-		return None
-	}
-	
-	if value >= CHUNK_SIZE as isize {
-		return None
-	}
-	
-	return Some(value as usize)
-}
-
 impl Chunk {
 	
 	pub fn new(x: isize, y: isize, z: isize) -> Chunk {
@@ -88,34 +77,56 @@ impl Chunk {
 			blocks: [0 as Block; CHUNK_VOLUME]
 		};
 		
-		// extern crate rand;
-		// use rand::prelude::*;
-		// let mut rng = thread_rng();
-		
-		const I: isize = (CHUNK_SIZE - 1) as isize;
-		const B: Block = 1;
-		for i in 0..=I {
-			new.set_block(i,0,0,B);
-			new.set_block(i,I,0,B);
-			new.set_block(i,0,I,B);
-			new.set_block(i,I,I,B);
-			new.set_block(0,i,0,B);
-			new.set_block(I,i,0,B);
-			new.set_block(0,i,I,B);
-			new.set_block(I,i,I,B);
-			new.set_block(0,0,i,B);
-			new.set_block(I,0,i,B);
-			new.set_block(0,I,i,B);
-			new.set_block(I,I,i,B);
-		}
+		new.fill_with_noise(BLOCK_ADM, 0.1);
+		new.fill_with_grid(BLOCK_ADM);
 		
 		new
 	}
 	
+	fn clamp_chunk_coord(value: isize) -> Option<usize> {
+		if value < 0 {
+			return None
+		}
+		
+		if value >= CHUNK_SIZE as isize {
+			return None
+		}
+		
+		return Some(value as usize)
+	}
+	
+	pub fn fill_with_grid(&mut self, fill: Block) {
+		const I: isize = (CHUNK_SIZE - 1) as isize;
+		for i in 0..=I {
+			self.set_block(i,0,0,fill);
+			self.set_block(i,I,0,fill);
+			self.set_block(i,0,I,fill);
+			self.set_block(i,I,I,fill);
+			self.set_block(0,i,0,fill);
+			self.set_block(I,i,0,fill);
+			self.set_block(0,i,I,fill);
+			self.set_block(I,i,I,fill);
+			self.set_block(0,0,i,fill);
+			self.set_block(I,0,i,fill);
+			self.set_block(0,I,i,fill);
+			self.set_block(I,I,i,fill);
+		}
+	}
+	
+	pub fn fill_with_noise(&mut self, fill: Block, chance: f64) {
+		extern crate rand;
+		use rand::prelude::*;
+		let mut rng = thread_rng();
+		
+		for i in self.blocks.iter_mut() {
+			*i = if rng.gen_bool(chance) {fill} else {BLOCK_AIR};
+		}
+	}
+	
 	pub fn get_block(&self, x: isize, y: isize, z: isize) -> Option<Block> {
-		let x = clamp_chunk_coord(x)?;
-		let y = clamp_chunk_coord(y)?;
-		let z = clamp_chunk_coord(z)?;
+		let x = Chunk::clamp_chunk_coord(x)?;
+		let y = Chunk::clamp_chunk_coord(y)?;
+		let z = Chunk::clamp_chunk_coord(z)?;
 		
 		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
 		unsafe {
@@ -124,9 +135,9 @@ impl Chunk {
 	}
 	
 	pub fn set_block(&mut self, x: isize, y: isize, z: isize, state: Block) -> Option<()> {
-		let x = clamp_chunk_coord(x)?;
-		let y = clamp_chunk_coord(y)?;
-		let z = clamp_chunk_coord(z)?;
+		let x = Chunk::clamp_chunk_coord(x)?;
+		let y = Chunk::clamp_chunk_coord(y)?;
+		let z = Chunk::clamp_chunk_coord(z)?;
 		
 		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
 		self.blocks[index] = state;
