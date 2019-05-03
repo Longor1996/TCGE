@@ -95,7 +95,7 @@ impl GlfwContextComponent {
 		// ------------------------------------------
 		info!("Initialized window!");
 		
-		let cursor = Cursor {pos_x: 0.0, pos_y: 0.0, mov_x: 0.0, mov_y: 0.0};
+		let cursor = Cursor::new();
 		
 		Ok(GlfwContextComponent {
 			glfw,
@@ -116,17 +116,14 @@ impl GlfwContextComponent {
 				},
 				
 				glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
-					if self.window.get_cursor_mode() == glfw::CursorMode::Disabled {
-						self.window.set_cursor_mode(glfw::CursorMode::Normal);
-						info!("Enabled mouse.");
-					} else {
-						self.window.set_cursor_mode(glfw::CursorMode::Disabled);
-						info!("Disabled mouse.");
-					}
+					let new_state = GlfwContextComponent::toggle_cursor_mode(
+						&mut self.window,
+						None // toggle
+					);
 					
 					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
 						Ok(scene) => {
-							scene.camera.active = self.window.get_cursor_mode() == glfw::CursorMode::Disabled
+							scene.camera.active = new_state == glfw::CursorMode::Disabled
 						},
 						Err(_) => ()
 					}
@@ -152,6 +149,33 @@ impl GlfwContextComponent {
 				},
 				_ => ()
 			}
+		}
+	}
+	
+	pub fn toggle_cursor_mode(window: &mut glfw::Window, state: Option<glfw::CursorMode>) -> glfw::CursorMode {
+		// Direct state change
+		if let Some(state) = state {
+			GlfwContextComponent::set_cursor_mode(window, state);
+			return state;
+		}
+		
+		// Toggle state change
+		let state = match window.get_cursor_mode() {
+			glfw::CursorMode::Normal => glfw::CursorMode::Disabled,
+			glfw::CursorMode::Hidden => glfw::CursorMode::Disabled,
+			glfw::CursorMode::Disabled => glfw::CursorMode::Normal,
+		};
+		
+		GlfwContextComponent::set_cursor_mode(window, state);
+		return state;
+	}
+	
+	fn set_cursor_mode(window: &mut glfw::Window, state: glfw::CursorMode) {
+		window.set_cursor_mode(state);
+		match state {
+			glfw::CursorMode::Disabled => {info!("Disabled mouse.")},
+			glfw::CursorMode::Normal => {info!("Enabled mouse.");}
+			glfw::CursorMode::Hidden => {info!("Enabled mouse.");}
 		}
 	}
 	
@@ -203,6 +227,15 @@ struct Cursor {
 }
 
 impl Cursor {
+	fn new() -> Cursor {
+		Cursor {
+			pos_x: 0.0,
+			pos_y: 0.0,
+			mov_x: 0.0,
+			mov_y: 0.0,
+		}
+	}
+	
 	fn update(&mut self, x: f64, y: f64) {
 		self.mov_x = (x as f32) - self.pos_x;
 		self.mov_y = (y as f32) - self.pos_y;
