@@ -22,7 +22,7 @@ use tcge::router;
 use tcge::util::gameloop;
 use tcge::client;
 use tcge::client::cmd_opts;
-use tcge::client::glfw_context;
+use tcge::client::context;
 use tcge::client::scene;
 use tcge::client::render;
 
@@ -103,7 +103,7 @@ impl router::lens::Handler for ClientLens {
 		
 		event.downcast::<client::TickEvent>().map(|_tick| {
 			let scene = context.get_mut_component_downcast::<scene::Scene>();
-			let gfx = context.get_mut_component_downcast::<glfw_context::GlfwContextComponent>();
+			let gfx = context.get_mut_component_downcast::<context::GlfwContextComponent>();
 			
 			match scene {
 				Ok(scene) => {
@@ -164,13 +164,13 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let res = resources::Resources::from_exe_path()?;
 	
 	// ------------------------------------------
-	let gfx = glfw_context::GlfwContextComponent::new(&opts)?;
+	let gfx = context::GlfwContextComponent::new(&opts)?;
 	
 	// Give the router ownership of the Graphics-Context... then sneakily grab it back!
 	// This is the **only** place in the code where it's okay to do this.
 	router.nodes.set_node_component(0, Box::new(gfx))?;
 	let gfx = router.nodes
-		.get_mut_node_component_downcast::<glfw_context::GlfwContextComponent>(0)?;
+		.get_mut_node_component_downcast::<context::GlfwContextComponent>(0)?;
 	
 	// ------------------------------------------
 	
