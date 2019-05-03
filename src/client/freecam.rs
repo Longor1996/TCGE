@@ -65,6 +65,20 @@ impl Camera {
 		self.rotation // + ((self.rotation_last - self.rotation) * interpolation)
 	}
 	
+	pub fn get_look_dir(&self, interpolation: f32) -> cgmath::Vector3<f32> {
+		let rotation = self.get_rotation(interpolation);
+		let pitch = cgmath::Deg(rotation.x);
+		let yaw = cgmath::Deg(rotation.y);
+		
+		let mut camera = Matrix4::one();
+		camera = camera * Matrix4::from_angle_y(yaw);
+		camera = camera * Matrix4::from_angle_x(pitch);
+		
+		let forward = Vector3::new(0.0, 0.0, 1.0);
+		let forward = Matrix4::transform_vector(&camera, forward);
+		forward.normalize()
+	}
+	
 	/// Given a viewport-size and an interpolation factor, compute the View-Projection-Matrix for this camera.
 	///
 	/// If `translation` is `false`, the camera position is ignored in the computation.
