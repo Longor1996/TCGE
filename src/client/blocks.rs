@@ -4,18 +4,71 @@ use super::super::resources;
 use super::render;
 use super::geometry;
 
+use super::super::util::current_time_nanos;
+
 type Block = u8;
-const BLOCK_AIR: Block = 0;
-const BLOCK_ADM: Block = 1;
+pub const BLOCK_AIR: Block = 0;
+pub const BLOCK_ADM: Block = 1;
 const CHUNK_SIZE: usize = 16;
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
 
-#[derive(Eq, Hash, Clone)]
+
+#[derive(Eq, Clone)]
+pub struct BlockCoord {
+	pub x: isize,
+	pub y: isize,
+	pub z: isize,
+}
+
+impl BlockCoord {
+	pub fn new(x: isize, y: isize, z: isize) -> BlockCoord {
+		BlockCoord {
+			x, y, z
+		}
+	}
+}
+
+impl PartialEq for BlockCoord {
+	fn eq(&self, other: &BlockCoord) -> bool {
+		self.x == other.x
+		&& self.y == other.y
+		&& self.z == other.z
+	}
+}
+
+impl std::fmt::Display for BlockCoord {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "[x: {}, y: {}, z: {}]",
+			self.x,
+			self.y,
+			self.z,
+		)
+	}
+}
+
+#[derive(Eq, Clone)]
 pub struct ChunkCoord {
 	pub x: isize,
 	pub y: isize,
 	pub z: isize,
+}
+
+impl ChunkCoord {
+	pub fn new_from_chunk(x: isize, y: isize, z: isize) -> ChunkCoord {
+		ChunkCoord {
+			x, y, z
+		}
+	}
+	
+	pub fn new_from_block(pos: &BlockCoord) -> ChunkCoord {
+		let div = CHUNK_SIZE as isize;
+		ChunkCoord {
+			x: pos.x / div,
+			y: pos.y / div,
+			z: pos.z / div,
+		}
+	}
 }
 
 impl PartialEq for ChunkCoord {
@@ -26,9 +79,28 @@ impl PartialEq for ChunkCoord {
 	}
 }
 
+impl std::hash::Hash for ChunkCoord {
+	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+		(self.x).hash(state);
+		(self.z).hash(state);
+		(self.y).hash(state);
+	}
+}
+
+impl std::fmt::Display for ChunkCoord {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "[x: {}, y: {}, z: {}]",
+			self.x,
+			self.y,
+			self.z,
+		)
+	}
+}
+
 pub struct Chunk {
 	pub pos: ChunkCoord,
 	pub blocks: [Block; CHUNK_VOLUME],
+	pub last_update: u128
 }
 
 impl Chunk {
@@ -36,10 +108,11 @@ impl Chunk {
 	pub fn new(x: isize, y: isize, z: isize) -> Chunk {
 		let mut new = Chunk {
 			pos: ChunkCoord {x,y,z},
-			blocks: [0 as Block; CHUNK_VOLUME]
+			blocks: [0 as Block; CHUNK_VOLUME],
+			last_update: current_time_nanos()
 		};
 		
-		new.fill_with_noise(BLOCK_ADM, 0.1);
+		// new.fill_with_noise(BLOCK_ADM, 0.1);
 		new.fill_with_grid(BLOCK_ADM);
 		
 		new
@@ -103,6 +176,7 @@ impl Chunk {
 		
 		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
 		self.blocks[index] = state;
+		self.last_update = current_time_nanos();
 		Some(())
 	}
 	
@@ -200,7 +274,7 @@ pub struct ChunkStorage {
 impl ChunkStorage {
 	pub fn new() -> ChunkStorage {
 		let mut storage = ChunkStorage {
-			chunks: vec![]
+			chunks: Vec::default()
 		};
 		
 		for y in 0..3 {
@@ -214,13 +288,233 @@ impl ChunkStorage {
 		
 		storage
 	}
+	
+	pub fn get_block(&self, pos: &BlockCoord) -> Option<Block> {
+		let cpos = ChunkCoord::new_from_block(pos);
+		let cs = CHUNK_SIZE as isize;
+		
+		for chunk in self.chunks.iter() {
+			if chunk.pos == cpos {
+				let cx = pos.x % cs;
+				let cy = pos.y % cs;
+				let cz = pos.z % cs;
+				match chunk.get_block(cx, cy, cz) {
+					Some(x) => return Some(x),
+					None => ()
+				}
+			}
+		}
+		
+		return None;
+	}
+	
+	pub fn set_block(&mut self, pos: &BlockCoord, state: Block) -> bool {
+		let cpos = ChunkCoord::new_from_block(pos);
+		let cs = CHUNK_SIZE as isize;
+		
+		for chunk in self.chunks.iter_mut() {
+			if chunk.pos == cpos {
+				let cx = pos.x % cs;
+				let cy = pos.y % cs;
+				let cz = pos.z % cs;
+				
+				chunk.set_block(cx, cy, cz, state);
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> Option<(BlockCoord, BlockCoord, Block)> {
+		loop {
+			let (lx, ly, lz) = raycast.previous();
+			
+			let (cx, cy, cz) = match raycast.step() {
+				Some(pos) => pos,
+				None => break
+			};
+			
+			let last_pos = BlockCoord::new(lx, ly, lz);
+			let pos = BlockCoord::new(cx, cy, cz);
+			
+			match self.get_block(&pos) {
+				Some(block) => match block {
+					BLOCK_AIR => (),
+					_ => return Some((last_pos, pos, block))
+				}
+				_ => ()
+			}
+		}
+		
+		return None;
+	}
+	
+	pub fn raycast_fill(&mut self, raycast: &mut BlockRaycast, state: Block) {
+		while let Some((x,y,z)) = raycast.step() {
+			let pos = BlockCoord::new(x, y, z);
+			self.set_block(&pos, state);
+		}
+	}
 }
 
-pub struct ChunkRenderManager {
-	chunks: FxHashMap<ChunkCoord, geometry::SimpleMesh>,
-	material: ShaderBlocks,
+pub struct BlockRaycast {
+	gx: f32,
+	gy: f32,
+	gz: f32,
+	lx: f32,
+	ly: f32,
+	lz: f32,
+	gx1idx: f32,
+	gy1idx: f32,
+	gz1idx: f32,
+	errx: f32,
+	erry: f32,
+	errz: f32,
+	sx: f32,
+	sy: f32,
+	sz: f32,
+	derrx: f32,
+	derry: f32,
+	derrz: f32,
+	done: bool,
+	visited: usize,
 }
 
+impl BlockRaycast {
+	
+	pub fn new_from_src_dir_len(src: cgmath::Vector3<f32>, dir: cgmath::Vector3<f32>, len: f32) -> BlockRaycast {
+		let dst = src + (dir * len);
+		BlockRaycast::new_from_src_dst(src, dst)
+	}
+	
+	pub fn new_from_src_dst(src: cgmath::Vector3<f32>, dst: cgmath::Vector3<f32>) -> BlockRaycast {
+		let gx0idx = src.x.floor();
+		let gy0idx = src.y.floor();
+		let gz0idx = src.z.floor();
+		
+		let gx1idx = dst.x.floor();
+		let gy1idx = dst.y.floor();
+		let gz1idx = dst.z.floor();
+		
+		let sx = BlockRaycast::psign(gx0idx, gx1idx);
+		let sy = BlockRaycast::psign(gy0idx, gy1idx);
+		let sz = BlockRaycast::psign(gz0idx, gz1idx);
+		
+		// Planes for each axis that we will next cross
+		let gxp = gx0idx + (if gx1idx > gx0idx { 1.0 } else { 0.0 });
+		let gyp = gy0idx + (if gy1idx > gy0idx { 1.0 } else { 0.0 });
+		let gzp = gz0idx + (if gz1idx > gz0idx { 1.0 } else { 0.0 });
+		
+		// Only used for multiplying up the error margins
+		let vx = if dst.x == src.x { 1.0 } else { dst.x - src.x};
+		let vy = if dst.y == src.y { 1.0 } else { dst.y - src.y};
+		let vz = if dst.z == src.z { 1.0 } else { dst.z - src.z};
+		
+		// Error is normalized to vx * vy * vz so we only have to multiply up
+		let vxvy = vx * vy;
+		let vxvz = vx * vz;
+		let vyvz = vy * vz;
+		
+		// Error from the next plane accumulators, scaled up by vx*vy*vz
+		//   gx0 + vx * rx === gxp
+		//   vx * rx === gxp - gx0
+		//   rx === (gxp - gx0) / vx
+		let errx = (gxp - src.x) * vyvz;
+		let erry = (gyp - src.y) * vxvz;
+		let errz = (gzp - src.z) * vxvy;
+		
+		let derrx = sx * vyvz;
+		let derry = sy * vxvz;
+		let derrz = sz * vxvy;
+		
+		BlockRaycast {
+			done: false,
+			visited: 0,
+			
+			gx: gx0idx,
+			gy: gy0idx,
+			gz: gz0idx,
+			lx: gx0idx,
+			ly: gy0idx,
+			lz: gz0idx,
+			gx1idx, gy1idx, gz1idx,
+			errx, erry, errz,
+			sx, sy, sz,
+			derrx, derry, derrz
+		}
+	}
+	
+	pub fn current(&self) -> (isize, isize, isize) {
+		(
+			self.gx as isize,
+			self.gy as isize,
+			self.gz as isize,
+		)
+	}
+	
+	pub fn previous(&self) -> (isize, isize, isize) {
+		(
+			self.lx as isize,
+			self.ly as isize,
+			self.lz as isize,
+		)
+	}
+	
+	pub fn step(&mut self) -> Option<(isize, isize, isize)> {
+		if self.done {
+			return None
+		}
+		
+		let ret = (
+			self.gx as isize,
+			self.gy as isize,
+			self.gz as isize,
+		);
+		
+		if self.gx == self.gx1idx && self.gy == self.gy1idx && self.gz == self.gz1idx {
+			self.done = true;
+		}
+		
+		self.step_compute();
+		self.visited += 1;
+		return Some(ret)
+	}
+	
+	fn step_compute(&mut self) {
+		self.lx = self.gx;
+		self.ly = self.gy;
+		self.lz = self.gz;
+		
+		let xr = self.errx.abs();
+		let yr = self.erry.abs();
+		let zr = self.errz.abs();
+		
+		if (self.sx != 0.0) && (self.sy == 0.0 || xr < yr) && (self.sz == 0.0 || xr < zr) {
+			self.gx += self.sx;
+			self.errx += self.derrx;
+		}
+		else if (self.sy != 0.0) && (self.sz == 0.0 || yr < zr) {
+			self.gy += self.sy;
+			self.erry += self.derry;
+		}
+		else if self.sz != 0.0 {
+			self.gz += self.sz;
+			self.errz += self.derrz;
+		}
+	}
+	
+	fn psign(a: f32, b: f32) -> f32 {
+		if b > a {
+			1.0
+		} else if b < a {
+			-1.0
+		} else {
+			0.0
+		}
+	}
+	
+}
 
 pub struct ShaderBlocks {
 	pub shader: render::utility::Program,
@@ -263,6 +557,10 @@ impl ShaderBlocks {
 	}
 }
 
+pub struct ChunkRenderManager {
+	chunks: FxHashMap<ChunkCoord, (u128, geometry::SimpleMesh)>,
+	material: ShaderBlocks,
+}
 
 impl ChunkRenderManager {
 	pub fn new(res: &resources::Resources) -> Result<ChunkRenderManager, render::utility::Error> {
@@ -287,8 +585,17 @@ impl ChunkRenderManager {
 		
 		let mut max_uploads_per_frame: usize = 1;
 		for chunk in scene.chunks.chunks.iter() {
-			if self.chunks.contains_key(&chunk.pos) {
-				self.chunks.get(&chunk.pos).unwrap().draw(gl::TRIANGLES);
+			let cpos = &chunk.pos;
+			
+			if self.chunks.contains_key(cpos) {
+				let (time, mesh) = self.chunks.get_mut(cpos).unwrap();
+				
+				if chunk.last_update > *time {
+					*time = chunk.last_update;
+					*mesh = chunk.render_into_simple_mesh();
+				}
+				
+				mesh.draw(gl::TRIANGLES);
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
@@ -297,16 +604,16 @@ impl ChunkRenderManager {
 					render::utility::gl_label_object(
 						gl::VERTEX_ARRAY,
 						mesh.get_gl_descriptor(),
-						&format!("Chunk({}, {}, {}): Descriptor", chunk.pos.x, chunk.pos.y, chunk.pos.z)
+						&format!("Chunk({}, {}, {}): Descriptor", cpos.x, cpos.y, cpos.z)
 					);
 					
 					render::utility::gl_label_object(
 						gl::BUFFER,
 						mesh.get_gl_vertex_buf(),
-						&format!("Chunk({}, {}, {}): Geometry", chunk.pos.x, chunk.pos.y, chunk.pos.z)
+						&format!("Chunk({}, {}, {}): Geometry", cpos.x, cpos.y, cpos.z)
 					);
 					
-					self.chunks.insert(chunk.pos.clone(), mesh);
+					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
 				}
 			}
 		}

@@ -4,7 +4,7 @@ use super::super::router;
 use super::cmd_opts;
 use super::scene;
 
-use super::glfw::{Context, Key, Action};
+use super::glfw::{Context, Key, MouseButton, Action, CursorMode};
 use std::sync::mpsc::Receiver;
 use std::cell::RefMut;
 use std::ops::DerefMut;
@@ -47,6 +47,7 @@ impl GlfwContextComponent {
 		
 		window.make_current();
 		window.set_key_polling(true);
+		window.set_mouse_button_polling(true);
 		window.set_cursor_pos_polling(true);
 		window.set_cursor_mode(glfw::CursorMode::Normal);
 		window.set_framebuffer_size_polling(true);
@@ -132,6 +133,49 @@ impl GlfwContextComponent {
 				glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
 					info!("User pressed ESC, shutting down...");
 					self.window.set_should_close(true)
+				},
+				
+				glfw::WindowEvent::MouseButton(button, Action::Press, _) => {
+					trace!("Click!");
+					
+					if self.window.get_cursor_mode() != glfw::CursorMode::Disabled {
+						continue;
+					}
+					
+					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						Ok(scene) => {
+							let src = scene.camera.get_position(1.0);
+							let dir = scene.camera.get_look_dir(1.0);
+							let len = 16.0;
+							
+							use super::blocks;
+							let mut rc = blocks::BlockRaycast::new_from_src_dir_len(src, dir, len);
+							
+							trace!("Raycast from {} in {} by {}",
+								format!("[{}, {}, {}]", src.x, src.y, src.z),
+								format!("[{}, {}, {}]", dir.x, dir.y, dir.z),
+								len
+							);
+							
+							match scene.chunks.raycast(&mut rc) {
+								Some((last_pos, curr_pos, block)) => {
+									trace!("HIT: {}, {}, {}", last_pos, curr_pos, block);
+									
+									match button {
+										MouseButton::Button1 => {
+											scene.chunks.set_block(&curr_pos, blocks::BLOCK_AIR);
+										},
+										MouseButton::Button2 => {
+											scene.chunks.set_block(&last_pos, blocks::BLOCK_ADM);
+										},
+										_ => {}
+									}
+								},
+								None => ()
+							}
+						},
+						Err(_) => ()
+					}
 				},
 				
 				glfw::WindowEvent::CursorPos(x, y) => {
