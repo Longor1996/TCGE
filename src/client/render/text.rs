@@ -5,8 +5,10 @@ use super::cgmath::SquareMatrix;
 use super::utility;
 use std::io::{BufRead, BufReader};
 
-const FONT_DATA_PNG: &str = "fonts/ascii/Hack-Regular.ttf.sdf.png";
-const FONT_DATA_TXT: &str = "fonts/ascii/Hack-Regular.ttf.sdf.txt";
+//const FONT_DATA_PNG: &str = "fonts/ascii/Hack-Regular.ttf.sdf.png";
+//const FONT_DATA_TXT: &str = "fonts/ascii/Hack-Regular.ttf.sdf.txt";
+const FONT_DATA_PNG: &str = "fonts/ascii/hack.png";
+const FONT_DATA_TXT: &str = "fonts/ascii/hack.fnt";
 const FONT_MATERIAL: &str = "shaders/sdf-text";
 
 pub struct AsciiTextRenderer {
@@ -37,12 +39,13 @@ impl AsciiTextRenderer {
 			.map_err(|e| utility::Error::ResourceLoad { name: FONT_DATA_TXT.to_string(), inner: e })?;
 		
 		// Allocate character-table and fill it with 'null'
-		let mut chars: Vec<AsciiTextRendererChar> = Vec::with_capacity(1+256);
-		for x in 0 .. 256 {
+		let capacity = 8400;
+		let mut chars: Vec<AsciiTextRendererChar> = Vec::with_capacity(capacity + 1);
+		for x in 0 .. capacity {
 			chars.push(AsciiTextRendererChar::from_nothing(x));
 		}
 		
-		let mut scale = 48.0; // default
+		let mut scale = 32.0; // default
 		
 		debug!("Parsing font: {}", FONT_DATA_TXT);
 		for line in BufReader::new(file).lines() {
@@ -157,6 +160,8 @@ impl AsciiTextRenderer {
 		self.material.shader.set_used();
 		self.material.shader.uniform_matrix4(self.material.uniform_matrix, self.transform);
 		self.material.shader.uniform_vector4(self.material.uniform_color, color);
+		self.material.shader.uniform_scalar(self.material.uniform_spread, 8.0);
+		self.material.shader.uniform_scalar(self.material.uniform_scale, font_size / self.scale);
 		self.material.shader.uniform_sampler(self.material.uniform_sdfmap, 0);
 		
 		unsafe {
@@ -225,10 +230,10 @@ impl AsciiTextRenderer {
 		}
 		
 		let character = &self.characters[character];
-		let w  = character.width  as f32  /self.scale*font_size;
-		let h  = character.height as f32  /self.scale*font_size;
-		let lx = *x + character.xoffset  /self.scale*font_size;
-		let ly = *y - character.yoffset  /self.scale*font_size;
+		let w  = character.width  as f32 / self.scale*font_size;
+		let h  = character.height as f32 / self.scale*font_size;
+		let lx = *x + character.xoffset  / self.scale*font_size;
+		let ly = *y + character.yoffset  / self.scale*font_size;
 		
 		let mut temp = vec![
 			// triangle top left
@@ -307,7 +312,9 @@ pub struct AsciiTextRendererMaterial {
 	pub sdfmap: utility::Texture,
 	pub uniform_matrix: i32,
 	pub uniform_sdfmap: i32,
-	pub uniform_color: i32,
+	pub uniform_color:  i32,
+	pub uniform_spread: i32,
+	pub uniform_scale:  i32,
 }
 
 impl AsciiTextRendererMaterial {
@@ -321,11 +328,15 @@ impl AsciiTextRendererMaterial {
 		let uniform_matrix = shader.uniform_location("transform");
 		let uniform_sdfmap = shader.uniform_location("sdfmap");
 		let uniform_color = shader.uniform_location("color");
+		let uniform_spread = shader.uniform_location("spread");
+		let uniform_scale = shader.uniform_location("scale");
 		
 		Ok(AsciiTextRendererMaterial {shader, sdfmap,
 			uniform_matrix,
 			uniform_sdfmap,
-			uniform_color
+			uniform_color,
+			uniform_spread,
+			uniform_scale,
 		})
 	}
 }

@@ -246,7 +246,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				render_state_gui.debug_text.clear();
 				
 				render_state_gui.debug_text.push((
-					0.0, 16.0,
+					0.0, 0.0,
 					format!("TCGE {version} \nFrametime: {mpf}ms \n{fps} FPS, {tps} TPS",
 						version = env!("VERSION"),
 						mpf = (frame_time * 1000.0).ceil(),
@@ -262,7 +262,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 						let rotation = camera.get_rotation(interpolation);
 						
 						render_state_gui.debug_text.push((
-							0.0, (h as f32) - 2.0,
+							0.0, (h as f32) - 16.0 -  2.0,
 							format!("Camera: {x:.1}, {y:.1}, {z:.1} / {pitch:.0} {yaw:.0}",
 								x = position.x,
 								y = position.y,
