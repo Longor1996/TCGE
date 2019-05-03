@@ -56,11 +56,19 @@ impl GlfwContextComponent {
 			glfw::ffi::DONT_CARE as u32
 		);
 		
+		let initial_window_size = window.get_size();
+		let initial_framebuf_size = window.get_framebuffer_size();
+		let initial_content_scale = window.get_content_scale();
+		
+		debug!("Initial Window Size:   {} {}", initial_window_size.0, initial_window_size.1);
+		debug!("Initial Frame Size:    {} {}", initial_framebuf_size.0, initial_framebuf_size.1);
+		debug!("Initial Content Scale: {} {}", initial_content_scale.0, initial_content_scale.1);
+		
 		// Center the clients primary window in the middle of the primary monitor.
 		glfw.with_primary_monitor_mut(|_, primary| {
 			if let Some(monitor) = primary {
 				if let Some(vidmod) = monitor.get_video_mode() {
-					debug!("Centering window on monitor: {}", monitor.get_name().unwrap_or(String::from("???")));
+					debug!("Centering window on monitor '{}' ...", monitor.get_name().unwrap_or(String::from("[UNKNOWN]")));
 					let w_size = window.get_size();
 					window.set_pos(
 						(vidmod.width as i32/2) - (w_size.0/2),
