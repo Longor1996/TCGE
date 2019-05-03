@@ -1,3 +1,7 @@
+//! This is the application entry-point and mainloop for the server.
+//!
+//! All related code not contained in this file resides in the [`server`-crate](../tcge/server/index.html).
+
 #[macro_use]
 extern crate log;
 extern crate simplelog;

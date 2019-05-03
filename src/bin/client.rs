@@ -1,3 +1,7 @@
+//! This is the application entry-point and mainloop for the client.
+//!
+//! All related code not contained in this file resides in the [`client`-crate](../tcge/client/index.html).
+
 use std::rc::Rc;
 use std::cell::{RefCell};
 use core::borrow::Borrow;

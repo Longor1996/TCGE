@@ -17,6 +17,20 @@ Make it as data-driven as possible...
 
 The final goal \(in the far future\) is to create the game called Talecraft.
 
+## Project Structure
+
+The program consists of three parts: two 'binary' modules and several 'library' modules.
+
+The binary modules directly depend on their respective library-module:
+
+- `src/bin/client.rs`: The entry-point and mainloop for the client binary.
+- `src/bin/server.rs`: The entry-point and mainloop for the server binary.
+- `src/client/`: The library containing the modules for the client.
+- `src/server/`: The library containing the modules for the server.
+
+All other library modules essentially represent the various systems of the engine,
+with the sole exception of the `router`-module which is the frameworks backbone.
+
 ## Build Instructions
 
 1. Install the [rust-lang toolchain](https://rustup.rs/) for your OS.
