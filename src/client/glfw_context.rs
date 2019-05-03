@@ -146,6 +146,11 @@ impl GlfwContextComponent {
 			}
 		}
 	}
+	
+	pub fn swap_and_poll(&mut self) {
+		self.window.swap_buffers();
+		self.glfw.poll_events();
+	}
 }
 
 impl router::comp::Component for GlfwContextComponent {

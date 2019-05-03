@@ -10,23 +10,17 @@ extern crate failure;
 #[allow(unused_imports)]
 use failure::Fail;
 
-extern crate time;
-extern crate glfw;
-use glfw::{Context};
-extern crate image;
 extern crate gl;
 
 extern crate tcge;
-extern crate core;
-
 use tcge::resources;
 use tcge::router;
 use tcge::util::gameloop;
+use tcge::client;
 use tcge::client::cmd_opts;
 use tcge::client::glfw_context;
 use tcge::client::scene;
 use tcge::client::render;
-use tcge::client;
 
 fn main() {
 	let options = match cmd_opts::parse() {
@@ -282,8 +276,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			}
 		);
 		
-		gfx.window.swap_buffers();
-		gfx.glfw.poll_events();
+		gfx.swap_and_poll();
 	}
 	
 	Ok(())
