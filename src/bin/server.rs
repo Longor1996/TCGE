@@ -8,9 +8,9 @@ use failure::Fail;
 
 extern crate tcge;
 use tcge::resources;
-use tcge::router;
-use tcge::util::gameloop;
-use tcge::server;
+//use tcge::router;
+//use tcge::util::gameloop;
+//use tcge::server;
 
 fn main() {
 	use simplelog::*;
