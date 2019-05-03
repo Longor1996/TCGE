@@ -46,6 +46,18 @@ impl SimpleMesh {
 	}
 }
 
+impl Drop for SimpleMesh {
+	fn drop(&mut self) {
+		unsafe {
+			let tmp = [self.vertex_buf];
+			gl::DeleteBuffers(1, tmp.as_ptr());
+			
+			let tmp = [self.descriptor];
+			gl::DeleteVertexArrays(1, tmp.as_ptr());
+		}
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 pub fn geometry_cube(s: f32) -> SimpleMesh {
