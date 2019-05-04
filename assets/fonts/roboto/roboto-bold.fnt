@@ -4,7 +4,8 @@ page id=0 file="roboto-bold.png"
 chars count=715
 char id=0       x=0    y=0    width=0    height=0    xoffset=-8   yoffset=0    xadvance=0    page=0    chnl=0 
 char id=13      x=0    y=0    width=0    height=0    xoffset=-8   yoffset=0    xadvance=0    page=0    chnl=0 
-char id=33      x=429  y=487  width=22   height=39   xoffset=-7   yoffset=-1   xadvance=9    page=0    chnl=0 
+char id=32      x=0    y=0    width=0    height=0    xoffset=-8   yoffset=0    xadvance=18   page=0    chnl=0
+char id=33      x=429  y=487  width=22   height=39   xoffset=-7   yoffset=-1   xadvance=9    page=0    chnl=0
 char id=34      x=511  y=903  width=25   height=25   xoffset=-7   yoffset=-2   xadvance=10   page=0    chnl=0 
 char id=35      x=451  y=487  width=34   height=39   xoffset=-7   yoffset=-1   xadvance=19   page=0    chnl=0 
 char id=36      x=448  y=0    width=32   height=47   xoffset=-7   yoffset=-5   xadvance=18   page=0    chnl=0 
