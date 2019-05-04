@@ -60,18 +60,51 @@ impl AsciiTextRenderer {
 				})?;
 			}
 			
-			if ! line.starts_with("char ") {
+			if line.starts_with("char ") {
+				let mut char = AsciiTextRendererChar::from_nothing(0);
+				AsciiTextRenderer::parse_line(&line, &mut |key, value| {
+					match key {
+						"id" => char.id = value.parse::<usize>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'id'"))?,
+						
+						"x" => char.x = value.parse::<u32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'x'"))?,
+						
+						"y" => char.y = value.parse::<u32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'y'"))?,
+						
+						"width" => char.width = value.parse::<u32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'width'"))?,
+						
+						"height" => char.height = value.parse::<u32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'height'"))?,
+						
+						"xoffset" => char.xoffset = value.parse::<f32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'xoffset'"))?,
+						
+						"yoffset" => char.yoffset = value.parse::<f32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'yoffset'"))?,
+						
+						"xadvance" => char.xadvance = value.parse::<f32>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'xadvance'"))?,
+						
+						_ => {}
+					}
+					
+					Ok(())
+				})?;
+				
+				char.uv = material.sdfmap.get_uv_rect(
+					char.x, char.y,
+					char.width, char.height
+				);
+				
+				chars[char.id] = char;
 				continue;
 			}
 			
-			let mut char = AsciiTextRendererChar::from_line(&line[5..]);
-			
-			char.uv = material.sdfmap.get_uv_rect(
-				char.x, char.y,
-				char.width, char.height
-			);
-			
-			chars[char.id] = char;
+			// unknown line!
+			continue;
 		}
 		
 		Ok(AsciiTextRenderer {
@@ -376,33 +409,6 @@ impl AsciiTextRendererChar {
 			xadvance: 0.0,
 			uv: [0.0, 0.0, 0.0, 0.0]
 		}
-	}
-	
-	pub fn from_line(line: &str) -> AsciiTextRendererChar {
-		let attribs: Vec<&str> = line.split_whitespace().collect();
-		let mut char = AsciiTextRendererChar::from_nothing(0);
-		
-		for attribute in attribs {
-			let splitpos = attribute.find("=").expect("Invalid char definition.");
-			
-			let key_val = attribute.split_at(splitpos);
-			let key = key_val.0;
-			let value = &(key_val.1)[1..];
-			
-			match key {
-				"id" => char.id = value.parse::<usize>().expect("Could not parse 'id'"),
-				"x" => char.x = value.parse::<u32>().expect("Could not parse 'x'"),
-				"y" => char.y = value.parse::<u32>().expect("Could not parse 'y'"),
-				"width" => char.width = value.parse::<u32>().expect("Could not parse 'width'"),
-				"height" => char.height = value.parse::<u32>().expect("Could not parse 'height'"),
-				"xoffset" => char.xoffset = value.parse::<f32>().expect("Could not parse 'xoffset'"),
-				"yoffset" => char.yoffset = value.parse::<f32>().expect("Could not parse 'yoffset'"),
-				"xadvance" => char.xadvance = value.parse::<f32>().expect("Could not parse 'xadvance'"),
-				_ => {}
-			}
-		}
-		
-		return char;
 	}
 }
 

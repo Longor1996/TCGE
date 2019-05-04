@@ -27,6 +27,16 @@ pub enum Error {
 	ValueParse { name: String },
 }
 
+impl Error {
+	
+	pub fn new_valerr(message: &str) -> Error {
+		Error::ValueParse {
+			name: message.to_string()
+		}
+	}
+	
+}
+
 pub struct Program {
 	name: String,
 	id: gl::types::GLuint,
