@@ -302,9 +302,12 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		gl::Disable(gl::DEPTH_TEST);
 	}
 	
+	let width = render_state_gui.width as f32;
+	let height = render_state_gui.height as f32;
+	
 	let projection = cgmath::ortho(0.0,
-		render_state_gui.width as f32,
-		render_state_gui.height as f32,
+		width,
+		height,
 		0.0,
 		-1.0,1.0
 	);
@@ -314,6 +317,12 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	while let Some((x,y,text)) = render_state_gui.debug_text.pop() {
 		render_state_gui.ascii_renderer.draw_text(&text, 16.0, x, y);
 	}
+	
+	render_state_gui.ascii_renderer.draw_text(
+		"+", 10.0,
+		width  / 2.0 - 5.0,
+		height / 2.0 - 5.0
+	);
 	
 	render::utility::gl_pop_debug();
 }
