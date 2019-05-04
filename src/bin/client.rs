@@ -178,6 +178,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let mut render_state_gui = GuiRenderState {
 		width: 0, height: 0,
 		ascii_renderer,
+		crosshair: render::crosshair::CrosshairRenderer::new(&res)?,
 		debug_text: vec![],
 	};
 	
@@ -289,6 +290,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 struct GuiRenderState {
 	width: i32, height: i32,
 	ascii_renderer: render::text::AsciiTextRenderer,
+	crosshair: render::crosshair::CrosshairRenderer,
 	debug_text: Vec<(f32,f32,String)>
 }
 
@@ -312,17 +314,13 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		-1.0,1.0
 	);
 	
+	render_state_gui.crosshair.draw(projection, width, height, 4.0);
+	
 	render_state_gui.ascii_renderer.transform = projection;
 	
 	while let Some((x,y,text)) = render_state_gui.debug_text.pop() {
 		render_state_gui.ascii_renderer.draw_text(&text, 16.0, x, y);
 	}
-	
-	render_state_gui.ascii_renderer.draw_text(
-		"+", 10.0,
-		width  / 2.0 - 5.0,
-		height / 2.0 - 5.0
-	);
 	
 	render::utility::gl_pop_debug();
 }
