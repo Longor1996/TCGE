@@ -4,6 +4,7 @@ extern crate cgmath;
 extern crate glfw;
 
 pub mod cmd_opts;
+pub mod settings;
 pub mod context;
 pub mod scene;
 pub mod render;

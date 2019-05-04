@@ -280,14 +280,29 @@ pub struct ChunkStorage {
 }
 
 impl ChunkStorage {
-	pub fn new() -> ChunkStorage {
+	pub fn new(config: toml::value::Table) -> ChunkStorage {
 		let mut storage = ChunkStorage {
 			chunks: Vec::default()
 		};
 		
-		for y in 0..3 {
-			for z in 0..8 {
-				for x in 0..8 {
+		let mut range = 4;
+		let mut height = 3;
+		
+		if let Some(rv) = config.get("range") {
+			if let Some(r) = rv.as_integer() {
+				range = r as isize;
+			}
+		}
+		
+		if let Some(hv) = config.get("height") {
+			if let Some(h) = hv.as_integer() {
+				height = h as isize;
+			}
+		}
+		
+		for y in 0..height {
+			for z in -range..range {
+				for x in -range..range {
 					let chunk = Chunk::new(x, y, z);
 					storage.chunks.push(chunk);
 				}

@@ -4,6 +4,7 @@
 // TODO: The camera will need to be abstracted into a PlayerController...
 
 use super::glfw::{Key, Action};
+use super::settings;
 
 #[allow(unused)]
 use super::cgmath::{
@@ -50,6 +51,32 @@ impl Camera {
 			mouse_sensivity: 0.25,
 			invert_mouse: false,
 			move_speed: 2.0 / 30.0,
+		}
+	}
+	
+	pub fn apply_settings(&mut self, settings: &settings::Settings) {
+		let controls = match settings.table.get("freecam-controls") {
+			Some(v) => match v.as_table() {
+				Some(t) => t,
+				None => {warn!("'freecam-controls' settings is not a table."); return}
+			},
+			None => {warn!("'freecam-controls' settings does not exist."); return}
+		};
+		
+		if let Some(v) = controls.get("field-of-view") {
+			self.field_of_view = v.as_float().expect("Value 'field-of-view' is not a float.") as f32;
+		}
+		
+		if let Some(v) = controls.get("mouse-sensitivity") {
+			self.mouse_sensivity = v.as_float().expect("Value 'mouse-sensitivity' is not a float.") as f32;
+		}
+		
+		if let Some(v) = controls.get("mouse-inverted") {
+			self.invert_mouse = v.as_bool().expect("Value 'mouse-inverted' is not a bool.");
+		}
+		
+		if let Some(v) = controls.get("movement-speed") {
+			self.move_speed = v.as_float().expect("Value 'movement-speed' is not a float.") as f32 / 30.0;
 		}
 	}
 	

@@ -15,7 +15,9 @@ pub struct Scene {
 
 impl Scene {
 	pub fn new() -> Scene {
-		let chunks = blocks::ChunkStorage::new();
+		let config = Scene::load_config().expect("Failed to load scene config.");
+		
+		let chunks = blocks::ChunkStorage::new(config);
 		
 		Scene {
 			camera: freecam::Camera::new(),
@@ -25,6 +27,25 @@ impl Scene {
 				// geometry::geometry_cube(-512.0),
 			],
 			chunks
+		}
+	}
+	
+	pub fn load_config() -> Option<toml::value::Table> {
+		let exe_file_name = ::std::env::current_exe().ok()?;
+		let exe_path = exe_file_name.parent()?;
+		let config_dir = exe_path.join("config");
+		let config_file = config_dir.join("test-scene.toml");
+		let mut config_file = std::fs::File::open(config_file.as_path()).ok()?;
+		
+		use std::io::Read;
+		let mut config_str = String::new();
+		config_file.read_to_string(&mut config_str).ok()?;
+		
+		let config = config_str.parse::<toml::Value>().ok()?;
+		if let Some(config) = config.as_table() {
+			return Some(config.clone());
+		} else {
+			return None;
 		}
 	}
 	
@@ -59,8 +80,12 @@ impl router::comp::Component for Scene {
 	fn on_load(&mut self) {}
 	fn on_unload(&mut self) {}
 	
-	fn on_event(&mut self, _event: &mut router::event::Wrapper) {
-		//
+	fn on_event(&mut self, event: &mut router::event::Wrapper) {
+		
+		if let Some(event) = event.downcast::<super::settings::SettingsReloadEvent>() {
+			self.camera.apply_settings(event.settings);
+		}
+		
 	}
 }
 

@@ -1,0 +1,5 @@
+[freecam-controls]
+field-of-view = 90.0
+mouse-sensitivity = 0.25
+mouse-inverted = false
+movement-speed = 2.0

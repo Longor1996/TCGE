@@ -116,7 +116,7 @@ impl GlfwContextComponent {
 					unsafe {gl::Viewport(0, 0, width, height)}
 				},
 				
-				glfw::WindowEvent::Key(Key::M, _, Action::Press, _) => {
+				glfw::WindowEvent::Key(Key::M, _, Action::Release, _) => {
 					let new_state = GlfwContextComponent::toggle_cursor_mode(
 						&mut self.window,
 						None // toggle
@@ -130,14 +130,21 @@ impl GlfwContextComponent {
 					}
 				},
 				
-				glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+				glfw::WindowEvent::Key(Key::F5, _, Action::Release, _) => {
+					info!("User pressed R, reloading settings...");
+					if let Ok(settings) = router.nodes.get_mut_node_component_downcast::<super::settings::Settings>(0) {
+						if let Ok(_) = settings.load() {
+							router.fire_event_at_lens("client", &mut super::settings::SettingsReloadEvent::new(settings));
+						}
+					}
+				},
+				
+				glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
 					info!("User pressed ESC, shutting down...");
 					self.window.set_should_close(true)
 				},
 				
 				glfw::WindowEvent::MouseButton(button, Action::Press, _) => {
-					trace!("Click!");
-					
 					if self.window.get_cursor_mode() != glfw::CursorMode::Disabled {
 						continue;
 					}

@@ -27,6 +27,11 @@ fn main() {
         &executable_path.join("assets"),
     );
     
+    copy(
+        &manifest_dir.join("config"),
+        &executable_path.join("config"),
+    );
+    
     let target_triple = env::var("TARGET").unwrap_or("".to_string());
     
     if target_triple.contains("windows") {

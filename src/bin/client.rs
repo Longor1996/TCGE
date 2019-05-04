@@ -22,6 +22,7 @@ use tcge::router;
 use tcge::util::gameloop;
 use tcge::client;
 use tcge::client::cmd_opts;
+use tcge::client::settings;
 use tcge::client::context;
 use tcge::client::scene;
 use tcge::client::render;
@@ -51,7 +52,10 @@ fn main() {
 		]
 	).unwrap();
 	
-	if let Err(e) = run(options) {
+	let mut settings = settings::Settings::init();
+	settings.load().ok();
+	
+	if let Err(e) = run(options, settings) {
 		print_error(&e);
 		panic!("A fatal error occurred and the engine had to stop...");
 	}
@@ -159,7 +163,7 @@ impl router::lens::Handler for ClientLens {
 	}
 }
 
-fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
+fn run(opts: cmd_opts::CmdOptions, settings: settings::Settings) -> Result<(), failure::Error> {
 	// ------------------------------------------
 	let mut router = router::Router::new();
 	let res = resources::Resources::from_exe_path()?;
@@ -172,6 +176,10 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	router.nodes.set_node_component(0, Box::new(gfx))?;
 	let gfx = router.nodes
 		.get_mut_node_component_downcast::<context::GlfwContextComponent>(0)?;
+	
+	router.nodes.set_node_component(0, Box::new(settings))?;
+	let settings = router.nodes
+		.get_mut_node_component_downcast::<settings::Settings>(0)?;
 	
 	// ------------------------------------------
 	
@@ -189,6 +197,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	let mut scene = scene::Scene::new();
 	scene.camera.active = gfx.window.get_cursor_mode() == glfw::CursorMode::Disabled;
+	scene.camera.apply_settings(settings);
 	router.nodes.set_node_component(0, Box::new(scene))?;
 	
 	let scene_renderer = scene::SceneRenderer::new(&res)?;
@@ -205,6 +214,9 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 			// nothing here yet
 		}))
 	});
+	
+	// ------------------------------------------
+	info!("Applying initial settings...");
 	
 	// Then put the router into a RefCell and (hopefully) never touch it again!
 	let router = Rc::new(RefCell::new(router));
