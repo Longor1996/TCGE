@@ -5,10 +5,8 @@ use super::cgmath::SquareMatrix;
 use super::utility;
 use std::io::{BufRead, BufReader};
 
-//const FONT_DATA_PNG: &str = "fonts/ascii/Hack-Regular.ttf.sdf.png";
-//const FONT_DATA_TXT: &str = "fonts/ascii/Hack-Regular.ttf.sdf.txt";
-const FONT_DATA_PNG: &str = "fonts/ascii/hack.png";
-const FONT_DATA_TXT: &str = "fonts/ascii/hack.fnt";
+const FONT_DATA_PNG: &str = "fonts/hack/hack.png";
+const FONT_DATA_TXT: &str = "fonts/hack/hack.fnt";
 const FONT_MATERIAL: &str = "shaders/sdf-text";
 
 pub struct AsciiTextRenderer {
