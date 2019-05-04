@@ -14,7 +14,7 @@ const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
 
 
-#[derive(Eq, Clone)]
+#[derive(Eq, Clone, Debug)]
 pub struct BlockCoord {
 	pub x: isize,
 	pub y: isize,
@@ -25,6 +25,14 @@ impl BlockCoord {
 	pub fn new(x: isize, y: isize, z: isize) -> BlockCoord {
 		BlockCoord {
 			x, y, z
+		}
+	}
+	
+	pub fn as_vec(&self) -> cgmath::Vector3<f32> {
+		cgmath::Vector3 {
+			x: self.x as f32,
+			y: self.y as f32,
+			z: self.z as f32
 		}
 	}
 }

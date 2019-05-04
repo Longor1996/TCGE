@@ -6,6 +6,7 @@ use super::render;
 use super::geometry;
 use super::freecam;
 use super::blocks;
+use crate::client::blocks::BlockCoord;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
@@ -26,6 +27,24 @@ impl Scene {
 			],
 			chunks
 		}
+	}
+	
+	pub fn update_targeted_block(&mut self) {
+		let src = self.camera.get_position(1.0);
+		let dir = self.camera.get_look_dir(1.0);
+		let len = 16.0;
+		
+		use super::blocks;
+		let mut rc = blocks::BlockRaycast::new_from_src_dir_len(src, dir, len);
+		
+		let target = match self.chunks.raycast(&mut rc) {
+			Some((_, curr_pos, _)) => {
+				Some(curr_pos)
+			},
+			None => None
+		};
+		
+		self.camera.target = target;
 	}
 	
 }
@@ -50,6 +69,7 @@ pub struct SceneRenderer {
 	frame_id: i64,
 	grid: render::grid::Grid,
 	shader_random: render::materials::ShaderRandom,
+	crosshair_3d: render::crosshair::CrosshairRenderer3D,
 	chunk_rmng: blocks::ChunkRenderManager,
 }
 
@@ -57,11 +77,13 @@ impl SceneRenderer {
 	pub fn new(res: &resources::Resources) -> Result<SceneRenderer, render::utility::Error> {
 		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
+		let crosshair_3d = render::crosshair::CrosshairRenderer3D::new(&res)?;
 		let chunk_rmng = blocks::ChunkRenderManager::new(res)?;
 		
 		Ok(SceneRenderer {
 			frame_id: 0,
 			grid: grid,
+			crosshair_3d,
 			shader_random,
 			chunk_rmng,
 		})
@@ -123,6 +145,10 @@ pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32),
 	
 	// Render chunks!
 	render_state.chunk_rmng.render(scene, camera_transform);
+	
+	if let Some(target) = &scene.camera.target {
+		render_state.crosshair_3d.draw(camera_transform, target);
+	}
 	
 	render::utility::gl_pop_debug();
 }

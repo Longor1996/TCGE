@@ -110,6 +110,7 @@ impl router::lens::Handler for ClientLens {
 					match gfx {
 						Ok(gfx) => {
 							scene.camera.update_movement(gfx.window.borrow());
+							scene.update_targeted_block();
 						},
 						Err(_) => ()
 					}
@@ -178,7 +179,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	let mut render_state_gui = GuiRenderState {
 		width: 0.0, height: 0.0,
 		ascii_renderer,
-		crosshair: render::crosshair::CrosshairRenderer::new(&res)?,
+		crosshair_2d: render::crosshair::CrosshairRenderer2D::new(&res)?,
 		debug_text: vec![],
 	};
 	
@@ -238,8 +239,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				};
 				router.borrow_mut().fire_event_at_lens("client", &mut draw_event);
 				
-				
-				
 				let (w, h) = gfx.window.get_framebuffer_size();
 				render_state_gui.width = w as f32;
 				render_state_gui.height = h as f32;
@@ -276,7 +275,6 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 					Err(_) => ()
 				}
 				
-				
 				render_gui(&mut render_state_gui);
 			}
 		);
@@ -290,7 +288,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 struct GuiRenderState {
 	width: f32, height: f32,
 	ascii_renderer: render::text::AsciiTextRenderer,
-	crosshair: render::crosshair::CrosshairRenderer,
+	crosshair_2d: render::crosshair::CrosshairRenderer2D,
 	debug_text: Vec<(f32,f32,String)>
 }
 
@@ -315,7 +313,7 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		-1.0,1.0
 	);
 	
-	render_state_gui.crosshair.draw(projection, width, height, 4.0);
+	render_state_gui.crosshair_2d.draw(projection, width, height, 4.0);
 	
 	render_state_gui.ascii_renderer.transform = projection;
 	
