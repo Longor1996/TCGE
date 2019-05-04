@@ -9,7 +9,11 @@ use super::super::util::current_time_nanos;
 type Block = u8;
 pub const BLOCK_AIR: Block = 0;
 pub const BLOCK_ADM: Block = 1;
+
 const CHUNK_SIZE: usize = 16;
+const CHUNK_SIZE_SHIFT: usize = 4;
+const CHUNK_SIZE_MASK: usize = 0b1111;
+
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
 
@@ -70,11 +74,18 @@ impl ChunkCoord {
 	}
 	
 	pub fn new_from_block(pos: &BlockCoord) -> ChunkCoord {
-		let div = CHUNK_SIZE as isize;
 		ChunkCoord {
-			x: pos.x / div,
-			y: pos.y / div,
-			z: pos.z / div,
+			x: pos.x >> CHUNK_SIZE_SHIFT,
+			y: pos.y >> CHUNK_SIZE_SHIFT,
+			z: pos.z >> CHUNK_SIZE_SHIFT,
+		}
+	}
+	
+	pub fn as_vec(&self) -> cgmath::Vector3<f32> {
+		cgmath::Vector3 {
+			x: self.x as f32,
+			y: self.y as f32,
+			z: self.z as f32
 		}
 	}
 }
@@ -314,13 +325,13 @@ impl ChunkStorage {
 	
 	pub fn get_block(&self, pos: &BlockCoord) -> Option<Block> {
 		let cpos = ChunkCoord::new_from_block(pos);
-		let cs = CHUNK_SIZE as isize;
+		let csm = CHUNK_SIZE_MASK as isize;
 		
 		for chunk in self.chunks.iter() {
 			if chunk.pos == cpos {
-				let cx = pos.x % cs;
-				let cy = pos.y % cs;
-				let cz = pos.z % cs;
+				let cx = pos.x & csm;
+				let cy = pos.y & csm;
+				let cz = pos.z & csm;
 				match chunk.get_block(cx, cy, cz) {
 					Some(x) => return Some(x),
 					None => ()
@@ -333,13 +344,13 @@ impl ChunkStorage {
 	
 	pub fn set_block(&mut self, pos: &BlockCoord, state: Block) -> bool {
 		let cpos = ChunkCoord::new_from_block(pos);
-		let cs = CHUNK_SIZE as isize;
+		let csm = CHUNK_SIZE_MASK as isize;
 		
 		for chunk in self.chunks.iter_mut() {
 			if chunk.pos == cpos {
-				let cx = pos.x % cs;
-				let cy = pos.y % cs;
-				let cz = pos.z % cs;
+				let cx = pos.x & csm;
+				let cy = pos.y & csm;
+				let cz = pos.z & csm;
 				
 				chunk.set_block(cx, cy, cz, state);
 				return true;
