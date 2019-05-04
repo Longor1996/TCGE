@@ -286,7 +286,7 @@ impl AsciiTextRenderer {
 		return (buffer_vbo, buffer_vao, buffer_size);
 	}
 	
-	pub fn draw_text(&mut self, text: String, font_size: f32, x: f32, y: f32) {
+	pub fn draw_text(&mut self, text: &str, font_size: f32, x: f32, y: f32) {
 		
 		let color = cgmath::Vector4::<f32> {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
 		

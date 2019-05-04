@@ -312,7 +312,7 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 	render_state_gui.ascii_renderer.transform = projection;
 	
 	while let Some((x,y,text)) = render_state_gui.debug_text.pop() {
-		render_state_gui.ascii_renderer.draw_text(text, 16.0, x, y);
+		render_state_gui.ascii_renderer.draw_text(&text, 16.0, x, y);
 	}
 	
 	render::utility::gl_pop_debug();
