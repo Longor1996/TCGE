@@ -6,7 +6,6 @@ use super::render;
 use super::geometry;
 use super::freecam;
 use super::blocks;
-use crate::client::blocks::BlockCoord;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
@@ -82,7 +81,7 @@ impl SceneRenderer {
 		
 		Ok(SceneRenderer {
 			frame_id: 0,
-			grid: grid,
+			grid,
 			crosshair_3d,
 			shader_random,
 			chunk_rmng,
