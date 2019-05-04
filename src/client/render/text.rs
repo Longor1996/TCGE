@@ -49,11 +49,15 @@ impl AsciiTextRenderer {
 		for line in BufReader::new(file).lines() {
 			let line = line.expect("Error while reading font definition.");
 			
-			if line.starts_with("scale ") {
-				let split = line.find(" ").expect("Unexpected error.");
-				let scale_str = &line.split_at(split).1[1..];
-				scale = scale_str.parse::<f32>()
-					.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+			if line.starts_with("info ") {
+				AsciiTextRenderer::parse_line(&line, &mut |key, value| {
+					if key == "size" {
+						scale = value.parse::<f32>()
+							.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+					}
+					
+					Ok(())
+				})?;
 			}
 			
 			if ! line.starts_with("char ") {
