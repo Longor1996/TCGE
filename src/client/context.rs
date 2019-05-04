@@ -13,6 +13,7 @@ pub struct GlfwContextComponent {
 	pub glfw: glfw::Glfw,
 	pub window: glfw::Window,
 	pub events: Receiver<(f64, glfw::WindowEvent)>,
+	pub last_esc: u128,
 	cursor: Cursor,
 }
 
@@ -103,6 +104,7 @@ impl GlfwContextComponent {
 			window,
 			events,
 			cursor,
+			last_esc: super::super::util::current_time_nanos()
 		})
 	}
 	
@@ -139,9 +141,16 @@ impl GlfwContextComponent {
 					}
 				},
 				
-				glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
-					info!("User pressed ESC, shutting down...");
-					self.window.set_should_close(true)
+				glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+					let current = super::super::util::current_time_nanos();
+					
+					if (current - self.last_esc) < 500000000 {
+						info!("User pressed ESC twice, shutting down...");
+						self.window.set_should_close(true)
+					} else {
+						info!("User pressed ESC once...");
+						self.last_esc = current;
+					}
 				},
 				
 				glfw::WindowEvent::MouseButton(button, Action::Press, _) => {
