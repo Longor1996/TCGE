@@ -4,15 +4,15 @@ use super::super::super::resources;
 use super::cgmath::SquareMatrix;
 use super::utility;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
+use rustc_hash::FxHashMap;
 
-const FONT_DATA_PNG: &str = "fonts/hack/hack.png";
-const FONT_DATA_TXT: &str = "fonts/hack/hack.fnt";
 const FONT_MATERIAL: &str = "shaders/sdf-text";
 
 pub struct AsciiTextRenderer {
 	material: AsciiTextRendererMaterial,
-	characters: Vec<AsciiTextRendererChar>,
-	scale: f32,
+	characters: FxHashMap<usize, AsciiTextRendererChar>,
+	metrics: TextMetrics,
 	buffer: Vec<f32>,
 	buffer_vao: gl::types::GLuint,
 	buffer_vbo: gl::types::GLuint,
@@ -22,40 +22,94 @@ pub struct AsciiTextRenderer {
 
 impl AsciiTextRenderer {
 	
-	pub fn load(res: &resources::Resources) -> Result<AsciiTextRenderer, utility::Error> {
-		info!("Loading font: {}, {}", FONT_DATA_TXT, FONT_DATA_PNG);
-		let material = AsciiTextRendererMaterial::new(res)?;
+	pub fn load(res: &resources::Resources, name: &str) -> Result<AsciiTextRenderer, utility::Error> {
+		let directory = PathBuf::from("fonts").join(name);
+		
+		let font_file = directory.clone().join(format!("{}.fnt", name));
+		let font_file = font_file.to_str()
+			.expect("Failed to build path for font index.");
+		
+		info!("Loading font: {} -> {}", name, font_file);
 		
 		debug!("Preparing GPU resources...");
+		let mut material = AsciiTextRendererMaterial::new(res)?;
 		let gpu = AsciiTextRenderer::prepare_gpu_objects(&material);
 		
 		let mut buffer = vec![];
 		buffer.resize(gpu.2 as usize / std::mem::size_of::<f32>(), 0.0);
 		
-		debug!("Loading font: {}", FONT_DATA_TXT);
-		let file = res.open_stream(FONT_DATA_TXT)
-			.map_err(|e| utility::Error::ResourceLoad { name: FONT_DATA_TXT.to_string(), inner: e })?;
+		debug!("Loading font: {}", font_file);
+		let file = res.open_stream(font_file)
+			.map_err(|e| utility::Error::ResourceLoad { name: font_file.to_string(), inner: e })?;
 		
 		// Allocate character-table and fill it with 'null'
-		let capacity = 8400;
-		let mut chars: Vec<AsciiTextRendererChar> = Vec::with_capacity(capacity + 1);
-		for x in 0 .. capacity {
-			chars.push(AsciiTextRendererChar::from_nothing(x));
-		}
+		let mut chars: FxHashMap<usize, AsciiTextRendererChar> = FxHashMap::default();
 		
-		let mut scale = 32.0; // default
+		let mut metrics = TextMetrics::new();
 		
-		debug!("Parsing font: {}", FONT_DATA_TXT);
+		debug!("Parsing font: {}", font_file);
 		for line in BufReader::new(file).lines() {
 			let line = line.expect("Error while reading font definition.");
 			
 			if line.starts_with("info ") {
 				AsciiTextRenderer::parse_line(&line, &mut |key, value| {
 					if key == "size" {
-						scale = value.parse::<f32>()
+						metrics.scale = value.parse::<f32>()
 							.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
 					}
 					
+					Ok(())
+				})?;
+			}
+			
+			if line.starts_with("page ") {
+				let mut page_id: usize = 0;
+				let mut page_file = "".to_string();
+				AsciiTextRenderer::parse_line(&line, &mut |key, value| {
+					if key == "id" {
+						page_id = value.parse::<usize>()
+							.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+					}
+					
+					if key == "file" {
+						page_file = value.to_string();
+					}
+					
+					Ok(())
+				})?;
+				
+				let page_file = directory.clone().join(page_file);
+				let page_file = page_file.to_str().expect("Failed to build path for font page.");
+				
+				debug!("Loading font page: {}", page_file);
+				let page_tex = utility::Texture::from_res(&res, page_file, &||{})?;
+				
+				material.pages.insert(page_id, page_tex);
+			}
+			
+			if line.starts_with("common ") {
+				AsciiTextRenderer::parse_line(&line, &mut |key, value| {
+					if key == "lineHeight" {
+						metrics.line_height = value.parse::<f32>()
+							.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+					}
+					
+					if key == "base" {
+						metrics.base = value.parse::<f32>()
+							.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+					}
+					
+					Ok(())
+				})?;
+			}
+			
+			if line.starts_with("chars ") {
+				AsciiTextRenderer::parse_line(&line, &mut |key, value| {
+					if key == "count" {
+						let capacity = value.parse::<usize>()
+							.map_err(|e| utility::Error::ValueParse { name: e.to_string() })?;
+						chars.reserve(capacity + 1);
+					}
 					Ok(())
 				})?;
 			}
@@ -97,12 +151,12 @@ impl AsciiTextRenderer {
 					Ok(())
 				})?;
 				
-				char.uv = material.sdfmap.get_uv_rect(
+				char.uv = material.pages[&char.page].get_uv_rect(
 					char.x, char.y,
 					char.width, char.height
 				);
 				
-				chars[char.id] = char;
+				chars.insert(char.id, char);
 				continue;
 			}
 			
@@ -114,7 +168,7 @@ impl AsciiTextRenderer {
 			material,
 			characters: chars,
 			transform: cgmath::Matrix4::identity(),
-			scale,
+			metrics,
 			buffer,
 			buffer_vbo: gpu.0,
 			buffer_vao: gpu.1,
@@ -287,24 +341,16 @@ impl AsciiTextRenderer {
 	}
 	
 	pub fn draw_text(&mut self, text: &str, font_size: f32, x: f32, y: f32) {
-		
-		let color = cgmath::Vector4::<f32> {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
-		
-		self.material.shader.set_used();
-		self.material.shader.uniform_matrix4(self.material.uniform_matrix, self.transform);
-		self.material.shader.uniform_vector4(self.material.uniform_color, color);
-		self.material.shader.uniform_scalar(self.material.uniform_spread, 8.0);
-		self.material.shader.uniform_scalar(self.material.uniform_scale, font_size / self.scale);
-		self.material.shader.uniform_sampler(self.material.uniform_sdfmap, 0);
+		self.draw_reset(font_size);
 		
 		unsafe {
-			gl::BindTexture(gl::TEXTURE_2D, self.material.sdfmap.id);
+			gl::BindTexture(gl::TEXTURE_2D, self.material.pages[&0].id);
 		}
 		
-		self.buffer.clear();
 		let xstart = x;
 		let mut xpos = x;
 		let mut ypos = y;
+		let mut page = 0;
 		
 		for char in text.chars() {
 			if char == '\n' {
@@ -313,14 +359,49 @@ impl AsciiTextRenderer {
 				continue;
 			}
 			
+			let character = match self.characters.get(&(char as usize)) {
+				Some(x) => x.clone(),
+				None => return
+			};
+			
+			if character.page != page {
+				self.draw_submit();
+				page = character.page;
+				unsafe {
+					gl::BindTexture(gl::TEXTURE_2D, self.material.pages[&page].id);
+				}
+			}
+			
 			self.draw_char(
 				&mut xpos,
 				&mut ypos,
 				font_size,
-				char
+				&character
 			);
 		}
 		
+		self.draw_submit();
+		
+		unsafe {
+			gl::BindTexture(gl::TEXTURE_2D, 0);
+		}
+	}
+	
+	fn draw_reset(&mut self, font_size: f32) {
+		let color = cgmath::Vector4::<f32> {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
+		let spread = 8.0;
+		let fscale = font_size / self.metrics.scale;
+		
+		self.material.shader.set_used();
+		self.material.shader.uniform_vector4(self.material.uniform_color, color);
+		self.material.shader.uniform_matrix4(self.material.uniform_matrix, self.transform);
+		self.material.shader.uniform_scalar(self.material.uniform_spread, spread);
+		self.material.shader.uniform_scalar(self.material.uniform_scale, fscale);
+		self.material.shader.uniform_sampler(self.material.uniform_sdfmap, 0);
+		self.buffer.clear();
+	}
+	
+	fn draw_submit(&mut self) {
 		unsafe {
 			let buflen_cpu = self.buffer.len(); // individual float elements
 			let buflen_gpu = (self.buffer_size as usize) / 4;
@@ -350,23 +431,16 @@ impl AsciiTextRenderer {
 			}
 		}
 		
-		unsafe {
-			gl::BindTexture(gl::TEXTURE_2D, 0);
-		}
+		// Clear buffer to make space for the next span...
+		self.buffer.clear();
 	}
 	
-	pub fn draw_char(&mut self, x: &mut f32, y: &mut f32, font_size: f32, character: char) {
-		let character = character as usize;
-		
-		if character >= self.characters.len() {
-			return;
-		}
-		
-		let character = &self.characters[character];
-		let w  = character.width  as f32 / self.scale*font_size;
-		let h  = character.height as f32 / self.scale*font_size;
-		let lx = *x + character.xoffset  / self.scale*font_size;
-		let ly = *y + character.yoffset  / self.scale*font_size;
+	fn draw_char(&mut self, x: &mut f32, y: &mut f32, font_size: f32, character: &AsciiTextRendererChar) {
+		let fscale = font_size / self.metrics.scale;
+		let w  = character.width  as f32 * fscale;
+		let h  = character.height as f32 * fscale;
+		let lx = *x + character.xoffset  * fscale;
+		let ly = *y + character.yoffset  * fscale;
 		
 		let mut temp = vec![
 			// triangle top left
@@ -382,9 +456,25 @@ impl AsciiTextRenderer {
 		&self.buffer.append(&mut temp);
 		
 		// increase x position
-		*x += character.xadvance / self.scale * font_size;
+		*x += character.xadvance * fscale;
 	}
 	
+}
+
+struct TextMetrics {
+	scale: f32,
+	line_height: f32,
+	base: f32,
+}
+
+impl TextMetrics {
+	fn new() -> TextMetrics {
+		TextMetrics {
+			scale: 32.0,
+			line_height: 38.0,
+			base: 30.0,
+		}
+	}
 }
 
 #[derive(Clone,Copy)]
@@ -417,7 +507,7 @@ impl AsciiTextRendererChar {
 
 pub struct AsciiTextRendererMaterial {
 	pub shader: utility::Program,
-	pub sdfmap: utility::Texture,
+	pub pages: FxHashMap<usize, utility::Texture>,
 	pub uniform_matrix: i32,
 	pub uniform_sdfmap: i32,
 	pub uniform_color:  i32,
@@ -427,8 +517,6 @@ pub struct AsciiTextRendererMaterial {
 
 impl AsciiTextRendererMaterial {
 	pub fn new(res: &resources::Resources) -> Result<AsciiTextRendererMaterial, utility::Error> {
-		debug!("Loading font texture...");
-		let sdfmap = utility::Texture::from_res(&res, FONT_DATA_PNG, &||{})?;
 		
 		debug!("Loading font shader...");
 		let shader = utility::Program::from_res(&res, FONT_MATERIAL)?;
@@ -439,7 +527,8 @@ impl AsciiTextRendererMaterial {
 		let uniform_spread = shader.uniform_location("spread");
 		let uniform_scale = shader.uniform_location("scale");
 		
-		Ok(AsciiTextRendererMaterial {shader, sdfmap,
+		Ok(AsciiTextRendererMaterial {shader,
+			pages: FxHashMap::default(),
 			uniform_matrix,
 			uniform_sdfmap,
 			uniform_color,

@@ -174,7 +174,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	// ------------------------------------------
 	
-	let ascii_renderer = render::text::AsciiTextRenderer::load(&res)?;
+	let ascii_renderer = render::text::AsciiTextRenderer::load(&res, "hack")?;
 	let mut render_state_gui = GuiRenderState {
 		width: 0, height: 0,
 		ascii_renderer,
