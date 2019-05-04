@@ -151,16 +151,8 @@ impl GlfwContextComponent {
 							use super::blocks;
 							let mut rc = blocks::BlockRaycast::new_from_src_dir_len(src, dir, len);
 							
-							trace!("Raycast from {} in {} by {}",
-								format!("[{}, {}, {}]", src.x, src.y, src.z),
-								format!("[{}, {}, {}]", dir.x, dir.y, dir.z),
-								len
-							);
-							
 							match scene.chunks.raycast(&mut rc) {
-								Some((last_pos, curr_pos, block)) => {
-									trace!("HIT: {}, {}, {}", last_pos, curr_pos, block);
-									
+								Some((last_pos, curr_pos, _block)) => {
 									match button {
 										MouseButton::Button1 => {
 											scene.chunks.set_block(&curr_pos, blocks::BLOCK_AIR);
