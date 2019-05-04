@@ -6,11 +6,11 @@ extern crate glfw;
 pub mod cmd_opts;
 pub mod context;
 pub mod scene;
-pub mod geometry;
 pub mod render;
 pub mod freecam;
 pub mod blocks;
 
+pub use render::geometry;
 
 
 

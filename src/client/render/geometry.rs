@@ -3,7 +3,7 @@
 
 extern crate cgmath;
 extern crate gl;
-use super::render;
+use super::utility::gl_label_object;
 
 pub struct SimpleMesh {
 	descriptor: gl::types::GLuint,
@@ -25,13 +25,13 @@ impl SimpleMesh {
 	}
 	
 	pub fn set_gl_label(&self, label: &str) {
-		render::utility::gl_label_object(
+		gl_label_object(
 			gl::VERTEX_ARRAY,
 			self.descriptor,
 			&format!("{} Descriptor", label)
 		);
 		
-		render::utility::gl_label_object(
+		gl_label_object(
 			gl::BUFFER,
 			self.vertex_buf,
 			&format!("{} Geometry", label)
