@@ -82,6 +82,103 @@ impl AsciiTextRenderer {
 		})
 	}
 	
+	fn parse_line<'a>(
+		line: &'a String,
+		callback: &mut FnMut(&str, &str) -> Result<(), utility::Error>
+	) -> Result<(), utility::Error> {
+		let mut chars = line.chars()
+			.chain(" ".chars())
+			.enumerate()
+			.peekable();
+		
+		let mut state = 0;
+		let mut key_start = 0;
+		let mut key_end = 0;
+		let mut val_start = 0;
+		loop {
+			let (pos, current) = match chars.peek() {
+				Some(x) => *x,
+				None => return Ok(())
+			};
+			
+			// This is an extremely simple state-machine.
+			match state {
+				0 => { // SEEKING
+					if current.is_whitespace() {
+						chars.next();
+						continue;
+					}
+					if current.is_alphabetic() {
+						key_start = pos;
+						state = 1;
+						continue;
+					}
+				},
+				1 => {// READING KEY
+					key_end = pos;
+					if current.is_whitespace() {
+						callback(&line[key_start .. key_end], "")?;
+						chars.next(); // consume whitespace
+						state = 0;
+						continue;
+					}
+					else if current == '=' {
+						chars.next();  // consume equal-sign
+						state = 2;
+						continue;
+					}
+					else {
+						chars.next(); // consume key char
+					}
+				},
+				2 => {// VALUE QUOTING CHECK
+					if current == '"' {
+						chars.next(); // consume quote
+						val_start = pos + 1;
+						state = 4;
+						continue;
+					}
+					else {
+						val_start = pos;
+						state = 3;
+						continue;
+					}
+				},
+				3 => { // READING UNQUOTED VALUE
+					if current.is_whitespace() {
+						callback(
+							&line[key_start .. key_end],
+							&line[val_start .. pos]
+						)?;
+						chars.next(); // consume whitespace
+						state = 0;
+						continue;
+					}
+					else {
+						chars.next(); // consume value char
+					}
+				},
+				4 => { // READING QUOTED VALUE
+					if current == '"' {
+						callback(
+							&line[key_start .. key_end],
+							&line[val_start .. pos]
+						)?;
+						chars.next(); // consume quote
+						state = 0;
+						continue;
+					}
+					else {
+						chars.next(); // consume value char
+					}
+				},
+				_ => panic!("Invalid state!")
+			}
+		}
+		
+		return Ok(())
+	}
+	
 	pub fn prepare_gpu_objects(
 		_material: &AsciiTextRendererMaterial
 	) -> (
