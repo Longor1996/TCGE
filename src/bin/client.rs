@@ -176,7 +176,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 	
 	let ascii_renderer = render::text::AsciiTextRenderer::load(&res, "hack")?;
 	let mut render_state_gui = GuiRenderState {
-		width: 0, height: 0,
+		width: 0.0, height: 0.0,
 		ascii_renderer,
 		crosshair: render::crosshair::CrosshairRenderer::new(&res)?,
 		debug_text: vec![],
@@ -241,8 +241,8 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 				
 				
 				let (w, h) = gfx.window.get_framebuffer_size();
-				render_state_gui.width = w;
-				render_state_gui.height = h;
+				render_state_gui.width = w as f32;
+				render_state_gui.height = h as f32;
 				
 				render_state_gui.debug_text.clear();
 				
@@ -288,7 +288,7 @@ fn run(opts: cmd_opts::CmdOptions) -> Result<(), failure::Error> {
 }
 
 struct GuiRenderState {
-	width: i32, height: i32,
+	width: f32, height: f32,
 	ascii_renderer: render::text::AsciiTextRenderer,
 	crosshair: render::crosshair::CrosshairRenderer,
 	debug_text: Vec<(f32,f32,String)>
@@ -304,10 +304,11 @@ fn render_gui(render_state_gui: &mut GuiRenderState) {
 		gl::Disable(gl::DEPTH_TEST);
 	}
 	
-	let width = render_state_gui.width as f32;
-	let height = render_state_gui.height as f32;
+	let width = render_state_gui.width;
+	let height = render_state_gui.height;
 	
-	let projection = cgmath::ortho(0.0,
+	let projection = cgmath::ortho(
+		0.0,
 		width,
 		height,
 		0.0,
