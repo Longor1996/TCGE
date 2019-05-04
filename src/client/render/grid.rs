@@ -37,11 +37,15 @@ impl Grid {
 		
 		let position = camera_position;
 		
-		let grid_transform = Matrix4::from_translation(Vector3::<f32> {
+		let mut grid_transform = Matrix4::from_translation(Vector3::<f32> {
 			x: (position.x / self.size).round() * self.size,
 			y: 0.0,
 			z: (position.z / self.size).round() * self.size,
 		});
+		
+		if position.y < 0.0 {
+			grid_transform = grid_transform * Matrix4::from_nonuniform_scale(-1.0, 1.0, 1.0);
+		}
 		
 		let transform = camera_transform * grid_transform;
 		
