@@ -88,6 +88,9 @@ impl AsciiTextRenderer {
 						"xadvance" => char.xadvance = value.parse::<f32>()
 							.map_err(|_e| utility::Error::new_valerr("Could not parse 'xadvance'"))?,
 						
+						"page" => char.page = value.parse::<usize>()
+							.map_err(|_e| utility::Error::new_valerr("Could not parse 'page'"))?,
+						
 						_ => {}
 					}
 					
@@ -387,6 +390,7 @@ impl AsciiTextRenderer {
 #[derive(Clone,Copy)]
 struct AsciiTextRendererChar {
 	id: usize,
+	page: usize,
 	x: u32,
 	y: u32,
 	width: u32,
@@ -401,6 +405,7 @@ impl AsciiTextRendererChar {
 	pub fn from_nothing(id: usize) -> AsciiTextRendererChar {
 		AsciiTextRendererChar {
 			id,
+			page: 0,
 			x: 0, y: 0,
 			width: 0, height: 0,
 			xoffset: 0.0, yoffset: 0.0,
