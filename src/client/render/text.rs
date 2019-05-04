@@ -212,8 +212,6 @@ impl AsciiTextRenderer {
 				_ => panic!("Invalid state!")
 			}
 		}
-		
-		return Ok(())
 	}
 	
 	pub fn prepare_gpu_objects(
