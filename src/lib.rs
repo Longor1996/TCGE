@@ -35,7 +35,7 @@ extern crate core;
 
 pub mod resources;
 pub mod router;
-//pub mod blocks; // We will get back to this later...
+pub mod blocks;
 pub mod client;
 pub mod server;
 pub mod util;

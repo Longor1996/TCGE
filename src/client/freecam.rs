@@ -5,6 +5,7 @@
 
 use super::glfw::{Key, Action};
 use super::settings;
+use super::super::blocks;
 
 #[allow(unused)]
 use super::cgmath::{
@@ -22,7 +23,7 @@ pub struct Camera {
 	position_last: cgmath::Vector3<f32>,
 	velocity_last: cgmath::Vector3<f32>,
 	rotation_last: cgmath::Vector2<f32>,
-	pub target: Option<super::blocks::BlockCoord>,
+	pub target: Option<blocks::BlockCoord>,
 	min_depth: f32,
 	max_depth: f32,
 	field_of_view: f32,

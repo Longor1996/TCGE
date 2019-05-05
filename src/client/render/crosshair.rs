@@ -2,7 +2,7 @@ use cgmath::Matrix4;
 use super::utility;
 use super::geometry;
 use super::materials;
-use super::super::blocks::BlockCoord;
+use super::super::super::blocks;
 use super::super::super::resources;
 
 const HALF_VEC: cgmath::Vector3<f32> = cgmath::Vector3::<f32> {x: 0.5, y: 0.5, z: 0.5};
@@ -84,7 +84,7 @@ impl CrosshairRenderer3D {
 		})
 	}
 	
-	pub fn draw(&self, camera: cgmath::Matrix4<f32>, pos: &BlockCoord) {
+	pub fn draw(&self, camera: cgmath::Matrix4<f32>, pos: &blocks::BlockCoord) {
 		utility::gl_push_debug("Crosshair 3D");
 		
 		unsafe {

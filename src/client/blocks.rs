@@ -4,7 +4,10 @@ use super::super::resources;
 use super::render;
 use super::geometry;
 
+use super::super::blocks as blockdef;
+use super::super::blocks::BlockCoord;
 use super::super::util::current_time_nanos;
+use std::rc::Rc;
 
 type Block = u8;
 pub const BLOCK_AIR: Block = 0;
@@ -16,48 +19,6 @@ const CHUNK_SIZE_MASK: usize = 0b1111;
 
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
-
-
-#[derive(Eq, Clone, Debug)]
-pub struct BlockCoord {
-	pub x: isize,
-	pub y: isize,
-	pub z: isize,
-}
-
-impl BlockCoord {
-	pub fn new(x: isize, y: isize, z: isize) -> BlockCoord {
-		BlockCoord {
-			x, y, z
-		}
-	}
-	
-	pub fn as_vec(&self) -> cgmath::Vector3<f32> {
-		cgmath::Vector3 {
-			x: self.x as f32,
-			y: self.y as f32,
-			z: self.z as f32
-		}
-	}
-}
-
-impl PartialEq for BlockCoord {
-	fn eq(&self, other: &BlockCoord) -> bool {
-		self.x == other.x
-		&& self.y == other.y
-		&& self.z == other.z
-	}
-}
-
-impl std::fmt::Display for BlockCoord {
-	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(fmt, "[x: {}, y: {}, z: {}]",
-			self.x,
-			self.y,
-			self.z,
-		)
-	}
-}
 
 #[derive(Eq, Clone)]
 pub struct ChunkCoord {
@@ -287,12 +248,17 @@ impl Chunk {
 }
 
 pub struct ChunkStorage {
-	chunks: Vec<Chunk>
+	blocks: Rc<blockdef::Universe>,
+	chunks: Vec<Chunk>,
 }
 
 impl ChunkStorage {
-	pub fn new(config: toml::value::Table) -> ChunkStorage {
+	pub fn new(
+		blocks: Rc<blockdef::Universe>,
+		config: toml::value::Table
+	) -> ChunkStorage {
 		let mut storage = ChunkStorage {
+			blocks,
 			chunks: Vec::default()
 		};
 		

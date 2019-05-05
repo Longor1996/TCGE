@@ -1,3 +1,5 @@
+//! Various types of storage for block-data.
+
 use super::universe::BlockState;
 
 pub trait BlockStorage {

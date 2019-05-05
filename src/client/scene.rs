@@ -6,10 +6,13 @@ use super::render;
 use super::geometry;
 use super::freecam;
 use super::blocks;
+use super::super::blocks as blockdef;
+use std::rc::Rc;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
 	meshes: Vec<geometry::SimpleMesh>,
+	pub blocks: Rc<blockdef::Universe>,
 	pub chunks: blocks::ChunkStorage,
 }
 
@@ -17,7 +20,7 @@ impl Scene {
 	pub fn new() -> Scene {
 		let config = Scene::load_config().expect("Failed to load scene config.");
 		
-		let chunks = blocks::ChunkStorage::new(config);
+		let blocks = Rc::new(blockdef::universe::define_universe());
 		
 		Scene {
 			camera: freecam::Camera::new(),
@@ -26,7 +29,8 @@ impl Scene {
 				// geometry::geometry_cube(1.0),
 				// geometry::geometry_cube(-512.0),
 			],
-			chunks
+			blocks: blocks.clone(),
+			chunks: blocks::ChunkStorage::new(blocks.clone(), config),
 		}
 	}
 	
