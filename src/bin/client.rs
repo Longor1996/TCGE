@@ -278,15 +278,16 @@ fn run(opts: cmd_opts::CmdOptions, settings: settings::Settings) -> Result<(), f
 						
 						let default = scene.blockdef.get_block_by_name_unchecked("bedrock").get_default_state();
 						let block = scene.camera.block.unwrap_or(default);
-						
+
 						render_state_gui.debug_text.push((
 							0.0, (h as f32) - 16.0 -  2.0,
-							format!("Camera: {x:.1}, {y:.1}, {z:.1} / {pitch:.0} {yaw:.0}, {block}",
+							format!("Camera: {crane}-mode {x:.1}, {y:.1}, {z:.1} / {pitch:.0} {yaw:.0}, {block}",
 								x = position.x,
 								y = position.y,
 								z = position.z,
 								pitch = rotation.x.round(),
 								yaw   = rotation.y.round(),
+								crane = if camera.crane { "crane" } else { "drone" },
 								block = scene.blockdef.get_block_by_id(block.id).get_name()
 							)
 						));
