@@ -153,6 +153,24 @@ impl GlfwContextComponent {
 					}
 				},
 				
+				glfw::WindowEvent::Key(Key::Num1, _, Action::Press, _) => {
+					if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						scene.camera.block = Some(scene.blockdef.get_block_by_name_unchecked("bedrock").get_default_state());
+					}
+				},
+				
+				glfw::WindowEvent::Key(Key::Num2, _, Action::Press, _) => {
+					if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						scene.camera.block = Some(scene.blockdef.get_block_by_name_unchecked("bedrock2").get_default_state());
+					}
+				},
+				
+				glfw::WindowEvent::Key(Key::Num3, _, Action::Press, _) => {
+					if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						scene.camera.block = Some(scene.blockdef.get_block_by_name_unchecked("bedrock3").get_default_state());
+					}
+				},
+				
 				glfw::WindowEvent::MouseButton(button, Action::Press, _) => {
 					if self.window.get_cursor_mode() != glfw::CursorMode::Disabled {
 						continue;
@@ -175,6 +193,8 @@ impl GlfwContextComponent {
 								.get_block_by_name_unchecked("bedrock")
 								.get_default_state();
 							
+							let used_block = scene.camera.block.unwrap_or(bedrock);
+							
 							match scene.chunks.raycast(&mut rc) {
 								Some((last_pos, curr_pos, _block)) => {
 									match button {
@@ -182,7 +202,7 @@ impl GlfwContextComponent {
 											scene.chunks.set_block(&curr_pos, air);
 										},
 										MouseButton::Button2 => {
-											scene.chunks.set_block(&last_pos, bedrock);
+											scene.chunks.set_block(&last_pos, used_block);
 										},
 										_ => {}
 									}

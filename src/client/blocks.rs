@@ -586,57 +586,59 @@ impl ChunkMesher {
 					
 					let cbp = vertices.len();
 					
+					let uv = BlockUv::new_from_pos(block.id.get_raw_id() as u8 - 1, 0);
+					
 					if chunk.get_block(x,y+1,z).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // top
-							(N, S, S, 1.0, 0.0).into(),
-							(S, S, S, 1.0, 1.0).into(),
-							(S, S, N, 0.0, 1.0).into(),
-							(N, S, N, 0.0, 0.0).into(),
+							(N, S, S, uv.umin, uv.vmin).into(),
+							(S, S, S, uv.umax, uv.vmin).into(),
+							(S, S, N, uv.umax, uv.vmax).into(),
+							(N, S, N, uv.umin, uv.vmax).into(),
 						], &mut vertices);
 					}
 					
 					if chunk.get_block(x,y-1,z).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // bottom
-							(N, N, N, 1.0, 0.0).into(),
-							(S, N, N, 1.0, 1.0).into(),
-							(S, N, S, 0.0, 1.0).into(),
-							(N, N, S, 0.0, 0.0).into(),
+							(N, N, N, uv.umin, uv.vmin).into(),
+							(S, N, N, uv.umax, uv.vmin).into(),
+							(S, N, S, uv.umax, uv.vmax).into(),
+							(N, N, S, uv.umin, uv.vmax).into(),
 						], &mut vertices);
 					}
 					
 					if chunk.get_block(x,y,z-1).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // front
-							(N, S, N, 1.0, 0.0).into(), // a
-							(S, S, N, 1.0, 1.0).into(), // b
-							(S, N, N, 0.0, 1.0).into(), // c
-							(N, N, N, 0.0, 0.0).into(), // d
+							(N, S, N, uv.umin, uv.vmin).into(), // a
+							(S, S, N, uv.umax, uv.vmin).into(), // b
+							(S, N, N, uv.umax, uv.vmax).into(), // c
+							(N, N, N, uv.umin, uv.vmax).into(), // d
 						], &mut vertices);
 					}
 					
 					if chunk.get_block(x,y,z+1).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // back
-							(N, N, S, 1.0, 0.0).into(), // d
-							(S, N, S, 1.0, 1.0).into(), // c
-							(S, S, S, 0.0, 1.0).into(), // b
-							(N, S, S, 0.0, 0.0).into(), // a
+							(N, N, S, uv.umin, uv.vmin).into(), // d
+							(S, N, S, uv.umax, uv.vmin).into(), // c
+							(S, S, S, uv.umax, uv.vmax).into(), // b
+							(N, S, S, uv.umin, uv.vmax).into(), // a
 						], &mut vertices);
 					}
 					
 					if chunk.get_block(x-1,y,z).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // left
-							(N, S, S, 1.0, 0.0).into(), // a
-							(N, S, N, 1.0, 1.0).into(), // b
-							(N, N, N, 0.0, 1.0).into(), // c
-							(N, N, S, 0.0, 0.0).into(), // d
+							(N, S, S, uv.umin, uv.vmin).into(), // a
+							(N, S, N, uv.umax, uv.vmin).into(), // b
+							(N, N, N, uv.umax, uv.vmax).into(), // c
+							(N, N, S, uv.umin, uv.vmax).into(), // d
 						], &mut vertices);
 					}
 					
 					if chunk.get_block(x+1,y,z).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // right
-							(S, N, S, 1.0, 0.0).into(), // d
-							(S, N, N, 1.0, 1.0).into(), // c
-							(S, S, N, 0.0, 1.0).into(), // b
-							(S, S, S, 0.0, 0.0).into(), // a
+							(S, N, S, uv.umin, uv.vmin).into(), // d
+							(S, N, N, uv.umax, uv.vmin).into(), // c
+							(S, S, N, uv.umax, uv.vmax).into(), // b
+							(S, S, S, uv.umin, uv.vmax).into(), // a
 						], &mut vertices);
 					}
 					
@@ -796,5 +798,30 @@ impl ChunkMeshVertex {
 impl From<(f32, f32, f32, f32, f32)> for ChunkMeshVertex {
 	fn from(other: (f32, f32, f32, f32, f32)) -> Self {
 		Self::new(other.0, other.1, other.2, other.3, other.4)
+	}
+}
+
+struct BlockUv {
+	umin: f32,
+	umax: f32,
+	vmin: f32,
+	vmax: f32,
+}
+
+impl BlockUv {
+	fn new(umin: f32, umax: f32, vmin: f32, vmax: f32) -> Self {
+		Self { umin, umax, vmin, vmax }
+	}
+	
+	fn new_from_pos(x: u8, y: u8) -> Self {
+		let x = (x as f32) / 16.0;
+		let y = (y as f32) / 16.0;
+		let s = 1.0 / 16.0;
+		Self {
+			umin: x,
+			umax: x+s,
+			vmin: y,
+			vmax: y+s,
+		}
 	}
 }

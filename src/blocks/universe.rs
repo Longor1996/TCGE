@@ -42,7 +42,7 @@ pub type UniverseRef = Rc<Universe>;
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Immutable handle to a specific type of block in a universe.
-#[derive(Eq, Hash, Copy, Clone)]
+#[derive(Eq, Hash, Copy, Clone, Debug)]
 pub struct BlockId {
 	id: u16 // Not public; must stay immutable.
 }
@@ -50,6 +50,10 @@ pub struct BlockId {
 impl BlockId {
 	pub fn new(id: u16) -> BlockId {
 		BlockId {id}
+	}
+	
+	pub fn get_raw_id(&self) -> usize {
+		self.id as usize
 	}
 }
 
@@ -68,6 +72,10 @@ pub struct Block {
 }
 
 impl Block {
+	pub fn get_name(&self) -> &str {
+		return self.name.as_str();
+	}
+	
 	pub fn get_default_state(&self) -> BlockState {
 		return self.default_state.clone();
 	}
@@ -75,7 +83,7 @@ impl Block {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Eq)]
+#[derive(Copy, Clone, Eq, Debug)]
 pub struct BlockState {
 	pub id: BlockId,
 	pub data: ()
@@ -115,6 +123,28 @@ pub fn define_universe(
 		}
 	};
 	universe.blocks.insert(bedrock.id, bedrock);
+	
+	let bedrock2_id = BlockId::new(2);
+	let bedrock2 = Block {
+		id: bedrock2_id,
+		name: "bedrock2".to_string(),
+		default_state: BlockState {
+			id: bedrock2_id,
+			data: ()
+		}
+	};
+	universe.blocks.insert(bedrock2.id, bedrock2);
+	
+	let bedrock3_id = BlockId::new(3);
+	let bedrock3 = Block {
+		id: bedrock3_id,
+		name: "bedrock3".to_string(),
+		default_state: BlockState {
+			id: bedrock3_id,
+			data: ()
+		}
+	};
+	universe.blocks.insert(bedrock3.id, bedrock3);
 	
 	return Rc::new(universe)
 }
