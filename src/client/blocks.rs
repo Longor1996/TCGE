@@ -490,6 +490,7 @@ pub struct ChunkRenderManager {
 	blockdef: blockdef::UniverseRef,
 	chunks: FxHashMap<ChunkCoord, (u128, geometry::SimpleMesh)>,
 	material: ShaderBlocks,
+	mesher: ChunkMesher,
 }
 
 impl ChunkRenderManager {
@@ -500,6 +501,7 @@ impl ChunkRenderManager {
 			blockdef: blockdef.clone(),
 			chunks: FxHashMap::default(),
 			material,
+			mesher: ChunkMesher::new(blockdef.clone()),
 		})
 	}
 	
@@ -523,14 +525,14 @@ impl ChunkRenderManager {
 				
 				if chunk.last_update > *time {
 					*time = chunk.last_update;
-					*mesh = self.render_chunk_into_mesh(&chunk);
+					*mesh = self.mesher.mesh(&chunk);
 				}
 				
 				mesh.draw(gl::TRIANGLES);
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
-					let mesh = self.render_chunk_into_mesh(&chunk);
+					let mesh = self.mesher.mesh(&chunk);
 					
 					render::utility::gl_label_object(
 						gl::VERTEX_ARRAY,
@@ -556,8 +558,21 @@ impl ChunkRenderManager {
 		render::utility::gl_pop_debug();
 	}
 	
-	pub fn render_chunk_into_mesh(&mut self, chunk: &Chunk) -> SimpleMesh {
-		
+}
+
+struct ChunkMesher {
+	blockdef: blockdef::UniverseRef,
+}
+
+impl ChunkMesher {
+	
+	fn new(blockdef: blockdef::UniverseRef) -> ChunkMesher {
+		ChunkMesher {
+			blockdef
+		}
+	}
+	
+	fn mesh(&mut self, chunk: &Chunk) -> SimpleMesh {
 		let mut builder = geometry::SimpleMeshBuilder::new();
 		let cpos = chunk.pos;
 		
