@@ -8,6 +8,7 @@ use super::super::blocks as blockdef;
 use super::super::blocks::BlockState;
 use super::super::blocks::BlockCoord;
 use super::super::util::current_time_nanos;
+use crate::client::render::geometry::SimpleMesh;
 
 const CHUNK_SIZE: usize = 16;
 const CHUNK_SIZE_SHIFT: usize = 4;
@@ -16,7 +17,7 @@ const CHUNK_SIZE_MASK: usize = 0b1111;
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
 
-#[derive(Eq, Clone)]
+#[derive(Eq, Copy, Clone)]
 pub struct ChunkCoord {
 	pub x: isize,
 	pub y: isize,
@@ -166,95 +167,6 @@ impl Chunk {
 		self.blocks[index] = state;
 		self.last_update = current_time_nanos();
 		Some(())
-	}
-	
-	pub fn render_into_simple_mesh(&self) -> geometry::SimpleMesh {
-		let mut builder = geometry::SimpleMeshBuilder::new();
-		const N: f32 = 0.0;
-		const S: f32 = 1.0;
-		
-		let air = self.blockdef
-			.get_block_by_name_unchecked("air")
-			.get_default_state();
-		
-		for y in 0..CHUNK_SIZE {
-			for z in 0..CHUNK_SIZE {
-				for x in 0..CHUNK_SIZE {
-					let x = x as isize;
-					let y = y as isize;
-					let z = z as isize;
-					let block = self.get_block(x, y, z).unwrap_or(air);
-					
-					if block == air {
-						continue;
-					}
-					
-					let cbp = builder.current();
-					
-					if self.get_block(x,y+1,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // top
-							N, S, S, // a
-							S, S, S, // b
-							S, S, N, // c
-							N, S, N, // d
-						]);
-					}
-					
-					if self.get_block(x,y-1,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // bottom
-							N, N, N, // d
-							S, N, N, // c
-							S, N, S, // b
-							N, N, S, // a
-						]);
-					}
-					
-					if self.get_block(x,y,z-1).unwrap_or(air) == air {
-						builder.push_quads(vec![ // front
-							N, S, N, // a
-							S, S, N, // b
-							S, N, N, // c
-							N, N, N, // d
-						]);
-					}
-					
-					if self.get_block(x,y,z+1).unwrap_or(air) == air {
-						builder.push_quads(vec![ // back
-							N, N, S, // d
-							S, N, S, // c
-							S, S, S, // b
-							N, S, S, // a
-						]);
-					}
-					
-					if self.get_block(x-1,y,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // left
-							N, S, S, // a
-							N, S, N, // b
-							N, N, N, // c
-							N, N, S, // d
-						]);
-					}
-					
-					if self.get_block(x+1,y,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // right
-							S, N, S, // d
-							S, N, N, // c
-							S, S, N, // b
-							S, S, S, // a
-						]);
-					}
-					
-					builder.translate_range(cbp, None,
-						(x + self.pos.x*CHUNK_SIZE as isize) as f32,
-						(y + self.pos.y*CHUNK_SIZE as isize) as f32,
-						(z + self.pos.z*CHUNK_SIZE as isize) as f32
-					);
-				}
-			}
-		}
-		
-		return builder.build();
 	}
 	
 }
@@ -611,14 +523,14 @@ impl ChunkRenderManager {
 				
 				if chunk.last_update > *time {
 					*time = chunk.last_update;
-					*mesh = chunk.render_into_simple_mesh();
+					*mesh = self.render_chunk_into_mesh(&chunk);
 				}
 				
 				mesh.draw(gl::TRIANGLES);
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
-					let mesh = chunk.render_into_simple_mesh();
+					let mesh = self.render_chunk_into_mesh(&chunk);
 					
 					render::utility::gl_label_object(
 						gl::VERTEX_ARRAY,
@@ -643,4 +555,97 @@ impl ChunkRenderManager {
 		
 		render::utility::gl_pop_debug();
 	}
+	
+	pub fn render_chunk_into_mesh(&mut self, chunk: &Chunk) -> SimpleMesh {
+		
+		let mut builder = geometry::SimpleMeshBuilder::new();
+		let cpos = chunk.pos;
+		
+		const N: f32 = 0.0;
+		const S: f32 = 1.0;
+		
+		let air = self.blockdef
+			.get_block_by_name_unchecked("air")
+			.get_default_state();
+		
+		for y in 0..CHUNK_SIZE {
+			for z in 0..CHUNK_SIZE {
+				for x in 0..CHUNK_SIZE {
+					let x = x as isize;
+					let y = y as isize;
+					let z = z as isize;
+					let block = chunk.get_block(x, y, z).unwrap_or(air);
+					
+					if block == air {
+						continue;
+					}
+					
+					let cbp = builder.current();
+					
+					if chunk.get_block(x,y+1,z).unwrap_or(air) == air {
+						builder.push_quads(vec![ // top
+							N, S, S, // a
+							S, S, S, // b
+							S, S, N, // c
+							N, S, N, // d
+						]);
+					}
+					
+					if chunk.get_block(x,y-1,z).unwrap_or(air) == air {
+						builder.push_quads(vec![ // bottom
+							N, N, N, // d
+							S, N, N, // c
+							S, N, S, // b
+							N, N, S, // a
+						]);
+					}
+					
+					if chunk.get_block(x,y,z-1).unwrap_or(air) == air {
+						builder.push_quads(vec![ // front
+							N, S, N, // a
+							S, S, N, // b
+							S, N, N, // c
+							N, N, N, // d
+						]);
+					}
+					
+					if chunk.get_block(x,y,z+1).unwrap_or(air) == air {
+						builder.push_quads(vec![ // back
+							N, N, S, // d
+							S, N, S, // c
+							S, S, S, // b
+							N, S, S, // a
+						]);
+					}
+					
+					if chunk.get_block(x-1,y,z).unwrap_or(air) == air {
+						builder.push_quads(vec![ // left
+							N, S, S, // a
+							N, S, N, // b
+							N, N, N, // c
+							N, N, S, // d
+						]);
+					}
+					
+					if chunk.get_block(x+1,y,z).unwrap_or(air) == air {
+						builder.push_quads(vec![ // right
+							S, N, S, // d
+							S, N, N, // c
+							S, S, N, // b
+							S, S, S, // a
+						]);
+					}
+					
+					builder.translate_range(cbp, None,
+						(x + cpos.x*CHUNK_SIZE as isize) as f32,
+						(y + cpos.y*CHUNK_SIZE as isize) as f32,
+						(z + cpos.z*CHUNK_SIZE as isize) as f32
+					);
+				}
+			}
+		}
+		
+		return builder.build();
+	}
+	
 }
