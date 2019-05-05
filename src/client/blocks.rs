@@ -2,13 +2,11 @@ use rustc_hash::FxHashMap;
 
 use super::super::resources;
 use super::render;
-use super::geometry;
 
 use super::super::blocks as blockdef;
 use super::super::blocks::BlockState;
 use super::super::blocks::BlockCoord;
 use super::super::util::current_time_nanos;
-use crate::client::render::geometry::SimpleMesh;
 
 const CHUNK_SIZE: usize = 16;
 const CHUNK_SIZE_SHIFT: usize = 4;
@@ -488,7 +486,7 @@ impl ShaderBlocks {
 
 pub struct ChunkRenderManager {
 	blockdef: blockdef::UniverseRef,
-	chunks: FxHashMap<ChunkCoord, (u128, geometry::SimpleMesh)>,
+	chunks: FxHashMap<ChunkCoord, (u128, ChunkMeshState)>,
 	material: ShaderBlocks,
 	mesher: ChunkMesher,
 }
@@ -528,24 +526,14 @@ impl ChunkRenderManager {
 					*mesh = self.mesher.mesh(&chunk);
 				}
 				
-				mesh.draw(gl::TRIANGLES);
+				if let ChunkMeshState::Meshed(mesh) = mesh{
+					mesh.draw();
+				}
+				
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
 					let mesh = self.mesher.mesh(&chunk);
-					
-					render::utility::gl_label_object(
-						gl::VERTEX_ARRAY,
-						mesh.get_gl_descriptor(),
-						&format!("Chunk({}, {}, {}): Descriptor", cpos.x, cpos.y, cpos.z)
-					);
-					
-					render::utility::gl_label_object(
-						gl::BUFFER,
-						mesh.get_gl_vertex_buf(),
-						&format!("Chunk({}, {}, {}): Geometry", cpos.x, cpos.y, cpos.z)
-					);
-					
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
 				}
 			}
@@ -572,8 +560,9 @@ impl ChunkMesher {
 		}
 	}
 	
-	fn mesh(&mut self, chunk: &Chunk) -> SimpleMesh {
-		let mut builder = geometry::SimpleMeshBuilder::new();
+	fn mesh(&mut self, chunk: &Chunk) -> ChunkMeshState {
+		let mut vertices: Vec<ChunkMeshVertex> = vec![];
+		
 		let cpos = chunk.pos;
 		
 		const N: f32 = 0.0;
@@ -595,72 +584,217 @@ impl ChunkMesher {
 						continue;
 					}
 					
-					let cbp = builder.current();
+					let cbp = vertices.len();
 					
 					if chunk.get_block(x,y+1,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // top
-							N, S, S, // a
-							S, S, S, // b
-							S, S, N, // c
-							N, S, N, // d
-						]);
+						Self::quad_to_tris(&[ // top
+							(N, S, S, 1.0, 0.0).into(),
+							(S, S, S, 1.0, 1.0).into(),
+							(S, S, N, 0.0, 1.0).into(),
+							(N, S, N, 0.0, 0.0).into(),
+						], &mut vertices);
 					}
 					
 					if chunk.get_block(x,y-1,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // bottom
-							N, N, N, // d
-							S, N, N, // c
-							S, N, S, // b
-							N, N, S, // a
-						]);
+						Self::quad_to_tris(&[ // bottom
+							(N, N, N, 1.0, 0.0).into(),
+							(S, N, N, 1.0, 1.0).into(),
+							(S, N, S, 0.0, 1.0).into(),
+							(N, N, S, 0.0, 0.0).into(),
+						], &mut vertices);
 					}
 					
 					if chunk.get_block(x,y,z-1).unwrap_or(air) == air {
-						builder.push_quads(vec![ // front
-							N, S, N, // a
-							S, S, N, // b
-							S, N, N, // c
-							N, N, N, // d
-						]);
+						Self::quad_to_tris(&[ // front
+							(N, S, N, 1.0, 0.0).into(), // a
+							(S, S, N, 1.0, 1.0).into(), // b
+							(S, N, N, 0.0, 1.0).into(), // c
+							(N, N, N, 0.0, 0.0).into(), // d
+						], &mut vertices);
 					}
 					
 					if chunk.get_block(x,y,z+1).unwrap_or(air) == air {
-						builder.push_quads(vec![ // back
-							N, N, S, // d
-							S, N, S, // c
-							S, S, S, // b
-							N, S, S, // a
-						]);
+						Self::quad_to_tris(&[ // back
+							(N, N, S, 1.0, 0.0).into(), // d
+							(S, N, S, 1.0, 1.0).into(), // c
+							(S, S, S, 0.0, 1.0).into(), // b
+							(N, S, S, 0.0, 0.0).into(), // a
+						], &mut vertices);
 					}
 					
 					if chunk.get_block(x-1,y,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // left
-							N, S, S, // a
-							N, S, N, // b
-							N, N, N, // c
-							N, N, S, // d
-						]);
+						Self::quad_to_tris(&[ // left
+							(N, S, S, 1.0, 0.0).into(), // a
+							(N, S, N, 1.0, 1.0).into(), // b
+							(N, N, N, 0.0, 1.0).into(), // c
+							(N, N, S, 0.0, 0.0).into(), // d
+						], &mut vertices);
 					}
 					
 					if chunk.get_block(x+1,y,z).unwrap_or(air) == air {
-						builder.push_quads(vec![ // right
-							S, N, S, // d
-							S, N, N, // c
-							S, S, N, // b
-							S, S, S, // a
-						]);
+						Self::quad_to_tris(&[ // right
+							(S, N, S, 1.0, 0.0).into(), // d
+							(S, N, N, 1.0, 1.0).into(), // c
+							(S, S, N, 0.0, 1.0).into(), // b
+							(S, S, S, 0.0, 0.0).into(), // a
+						], &mut vertices);
 					}
 					
-					builder.translate_range(cbp, None,
-						(x + cpos.x*CHUNK_SIZE as isize) as f32,
-						(y + cpos.y*CHUNK_SIZE as isize) as f32,
-						(z + cpos.z*CHUNK_SIZE as isize) as f32
-					);
+					for vertex in &mut vertices[cbp..] {
+						vertex.x += (x + cpos.x*CHUNK_SIZE as isize) as f32;
+						vertex.y += (y + cpos.y*CHUNK_SIZE as isize) as f32;
+						vertex.z += (z + cpos.z*CHUNK_SIZE as isize) as f32;
+					}
 				}
 			}
 		}
 		
-		return builder.build();
+		return Self::upload(chunk, &vertices);
 	}
 	
+	fn upload(chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>) -> ChunkMeshState {
+		// Don't upload empty meshes.
+		if mesh_data.len() == 0 {
+			return ChunkMeshState::Empty
+		}
+		
+		let vertex_count = mesh_data.len();
+		
+		let mut vbo: gl::types::GLuint = 0;
+		unsafe {
+			gl::GenBuffers(1, &mut vbo);
+			gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+			gl::BufferData(
+				gl::ARRAY_BUFFER,
+				(vertex_count * std::mem::size_of::<ChunkMeshVertex>()) as gl::types::GLsizeiptr,
+				mesh_data.as_ptr() as *const gl::types::GLvoid,
+				gl::STATIC_DRAW
+			);
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+		}
+		
+		let mut vao: gl::types::GLuint = 0;
+		unsafe {
+			gl::GenVertexArrays(1, &mut vao);
+			gl::BindVertexArray(vao);
+			gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+			
+			gl::EnableVertexAttribArray(0);
+			gl::VertexAttribPointer(
+				0,
+				3,
+				gl::FLOAT,
+				gl::FALSE,
+				(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+				(0 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+			);
+			
+			gl::EnableVertexAttribArray(1);
+			gl::VertexAttribPointer(
+				1,
+				2,
+				gl::FLOAT,
+				gl::FALSE,
+				(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+				(3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+			);
+			
+			gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+			gl::BindVertexArray(0);
+		}
+		
+		let label = format!("Chunk({}, {}, {})", chunk.pos.x, chunk.pos.y, chunk.pos.z);
+		
+		render::utility::gl_label_object(
+			gl::VERTEX_ARRAY, vao,
+			&format!("{} Descriptor", label)
+		);
+		
+		render::utility::gl_label_object(
+			gl::BUFFER, vbo,
+			&format!("{} Geometry", label)
+		);
+		
+		return ChunkMeshState::Meshed(ChunkMesh {
+			descriptor: vao,
+			vertex_buf: vbo,
+			count: vertex_count as i32
+		})
+	}
+	
+	fn quad_to_tris(src: &[ChunkMeshVertex; 4], dst: &mut Vec<ChunkMeshVertex>) {
+		dst.reserve(6);
+		dst.push(src[0]);
+		dst.push(src[1]);
+		dst.push(src[3]);
+		dst.push(src[1]);
+		dst.push(src[2]);
+		dst.push(src[3]);
+	}
+	
+}
+
+/// The graphical state of a chunk.
+enum ChunkMeshState {
+	/// Chunk is meshed but empty.
+	Empty,
+	
+	/// Chunk is meshed and full.
+	Meshed(ChunkMesh),
+}
+
+/// The graphical representation of a chunk.
+/// Really just a bag of OpenGL Object-Handles.
+struct ChunkMesh {
+	descriptor: gl::types::GLuint,
+	vertex_buf: gl::types::GLuint,
+	count: i32,
+}
+
+impl ChunkMesh {
+	pub fn draw(&self) {
+		unsafe {
+			gl::BindVertexArray(self.descriptor);
+			gl::DrawArrays(gl::TRIANGLES, 0, self.count);
+		}
+	}
+}
+
+impl Drop for ChunkMesh {
+	fn drop(&mut self) {
+		unsafe {
+			let tmp = [self.vertex_buf];
+			gl::DeleteBuffers(1, tmp.as_ptr());
+			
+			let tmp = [self.descriptor];
+			gl::DeleteVertexArrays(1, tmp.as_ptr());
+		}
+	}
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+struct ChunkMeshVertex {
+	// Geometry
+	pub x: f32,
+	pub y: f32,
+	pub z: f32,
+	
+	// Texture
+	pub u: f32,
+	pub v: f32,
+}
+
+impl ChunkMeshVertex {
+	pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32) -> Self {
+		Self {
+			x, y, z, u, v
+		}
+	}
+}
+
+impl From<(f32, f32, f32, f32, f32)> for ChunkMeshVertex {
+	fn from(other: (f32, f32, f32, f32, f32)) -> Self {
+		Self::new(other.0, other.1, other.2, other.3, other.4)
+	}
 }
