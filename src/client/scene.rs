@@ -7,12 +7,11 @@ use super::geometry;
 use super::freecam;
 use super::blocks;
 use super::super::blocks as blockdef;
-use std::rc::Rc;
 
 pub struct Scene {
 	pub camera: freecam::Camera,
 	meshes: Vec<geometry::SimpleMesh>,
-	pub blocks: Rc<blockdef::Universe>,
+	pub blockdef: blockdef::UniverseRef,
 	pub chunks: blocks::ChunkStorage,
 }
 
@@ -20,7 +19,8 @@ impl Scene {
 	pub fn new() -> Scene {
 		let config = Scene::load_config().expect("Failed to load scene config.");
 		
-		let blocks = Rc::new(blockdef::universe::define_universe());
+		let blockdef = blockdef::universe::define_universe(&config);
+		let chunks = blocks::ChunkStorage::new(blockdef.clone(), &config);
 		
 		Scene {
 			camera: freecam::Camera::new(),
@@ -29,8 +29,8 @@ impl Scene {
 				// geometry::geometry_cube(1.0),
 				// geometry::geometry_cube(-512.0),
 			],
-			blocks: blocks.clone(),
-			chunks: blocks::ChunkStorage::new(blocks.clone(), config),
+			blockdef,
+			chunks,
 		}
 	}
 	
@@ -102,11 +102,11 @@ pub struct SceneRenderer {
 }
 
 impl SceneRenderer {
-	pub fn new(res: &resources::Resources) -> Result<SceneRenderer, render::utility::Error> {
+	pub fn new(res: &resources::Resources, scene: &Scene) -> Result<SceneRenderer, render::utility::Error> {
 		let grid = render::grid::Grid::new(&res)?;
 		let shader_random = render::materials::ShaderRandom::new(&res)?;
 		let crosshair_3d = render::crosshair::CrosshairRenderer3D::new(&res)?;
-		let chunk_rmng = blocks::ChunkRenderManager::new(res)?;
+		let chunk_rmng = blocks::ChunkRenderManager::new(res, scene.blockdef.clone())?;
 		
 		Ok(SceneRenderer {
 			frame_id: 0,

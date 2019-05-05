@@ -5,13 +5,9 @@ use super::render;
 use super::geometry;
 
 use super::super::blocks as blockdef;
+use super::super::blocks::BlockState;
 use super::super::blocks::BlockCoord;
 use super::super::util::current_time_nanos;
-use std::rc::Rc;
-
-type Block = u8;
-pub const BLOCK_AIR: Block = 0;
-pub const BLOCK_ADM: Block = 1;
 
 const CHUNK_SIZE: usize = 16;
 const CHUNK_SIZE_SHIFT: usize = 4;
@@ -79,21 +75,31 @@ impl std::fmt::Display for ChunkCoord {
 
 pub struct Chunk {
 	pub pos: ChunkCoord,
-	pub blocks: [Block; CHUNK_VOLUME],
+	pub blockdef: blockdef::UniverseRef,
+	pub blocks: [BlockState; CHUNK_VOLUME],
 	pub last_update: u128
 }
 
 impl Chunk {
 	
-	pub fn new(x: isize, y: isize, z: isize) -> Chunk {
+	pub fn new(blockdef: blockdef::UniverseRef, x: isize, y: isize, z: isize) -> Chunk {
+		let air = blockdef.get_block_by_name("air")
+			.expect("'air' is not defined.")
+			.get_default_state();
+		
 		let mut new = Chunk {
 			pos: ChunkCoord {x,y,z},
-			blocks: [0 as Block; CHUNK_VOLUME],
+			blockdef: blockdef.clone(),
+			blocks: [air; CHUNK_VOLUME],
 			last_update: current_time_nanos()
 		};
 		
+		let bedrock = blockdef.get_block_by_name("bedrock")
+			.expect("'air' is not defined.")
+			.get_default_state();
+		
 		// new.fill_with_noise(BLOCK_ADM, 0.1);
-		new.fill_with_grid(BLOCK_ADM);
+		new.fill_with_grid(bedrock);
 		
 		new
 	}
@@ -110,7 +116,7 @@ impl Chunk {
 		return Some(value as usize)
 	}
 	
-	pub fn fill_with_grid(&mut self, fill: Block) {
+	pub fn fill_with_grid(&mut self, fill: BlockState) {
 		const I: isize = (CHUNK_SIZE - 1) as isize;
 		for i in 0..=I {
 			self.set_block(i,0,0,fill);
@@ -128,17 +134,19 @@ impl Chunk {
 		}
 	}
 	
-	pub fn fill_with_noise(&mut self, fill: Block, chance: f64) {
+	pub fn fill_with_noise(&mut self, fill: BlockState, chance: f64) {
 		extern crate rand;
 		use rand::prelude::*;
 		let mut rng = thread_rng();
 		
 		for i in self.blocks.iter_mut() {
-			*i = if rng.gen_bool(chance) {fill} else {BLOCK_AIR};
+			if rng.gen_bool(chance) {
+				*i = fill
+			}
 		}
 	}
 	
-	pub fn get_block(&self, x: isize, y: isize, z: isize) -> Option<Block> {
+	pub fn get_block(&self, x: isize, y: isize, z: isize) -> Option<BlockState> {
 		let x = Chunk::clamp_chunk_coord(x)?;
 		let y = Chunk::clamp_chunk_coord(y)?;
 		let z = Chunk::clamp_chunk_coord(z)?;
@@ -149,7 +157,7 @@ impl Chunk {
 		}
 	}
 	
-	pub fn set_block(&mut self, x: isize, y: isize, z: isize, state: Block) -> Option<()> {
+	pub fn set_block(&mut self, x: isize, y: isize, z: isize, state: BlockState) -> Option<()> {
 		let x = Chunk::clamp_chunk_coord(x)?;
 		let y = Chunk::clamp_chunk_coord(y)?;
 		let z = Chunk::clamp_chunk_coord(z)?;
@@ -165,21 +173,25 @@ impl Chunk {
 		const N: f32 = 0.0;
 		const S: f32 = 1.0;
 		
+		let air = self.blockdef.get_block_by_name("air")
+			.expect("'air' is not defined.")
+			.get_default_state();
+		
 		for y in 0..CHUNK_SIZE {
 			for z in 0..CHUNK_SIZE {
 				for x in 0..CHUNK_SIZE {
 					let x = x as isize;
 					let y = y as isize;
 					let z = z as isize;
-					let block = self.get_block(x, y, z).unwrap_or(BLOCK_AIR);
+					let block = self.get_block(x, y, z).unwrap_or(air);
 					
-					if block == BLOCK_AIR {
+					if block == air {
 						continue;
 					}
 					
 					let cbp = builder.current();
 					
-					if self.get_block(x,y+1,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+					if self.get_block(x,y+1,z).unwrap_or(air) == air {
 						builder.push_quads(vec![ // top
 							N, S, S, // a
 							S, S, S, // b
@@ -188,7 +200,7 @@ impl Chunk {
 						]);
 					}
 					
-					if self.get_block(x,y-1,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+					if self.get_block(x,y-1,z).unwrap_or(air) == air {
 						builder.push_quads(vec![ // bottom
 							N, N, N, // d
 							S, N, N, // c
@@ -197,7 +209,7 @@ impl Chunk {
 						]);
 					}
 					
-					if self.get_block(x,y,z-1).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+					if self.get_block(x,y,z-1).unwrap_or(air) == air {
 						builder.push_quads(vec![ // front
 							N, S, N, // a
 							S, S, N, // b
@@ -206,7 +218,7 @@ impl Chunk {
 						]);
 					}
 					
-					if self.get_block(x,y,z+1).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+					if self.get_block(x,y,z+1).unwrap_or(air) == air {
 						builder.push_quads(vec![ // back
 							N, N, S, // d
 							S, N, S, // c
@@ -215,7 +227,7 @@ impl Chunk {
 						]);
 					}
 					
-					if self.get_block(x-1,y,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+					if self.get_block(x-1,y,z).unwrap_or(air) == air {
 						builder.push_quads(vec![ // left
 							N, S, S, // a
 							N, S, N, // b
@@ -224,7 +236,7 @@ impl Chunk {
 						]);
 					}
 					
-					if self.get_block(x+1,y,z).unwrap_or(BLOCK_AIR) == BLOCK_AIR {
+					if self.get_block(x+1,y,z).unwrap_or(air) == air {
 						builder.push_quads(vec![ // right
 							S, N, S, // d
 							S, N, N, // c
@@ -248,17 +260,17 @@ impl Chunk {
 }
 
 pub struct ChunkStorage {
-	blocks: Rc<blockdef::Universe>,
+	blockdef: blockdef::UniverseRef,
 	chunks: Vec<Chunk>,
 }
 
 impl ChunkStorage {
 	pub fn new(
-		blocks: Rc<blockdef::Universe>,
-		config: toml::value::Table
+		blockdef: blockdef::UniverseRef,
+		config: &toml::value::Table
 	) -> ChunkStorage {
 		let mut storage = ChunkStorage {
-			blocks,
+			blockdef: blockdef.clone(),
 			chunks: Vec::default()
 		};
 		
@@ -280,7 +292,7 @@ impl ChunkStorage {
 		for y in 0..height {
 			for z in -range..range {
 				for x in -range..range {
-					let chunk = Chunk::new(x, y, z);
+					let chunk = Chunk::new(blockdef.clone(), x, y, z);
 					storage.chunks.push(chunk);
 				}
 			}
@@ -289,7 +301,7 @@ impl ChunkStorage {
 		storage
 	}
 	
-	pub fn get_block(&self, pos: &BlockCoord) -> Option<Block> {
+	pub fn get_block(&self, pos: &BlockCoord) -> Option<BlockState> {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK as isize;
 		
@@ -308,7 +320,7 @@ impl ChunkStorage {
 		return None;
 	}
 	
-	pub fn set_block(&mut self, pos: &BlockCoord, state: Block) -> bool {
+	pub fn set_block(&mut self, pos: &BlockCoord, state: BlockState) -> bool {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK as isize;
 		
@@ -326,7 +338,7 @@ impl ChunkStorage {
 		return false;
 	}
 	
-	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> Option<(BlockCoord, BlockCoord, Block)> {
+	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> Option<(BlockCoord, BlockCoord, BlockState)> {
 		loop {
 			let (lx, ly, lz) = raycast.previous();
 			
@@ -338,10 +350,15 @@ impl ChunkStorage {
 			let last_pos = BlockCoord::new(lx, ly, lz);
 			let pos = BlockCoord::new(cx, cy, cz);
 			
+			let air = self.blockdef.get_block_by_name("air")
+				.expect("'air' is not defined.")
+				.get_default_state();
+			
 			match self.get_block(&pos) {
-				Some(block) => match block {
-					BLOCK_AIR => (),
-					_ => return Some((last_pos, pos, block))
+				Some(block) => {
+					if block != air {
+						return Some((last_pos, pos, block))
+					}
 				}
 				_ => ()
 			}
@@ -350,7 +367,7 @@ impl ChunkStorage {
 		return None;
 	}
 	
-	pub fn raycast_fill(&mut self, raycast: &mut BlockRaycast, state: Block) {
+	pub fn raycast_fill(&mut self, raycast: &mut BlockRaycast, state: BlockState) {
 		while let Some((x,y,z)) = raycast.step() {
 			let pos = BlockCoord::new(x, y, z);
 			self.set_block(&pos, state);
@@ -558,15 +575,17 @@ impl ShaderBlocks {
 }
 
 pub struct ChunkRenderManager {
+	blockdef: blockdef::UniverseRef,
 	chunks: FxHashMap<ChunkCoord, (u128, geometry::SimpleMesh)>,
 	material: ShaderBlocks,
 }
 
 impl ChunkRenderManager {
-	pub fn new(res: &resources::Resources) -> Result<ChunkRenderManager, render::utility::Error> {
+	pub fn new(res: &resources::Resources, blockdef: blockdef::UniverseRef) -> Result<ChunkRenderManager, render::utility::Error> {
 		let material = ShaderBlocks::new(res)?;
 		
 		Ok(ChunkRenderManager {
+			blockdef: blockdef.clone(),
 			chunks: FxHashMap::default(),
 			material,
 		})

@@ -200,8 +200,11 @@ fn run(opts: cmd_opts::CmdOptions, settings: settings::Settings) -> Result<(), f
 	scene.camera.apply_settings(settings);
 	router.nodes.set_node_component(0, Box::new(scene))?;
 	
-	let scene_renderer = scene::SceneRenderer::new(&res)?;
-	router.nodes.set_node_component(0, Box::new(scene_renderer))?;
+	// Create the renderer for the scene, which requires the scene for initialization, so...
+	if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+		let scene_renderer = scene::SceneRenderer::new(&res, &scene)?;
+		router.nodes.set_node_component(0, Box::new(scene_renderer))?;
+	}
 	
 	// ------------------------------------------
 	

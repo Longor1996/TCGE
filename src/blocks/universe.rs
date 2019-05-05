@@ -4,12 +4,20 @@
 //! TODO: Load the universe from a file.
 
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 
 pub struct Universe {
 	blocks: FxHashMap<BlockId, Block>,
 }
 
 impl Universe {
+	
+	fn new() -> Universe {
+		Universe {
+			blocks: FxHashMap::default()
+		}
+	}
+	
 	pub fn get_block_by_name(&self, name: &str) -> Option<&Block> {
 		for (_id, block) in self.blocks.iter() {
 			if block.name == name {
@@ -25,11 +33,20 @@ impl Universe {
 	}
 }
 
+pub type UniverseRef = Rc<Universe>;
+
 ////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Eq,Hash,Clone)]
+/// Immutable handle to a specific type of block in a universe.
+#[derive(Eq, Hash, Copy, Clone)]
 pub struct BlockId {
-	id: u16
+	id: u16 // Not public; must stay immutable.
+}
+
+impl BlockId {
+	pub fn new(id: u16) -> BlockId {
+		BlockId {id}
+	}
 }
 
 impl PartialEq for BlockId {
@@ -54,35 +71,46 @@ impl Block {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone)]
+#[derive(Copy, Clone, Eq)]
 pub struct BlockState {
-	data: ()
+	pub id: BlockId,
+	pub data: ()
+}
+
+impl PartialEq for BlockState {
+	fn eq(&self, other: &BlockState) -> bool {
+		self.id == other.id
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn define_universe() -> Universe {
-	let mut blocks = FxHashMap::default();
+pub fn define_universe(
+	_config: &toml::value::Table
+) -> UniverseRef {
+	let mut universe = Universe::new();
 	
+	let air_id = BlockId::new(0);
 	let air = Block {
-		id: BlockId {id: 0},
+		id: air_id,
 		name: "air".to_string(),
 		default_state: BlockState {
+			id: air_id,
 			data: ()
 		}
 	};
-	blocks.insert(air.id.clone(), air);
+	universe.blocks.insert(air.id, air);
 	
+	let bedrock_id = BlockId::new(1);
 	let bedrock = Block {
-		id: BlockId {id: 1},
+		id: bedrock_id,
 		name: "bedrock".to_string(),
 		default_state: BlockState {
+			id: bedrock_id,
 			data: ()
 		}
 	};
-	blocks.insert(bedrock.id.clone(), bedrock);
+	universe.blocks.insert(bedrock.id, bedrock);
 	
-	return Universe {
-		blocks
-	}
+	return Rc::new(universe)
 }

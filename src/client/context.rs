@@ -167,14 +167,22 @@ impl GlfwContextComponent {
 							use super::blocks;
 							let mut rc = blocks::BlockRaycast::new_from_src_dir_len(src, dir, len);
 							
+							let air = scene.blockdef.get_block_by_name("air")
+								.expect("'air' is not defined.")
+								.get_default_state();
+							
+							let bedrock = scene.blockdef.get_block_by_name("bedrock")
+								.expect("'bedrock' is not defined.")
+								.get_default_state();
+							
 							match scene.chunks.raycast(&mut rc) {
 								Some((last_pos, curr_pos, _block)) => {
 									match button {
 										MouseButton::Button1 => {
-											scene.chunks.set_block(&curr_pos, blocks::BLOCK_AIR);
+											scene.chunks.set_block(&curr_pos, air);
 										},
 										MouseButton::Button2 => {
-											scene.chunks.set_block(&last_pos, blocks::BLOCK_ADM);
+											scene.chunks.set_block(&last_pos, bedrock);
 										},
 										_ => {}
 									}

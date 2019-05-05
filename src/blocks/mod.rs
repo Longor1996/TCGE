@@ -2,6 +2,7 @@
 
 pub mod universe;
 pub use self::universe::Universe;
+pub use self::universe::UniverseRef;
 pub use self::universe::Block;
 pub use self::universe::BlockId;
 pub use self::universe::BlockState;
