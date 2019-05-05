@@ -28,6 +28,10 @@ impl Universe {
 		None
 	}
 	
+	pub fn get_block_by_name_unchecked(&self, name: &str) -> &Block {
+		self.get_block_by_name(name).unwrap()
+	}
+	
 	pub fn get_block_by_id(&self, id: BlockId) -> &Block {
 		return &self.blocks[&id];
 	}

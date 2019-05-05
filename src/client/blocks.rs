@@ -83,8 +83,8 @@ pub struct Chunk {
 impl Chunk {
 	
 	pub fn new(blockdef: blockdef::UniverseRef, x: isize, y: isize, z: isize) -> Chunk {
-		let air = blockdef.get_block_by_name("air")
-			.expect("'air' is not defined.")
+		let air = blockdef
+			.get_block_by_name_unchecked("air")
 			.get_default_state();
 		
 		let mut new = Chunk {
@@ -94,8 +94,8 @@ impl Chunk {
 			last_update: current_time_nanos()
 		};
 		
-		let bedrock = blockdef.get_block_by_name("bedrock")
-			.expect("'air' is not defined.")
+		let bedrock = blockdef
+			.get_block_by_name_unchecked("bedrock")
 			.get_default_state();
 		
 		// new.fill_with_noise(BLOCK_ADM, 0.1);
@@ -173,8 +173,8 @@ impl Chunk {
 		const N: f32 = 0.0;
 		const S: f32 = 1.0;
 		
-		let air = self.blockdef.get_block_by_name("air")
-			.expect("'air' is not defined.")
+		let air = self.blockdef
+			.get_block_by_name_unchecked("air")
 			.get_default_state();
 		
 		for y in 0..CHUNK_SIZE {
@@ -350,8 +350,8 @@ impl ChunkStorage {
 			let last_pos = BlockCoord::new(lx, ly, lz);
 			let pos = BlockCoord::new(cx, cy, cz);
 			
-			let air = self.blockdef.get_block_by_name("air")
-				.expect("'air' is not defined.")
+			let air = self.blockdef
+				.get_block_by_name_unchecked("air")
 				.get_default_state();
 			
 			match self.get_block(&pos) {
