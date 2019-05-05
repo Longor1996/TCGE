@@ -154,6 +154,13 @@ impl Program {
 		}
 	}
 	
+	pub fn uniform_vector3(&self, uniform: i32, vector: cgmath::Vector3<f32>) {
+		if uniform == -1 {return}
+		unsafe {
+			gl::Uniform3fv(uniform, 1, vector.as_ptr())
+		}
+	}
+	
 	pub fn uniform_vector4(&self, uniform: i32, vector: cgmath::Vector4<f32>) {
 		if uniform == -1 {return}
 		unsafe {

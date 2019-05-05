@@ -96,6 +96,7 @@ impl router::comp::Component for Scene {
 pub struct SceneRenderer {
 	frame_id: i64,
 	grid: render::grid::Grid,
+	sky_renderer: SkyRenderer,
 	shader_random: render::materials::ShaderRandom,
 	crosshair_3d: render::crosshair::CrosshairRenderer3D,
 	chunk_rmng: blocks::ChunkRenderManager,
@@ -103,14 +104,16 @@ pub struct SceneRenderer {
 
 impl SceneRenderer {
 	pub fn new(res: &resources::Resources, scene: &Scene) -> Result<SceneRenderer, render::utility::Error> {
-		let grid = render::grid::Grid::new(&res)?;
-		let shader_random = render::materials::ShaderRandom::new(&res)?;
-		let crosshair_3d = render::crosshair::CrosshairRenderer3D::new(&res)?;
+		let grid = render::grid::Grid::new(res)?;
+		let sky_renderer = SkyRenderer::new(res)?;
+		let shader_random = render::materials::ShaderRandom::new(res)?;
+		let crosshair_3d = render::crosshair::CrosshairRenderer3D::new(res)?;
 		let chunk_rmng = blocks::ChunkRenderManager::new(res, scene.blockdef.clone())?;
 		
 		Ok(SceneRenderer {
 			frame_id: 0,
 			grid,
+			sky_renderer,
 			crosshair_3d,
 			shader_random,
 			chunk_rmng,
@@ -149,6 +152,8 @@ impl router::comp::Component for SceneRenderer {
 pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32), now: f64, interpolation:f32) {
 	render::utility::gl_push_debug("Draw Scene");
 	
+	render_state.sky_renderer.render(&scene.camera, size, now, interpolation);
+	
 	unsafe {
 		gl::Enable(gl::DEPTH_TEST);
 		gl::CullFace(gl::FRONT);
@@ -179,4 +184,66 @@ pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32),
 	}
 	
 	render::utility::gl_pop_debug();
+}
+
+struct SkyRenderer {
+	skybox: render::geometry::SimpleMesh,
+	shader: SkyShader,
+}
+
+impl SkyRenderer {
+	fn new(res: &resources::Resources) -> Result<Self, render::utility::Error> {
+		let skybox = render::geometry::geometry_cube(10.0);
+		let shader = SkyShader::new(res)?;
+		
+		Ok(SkyRenderer {
+			skybox,
+			shader,
+		})
+	}
+	
+	fn render(&mut self, camera: &freecam::Camera, size: (i32, i32), now: f64, interpolation:f32) {
+		unsafe {
+			gl::Disable(gl::DEPTH_TEST);
+			gl::Disable(gl::CULL_FACE);
+		}
+		
+		let transform = camera.transform(size, interpolation, false);
+		let position = camera.get_position(interpolation);
+		let color = cgmath::Vector4 {x: 0.3, y: 0.6, z: 1.0, w: 1.0};
+		
+		self.shader.shader_program.set_used();
+		self.shader.shader_program.uniform_matrix4(self.shader.uniform_matrix, transform);
+		self.shader.shader_program.uniform_vector3(self.shader.uniform_camera, position);
+		self.shader.shader_program.uniform_vector4(self.shader.uniform_color, color);
+		
+		self.skybox.draw(gl::TRIANGLES);
+		
+		unsafe {
+			gl::Enable(gl::DEPTH_TEST);
+			gl::Enable(gl::CULL_FACE);
+		}
+	}
+}
+
+
+pub struct SkyShader {
+	pub shader_program: render::utility::Program,
+	pub uniform_matrix: i32,
+	pub uniform_camera: i32,
+	pub uniform_color: i32,
+}
+impl SkyShader {
+	pub fn new(res: &resources::Resources) -> Result<Self, render::utility::Error> {
+		let shader_program = render::utility::Program::from_res(&res, "shaders/sky")?;
+		let uniform_matrix = shader_program.uniform_location("transform");
+		let uniform_camera = shader_program.uniform_location("camera");
+		let uniform_color = shader_program.uniform_location("color");
+		Ok(SkyShader {
+			shader_program,
+			uniform_matrix,
+			uniform_camera,
+			uniform_color
+		})
+	}
 }
