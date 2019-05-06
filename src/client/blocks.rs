@@ -586,7 +586,9 @@ impl ChunkMesher {
 					
 					let cbp = vertices.len();
 					
+					// This line is the dumbest thing in the whole project...
 					let uv = BlockUv::new_from_pos(block.id.get_raw_id() as u8 - 1, 0);
+					// TODO: Implement the static block-bakery.
 					
 					if chunk.get_block(x,y+1,z).unwrap_or(air) == air {
 						Self::quad_to_tris(&[ // top
@@ -683,20 +685,20 @@ impl ChunkMesher {
 			
 			gl::EnableVertexAttribArray(0);
 			gl::VertexAttribPointer(
-				0,
-				3,
-				gl::FLOAT,
-				gl::FALSE,
+				0, // attribute location
+				3, // sub-element count
+				gl::FLOAT, // sub-element type
+				gl::FALSE, // sub-element normalization
 				(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
 				(0 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 			);
 			
 			gl::EnableVertexAttribArray(1);
 			gl::VertexAttribPointer(
-				1,
-				2,
-				gl::FLOAT,
-				gl::FALSE,
+				1, // attribute location
+				2, // sub-element count
+				gl::FLOAT, // sub-element type
+				gl::FALSE, // sub-element normalization
 				(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
 				(3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 			);
@@ -809,10 +811,6 @@ struct BlockUv {
 }
 
 impl BlockUv {
-	fn new(umin: f32, umax: f32, vmin: f32, vmax: f32) -> Self {
-		Self { umin, umax, vmin, vmax }
-	}
-	
 	fn new_from_pos(x: u8, y: u8) -> Self {
 		let x = (x as f32) / 16.0;
 		let y = (y as f32) / 16.0;

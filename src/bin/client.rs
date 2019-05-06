@@ -109,25 +109,16 @@ impl router::lens::Handler for ClientLens {
 			let scene = context.get_mut_component_downcast::<scene::Scene>();
 			let gfx = context.get_mut_component_downcast::<context::GlfwContextComponent>();
 			
-			match scene {
-				Ok(scene) => {
-					match gfx {
-						Ok(gfx) => {
-							scene.camera.update_movement(gfx.window.borrow());
-							scene.update_targeted_block();
-						},
-						Err(_) => ()
-					}
+			if let Ok(scene) = scene {
+				if let Ok(gfx) = gfx {
+					scene.camera.update_movement(gfx.window.borrow());
+					scene.update_targeted_block();
 				}
-				Err(_) => ()
 			}
 			
-			match context.get_mut_component_downcast::<scene::SceneRenderer>() {
-				Ok(scene_render_state) => {
-					scene_render_state.reset();
-				},
-				Err(_) => ()
-			};
+			if let Ok(scene_renderer) = context.get_mut_component_downcast::<scene::SceneRenderer>() {
+				scene_renderer.reset();
+			}
 		});
 		
 		event.downcast::<client::DrawEvent>().map(|draw| {
@@ -138,24 +129,19 @@ impl router::lens::Handler for ClientLens {
 				panic!("This ain't supposed to happen!");
 			}
 			
-			match scene {
-				Ok(scene) => {
-					match scene_renderer {
-						Ok(scene_renderer) => {
-							scene_renderer.begin();
-							scene::render(
-								scene_renderer,
-								scene,
-								draw.window_size,
-								draw.now,
-								draw.interpolation
-							);
-							scene_renderer.end();
-						},
-						Err(_) => ()
-					}
+			if let Ok(scene) = scene {
+				if let Ok(scene_renderer) = scene_renderer {
+					scene_renderer.begin();
+					scene::render(
+						scene_renderer,
+						scene,
+						draw.window_size,
+						draw.now,
+						draw.interpolation
+					);
+					scene_renderer.end();
 				}
-				Err(_) => ()
+				
 			}
 		});
 		
@@ -270,29 +256,26 @@ fn run(opts: cmd_opts::CmdOptions, settings: settings::Settings) -> Result<(), f
 					)
 				));
 				
-				match router.borrow_mut().nodes.get_node_component_downcast::<scene::Scene>(0) {
-					Ok(scene) => {
-						let camera = scene.camera.borrow();
-						let position = camera.get_position(interpolation);
-						let rotation = camera.get_rotation(interpolation);
-						
-						let default = scene.blockdef.get_block_by_name_unchecked("bedrock").get_default_state();
-						let block = scene.camera.block.unwrap_or(default);
-
-						render_state_gui.debug_text.push((
-							0.0, (h as f32) - 16.0 -  2.0,
-							format!("Camera: {crane}-mode {x:.1}, {y:.1}, {z:.1} / {pitch:.0} {yaw:.0}, {block}",
-								x = position.x,
-								y = position.y,
-								z = position.z,
-								pitch = rotation.x.round(),
-								yaw   = rotation.y.round(),
-								crane = if camera.crane { "crane" } else { "drone" },
-								block = scene.blockdef.get_block_by_id(block.id).get_name()
-							)
-						));
-					},
-					Err(_) => ()
+				if let Ok(scene) = router.borrow_mut().nodes.get_node_component_downcast::<scene::Scene>(0) {
+					let camera = scene.camera.borrow();
+					let position = camera.get_position(interpolation);
+					let rotation = camera.get_rotation(interpolation);
+					
+					let default = scene.blockdef.get_block_by_name_unchecked("bedrock").get_default_state();
+					let block = scene.camera.block.unwrap_or(default);
+					
+					render_state_gui.debug_text.push((
+						0.0, (h as f32) - 16.0 -  2.0,
+						format!("Camera: {crane}-mode {x:.1}, {y:.1}, {z:.1} / {pitch:.0} {yaw:.0}, {block}",
+							x = position.x,
+							y = position.y,
+							z = position.z,
+							pitch = rotation.x.round(),
+							yaw   = rotation.y.round(),
+							crane = if camera.crane { "crane" } else { "drone" },
+							block = scene.blockdef.get_block_by_id(block.id).get_name()
+						)
+					));
 				}
 				
 				render_gui(&mut render_state_gui);

@@ -226,13 +226,13 @@ impl SkyRenderer {
 	}
 }
 
-
 pub struct SkyShader {
 	pub shader_program: render::utility::Program,
 	pub uniform_matrix: i32,
 	pub uniform_camera: i32,
 	pub uniform_color: i32,
 }
+
 impl SkyShader {
 	pub fn new(res: &resources::Resources) -> Result<Self, render::utility::Error> {
 		let shader_program = render::utility::Program::from_res(&res, "shaders/sky")?;

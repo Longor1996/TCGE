@@ -124,20 +124,14 @@ impl GlfwContextComponent {
 						None // toggle
 					);
 					
-					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
-						Ok(scene) => {
-							scene.camera.active = new_state == glfw::CursorMode::Disabled
-						},
-						Err(_) => ()
+					if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						scene.camera.active = new_state == glfw::CursorMode::Disabled
 					}
 				},
-
+				
 				glfw::WindowEvent::Key(Key::C, _, Action::Release, _) => {
-					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
-						Ok(scene) => {
-							scene.camera.crane = !scene.camera.crane;
-						},
-						Err(_) => ()
+					if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						scene.camera.crane = !scene.camera.crane;
 					}
 				},
 				
@@ -185,55 +179,49 @@ impl GlfwContextComponent {
 						continue;
 					}
 					
-					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
-						Ok(scene) => {
-							let src = scene.camera.get_position(1.0);
-							let dir = scene.camera.get_look_dir(1.0);
-							let len = 16.0;
-							
-							use super::blocks;
-							let mut rc = blocks::BlockRaycast::new_from_src_dir_len(src, dir, len);
-							
-							let air = scene.blockdef
-								.get_block_by_name_unchecked("air")
-								.get_default_state();
-							
-							let bedrock = scene.blockdef
-								.get_block_by_name_unchecked("bedrock")
-								.get_default_state();
-							
-							let used_block = scene.camera.block.unwrap_or(bedrock);
-							
-							match scene.chunks.raycast(&mut rc) {
-								Some((last_pos, curr_pos, _block)) => {
-									match button {
-										MouseButton::Button1 => {
-											scene.chunks.set_block(&curr_pos, air);
-										},
-										MouseButton::Button2 => {
-											scene.chunks.set_block(&last_pos, used_block);
-										},
-										_ => {}
-									}
-								},
-								None => ()
-							}
-						},
-						Err(_) => ()
+					let scene = match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						Ok(scene) => scene,
+						Err(_) => return
+					};
+					
+					let src = scene.camera.get_position(1.0);
+					let dir = scene.camera.get_look_dir(1.0);
+					let len = 16.0;
+					
+					use super::blocks;
+					let mut rc = blocks::BlockRaycast::new_from_src_dir_len(src, dir, len);
+					
+					let air = scene.blockdef
+						.get_block_by_name_unchecked("air")
+						.get_default_state();
+					
+					let bedrock = scene.blockdef
+						.get_block_by_name_unchecked("bedrock")
+						.get_default_state();
+					
+					let used_block = scene.camera.block.unwrap_or(bedrock);
+					
+					if let Some((last_pos, curr_pos, _block)) = scene.chunks.raycast(&mut rc) {
+						match button {
+							MouseButton::Button1 => {
+								scene.chunks.set_block(&curr_pos, air);
+							},
+							MouseButton::Button2 => {
+								scene.chunks.set_block(&last_pos, used_block);
+							},
+							_ => {}
+						}
 					}
 				},
 				
 				glfw::WindowEvent::CursorPos(x, y) => {
 					self.cursor.update(x, y);
 					
-					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
-						Ok(scene) => {
-							scene.camera.update_rotation(
-								self.cursor.mov_x,
-								self.cursor.mov_y
-							);
-						},
-						Err(_) => ()
+					if let Ok(scene) = router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						scene.camera.update_rotation(
+							self.cursor.mov_x,
+							self.cursor.mov_y
+						);
 					}
 				},
 				_ => ()

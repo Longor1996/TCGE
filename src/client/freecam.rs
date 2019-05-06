@@ -36,9 +36,7 @@ pub struct Camera {
 }
 
 impl Camera {
-	/// Creates a new camera.
-	///
-	/// TODO: Add some parameters.
+	/// Creates a new camera with default settings.
 	pub fn new() -> Camera {
 		return Camera {
 			active: true,
@@ -85,7 +83,7 @@ impl Camera {
 		if let Some(v) = controls.get("movement-speed") {
 			self.move_speed = v.as_float().expect("Value 'movement-speed' is not a float.") as f32 / 30.0;
 		}
-
+		
 		if let Some(v) = controls.get("crane") {
 			self.crane = v.as_bool().expect("Value 'crane' is not a bool.") as bool;
 		}
@@ -179,7 +177,7 @@ impl Camera {
 	pub fn update_movement(&mut self, window: &glfw::Window) {
 		self.position_last.clone_from(&self.position);
 		self.velocity_last.clone_from(&self.velocity);
-
+		
 		if !self.active {
 			return;
 		}
@@ -190,44 +188,53 @@ impl Camera {
 		if window.get_key(Key::LeftShift) == Action::Press {
 			move_speed *= 5.0;
 		}
-
-		// FOV effect
+		
+		// Apply velocity to the FoV for speedy-effect
+		// TODO: Add an option to disable this.
 		self.field_of_view = self.min_fov + self.velocity.magnitude() * 23.42;
-
-		// --- Move ---
+		
+		// --- Construct velocity vector...
 		let yaw = cgmath::Deg(self.rotation.y);
 		let mut mat = Matrix4::from_angle_y(yaw);
-
+		
+		// Fetch the input statuses and convert them to 0/1...
 		let forwards = (window.get_key(Key::W) == Action::Press) as i8;
 		let backwards = (window.get_key(Key::S) == Action::Press) as i8;
 		let strafe_left = (window.get_key(Key::A) == Action::Press) as i8;
 		let strafe_right = (window.get_key(Key::D) == Action::Press) as i8;
-
+		
 		let mut direction = Vector3::new(0.0, 0.0, 0.0);
-
-		// if only backwards is 1 it results in -1 cancels out with forwards if forwards is 1 and if
-		// forwards is 1 it will be 1
+		
+		// ...then build a direction vector from them.
+		// - If neither are active, the result is 0.
+		// - If only 'forwards'  is active, the result is +1.
+		// - If only 'backwards' is active, the result is -1.
+		// - If both are active, cancelling each other out, the result is 0.
 		direction.z += (forwards - backwards) as f32;
 		direction.x += (strafe_right - strafe_left) as f32;
-
+		
 		// crane or drone mode for y axis
 		if self.crane {
+			// CRANE: The camera pitch does not affect planar movement.
 			let up = (window.get_key(Key::Space) == Action::Press) as i8;
 			let down = (window.get_key(Key::LeftControl) == Action::Press) as i8;
 			direction.y += (up - down) as f32;
 		}
 		else {
+			// DRONE: The camera pitch tilts the plane of movement.
 			let pitch = cgmath::Deg(self.rotation.x);
 			mat = mat * Matrix4::from_angle_x(pitch);
 		}
-
-		// ensure that in all directions the vector is 1 unit long
+		
+		// Ensure that the vector has a magnitude of 1 (equal in all directions)
 		direction.normalize();
-
-		let transformed = Matrix4::transform_vector(&mat, direction);
-		self.velocity += transformed * move_speed;
-		// ------------
-
+		
+		// Transform the new velocity vector into world-space...
+		let direction = Matrix4::transform_vector(&mat, direction);
+		
+		// ...and add it to the existing velocity vector.
+		self.velocity += direction * move_speed;
+		
 		// Apply velocity
 		self.position += self.velocity;
 		
@@ -238,7 +245,8 @@ impl Camera {
 
 impl std::fmt::Display for Camera {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(fmt, "Camera [x: {}, y: {}, z: {}, pitch: {}, yaw: {} ] & LastCamera [x: {}, y: {}, z: {}, pitch: {}, yaw: {} ]",
+		write!(fmt, "Camera({}-mode) [x: {}, y: {}, z: {}, pitch: {}, yaw: {} ] & LastCamera [x: {}, y: {}, z: {}, pitch: {}, yaw: {} ]",
+			if self.crane { "crane" } else { "drone" },
 			self.position.x,
 			self.position.y,
 			self.position.z,
