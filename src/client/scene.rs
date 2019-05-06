@@ -163,13 +163,15 @@ pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32),
 	let camera = &scene.camera;
 	
 	let camera_position = camera.get_position(interpolation);
-	let camera_transform = camera.transform(size, interpolation, true);
+	let camera_proj = camera.projection(interpolation, size);
+	let camera_view = camera.transform(interpolation, true);
+	let camera_matrix = camera_proj * camera_view;
 	
-	render_state.grid.draw(&camera_transform, &camera_position);
+	render_state.grid.draw(&camera_matrix, &camera_position);
 	
 	let shader_random = &render_state.shader_random;
 	shader_random.shader_program.set_used();
-	shader_random.shader_program.uniform_matrix4(shader_random.uniform_matrix, camera_transform);
+	shader_random.shader_program.uniform_matrix4(shader_random.uniform_matrix, camera_matrix);
 	shader_random.shader_program.uniform_scalar(shader_random.uniform_time, now as f32);
 	
 	for mesh in scene.meshes.iter() {
@@ -177,10 +179,10 @@ pub fn render(render_state: &mut SceneRenderer, scene: &Scene, size: (i32, i32),
 	}
 	
 	// Render chunks!
-	render_state.chunk_rmng.render(scene, camera_transform);
+	render_state.chunk_rmng.render(scene, camera_matrix);
 	
 	if let Some(target) = &scene.camera.target {
-		render_state.crosshair_3d.draw(camera_transform, target);
+		render_state.crosshair_3d.draw(camera_matrix, target);
 	}
 	
 	render::utility::gl_pop_debug();
@@ -208,7 +210,10 @@ impl SkyRenderer {
 			gl::Disable(gl::CULL_FACE);
 		}
 		
-		let transform = camera.transform(size, interpolation, false);
+		let camera_proj = camera.projection(interpolation, size);
+		let camera_view = camera.transform(interpolation, false);
+		let transform = camera_proj * camera_view;
+		
 		let position = camera.get_position(interpolation);
 		let color = cgmath::Vector4 {x: 0.3, y: 0.6, z: 1.0, w: 1.0};
 		

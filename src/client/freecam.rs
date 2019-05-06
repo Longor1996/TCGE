@@ -117,10 +117,8 @@ impl Camera {
 		forward.normalize()
 	}
 	
-	/// Given a viewport-size and an interpolation factor, compute the View-Projection-Matrix for this camera.
-	///
-	/// If `translation` is `false`, the camera position is ignored in the computation.
-	pub fn transform(&self, size: (i32, i32), interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
+	/// Given a viewport-size and an interpolation factor, compute the Projection-Matrix for this camera.
+	pub fn projection(&self, _interpolation: f32, size: (i32, i32)) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
 		let fov = cgmath::Rad::from(cgmath::Deg(self.field_of_view));
 		
@@ -133,7 +131,13 @@ impl Camera {
 		};
 		
 		let perspective = Matrix4::from(perspective);
-		
+		perspective
+	}
+	
+	/// Given an interpolation factor, compute the View-Matrix for this camera.
+	///
+	/// If `translation` is `false`, the camera position is ignored in the computation.
+	pub fn transform(&self, interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
 		// --- Now compute the rotation matrix...
 		let rotation = self.get_rotation(interpolation);
 		let pitch = cgmath::Deg(rotation.x);
@@ -152,8 +156,8 @@ impl Camera {
 			camera = camera * Matrix4::from_translation(-self.get_position(interpolation));
 		}
 		
-		// return multiplied matrix
-		perspective * camera
+		// return view matrix
+		camera
 	}
 	
 	/// Updates the camera rotation by adding the given pitch/yaw euler-deltas.
