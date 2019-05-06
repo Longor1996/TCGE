@@ -8,6 +8,7 @@ use super::glfw::{Context, Key, MouseButton, Action};
 use std::sync::mpsc::Receiver;
 use std::cell::RefMut;
 use std::ops::DerefMut;
+use crate::blocks::BlockCoord;
 
 pub struct GlfwContextComponent {
 	pub glfw: glfw::Glfw,
@@ -202,14 +203,33 @@ impl GlfwContextComponent {
 					let used_block = scene.camera.block.unwrap_or(bedrock);
 					
 					if let Some((last_pos, curr_pos, _block)) = scene.chunks.raycast(&mut rc) {
-						match button {
+						let (pos, block) = match button {
 							MouseButton::Button1 => {
-								scene.chunks.set_block(&curr_pos, air);
+								(&curr_pos, air)
 							},
 							MouseButton::Button2 => {
-								scene.chunks.set_block(&last_pos, used_block);
+								(&last_pos, used_block)
 							},
-							_ => {}
+							_ => continue
+						};
+						
+						if self.window.get_key(Key::X) != Action::Press {
+							scene.chunks.set_block(&pos, block);
+						}
+						else {
+							// Change a whole lot of blocks at once!
+							const R: isize = 3;
+							let min = pos.sub(R,R,R);
+							let max = pos.add(R,R,R);
+							let mut pos = BlockCoord::new(0,0,0);
+							for y in min.y .. max.y {
+								for z in min.z .. max.z {
+									for x in min.x .. max.x {
+										pos.set(x, y, z);
+										scene.chunks.set_block(&pos, block);
+									}
+								}
+							}
 						}
 					}
 				},
