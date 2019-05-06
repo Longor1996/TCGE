@@ -28,6 +28,7 @@ pub struct Camera {
 	min_depth: f32,
 	max_depth: f32,
 	field_of_view: f32,
+	fov_vel_effect: bool,
 	mouse_sensivity: f32,
 	invert_mouse: bool,
 	move_speed: f32,
@@ -50,6 +51,7 @@ impl Camera {
 			min_depth: 0.1,
 			max_depth: 1024.0,
 			field_of_view: 90.0,
+			fov_vel_effect: false,
 			mouse_sensivity: 0.25,
 			invert_mouse: false,
 			move_speed: 2.0 / 30.0,
@@ -84,6 +86,10 @@ impl Camera {
 		
 		if let Some(v) = controls.get("crane") {
 			self.crane = v.as_bool().expect("Value 'crane' is not a bool.") as bool;
+		}
+		
+		if let Some(v) = controls.get("fov-velocity-scaling") {
+			self.fov_vel_effect = v.as_bool().expect("Value 'crane' is not a bool.") as bool;
 		}
 	}
 	
@@ -120,8 +126,11 @@ impl Camera {
 		let (width, height) = size;
 		
 		// Apply velocity to the FoV for speedy-effect
-		// TODO: Add an option to disable this.
-		let field_of_view = self.field_of_view + self.velocity.magnitude() * 23.42;
+		let field_of_view = if self.fov_vel_effect {
+			self.field_of_view + self.velocity.magnitude() * 23.42
+		} else {
+			self.field_of_view
+		};
 		
 		let fov = cgmath::Rad::from(cgmath::Deg(field_of_view));
 		
