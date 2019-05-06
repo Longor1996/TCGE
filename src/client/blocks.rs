@@ -485,7 +485,9 @@ impl ShaderBlocks {
 }
 
 pub struct ChunkRenderManager {
+	#[allow(dead_code)] // Not needed... yet.
 	blockdef: blockdef::UniverseRef,
+	
 	chunks: FxHashMap<ChunkCoord, (u128, ChunkMeshState)>,
 	material: ShaderBlocks,
 	mesher: ChunkMesher,

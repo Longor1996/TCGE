@@ -202,7 +202,7 @@ impl SkyRenderer {
 		})
 	}
 	
-	fn render(&mut self, camera: &freecam::Camera, size: (i32, i32), now: f64, interpolation:f32) {
+	fn render(&mut self, camera: &freecam::Camera, size: (i32, i32), _now: f64, interpolation:f32) {
 		unsafe {
 			gl::Disable(gl::DEPTH_TEST);
 			gl::Disable(gl::CULL_FACE);
