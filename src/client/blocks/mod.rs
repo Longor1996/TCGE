@@ -14,6 +14,7 @@ pub mod raycast;
 pub use self::raycast::BlockRaycast;
 
 pub mod render;
+pub mod mesher;
 pub use self::render::ChunkRenderManager;
 
 #[derive(Eq, Copy, Clone)]
