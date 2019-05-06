@@ -15,6 +15,7 @@ exclude = [
 ]
 
 build = "build.rs"
+cargo-features = ["edition"]
 edition = '2018'
 
 [dependencies]

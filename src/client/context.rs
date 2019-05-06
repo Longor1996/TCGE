@@ -131,6 +131,15 @@ impl GlfwContextComponent {
 						Err(_) => ()
 					}
 				},
+
+				glfw::WindowEvent::Key(Key::C, _, Action::Release, _) => {
+					match router.nodes.get_mut_node_component_downcast::<scene::Scene>(0) {
+						Ok(scene) => {
+							scene.camera.crane = !scene.camera.crane;
+						},
+						Err(_) => ()
+					}
+				},
 				
 				glfw::WindowEvent::Key(Key::F5, _, Action::Release, _) => {
 					info!("User pressed R, reloading settings...");

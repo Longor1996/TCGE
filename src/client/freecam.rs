@@ -31,6 +31,8 @@ pub struct Camera {
 	mouse_sensivity: f32,
 	invert_mouse: bool,
 	move_speed: f32,
+	pub crane: bool,
+	min_fov: f32,
 }
 
 impl Camera {
@@ -54,6 +56,8 @@ impl Camera {
 			mouse_sensivity: 0.25,
 			invert_mouse: false,
 			move_speed: 2.0 / 30.0,
+			crane: true,
+			min_fov: 90.0
 		}
 	}
 	
@@ -80,6 +84,10 @@ impl Camera {
 		
 		if let Some(v) = controls.get("movement-speed") {
 			self.move_speed = v.as_float().expect("Value 'movement-speed' is not a float.") as f32 / 30.0;
+		}
+
+		if let Some(v) = controls.get("crane") {
+			self.crane = v.as_bool().expect("Value 'crane' is not a bool.") as bool;
 		}
 	}
 	
@@ -171,7 +179,7 @@ impl Camera {
 	pub fn update_movement(&mut self, window: &glfw::Window) {
 		self.position_last.clone_from(&self.position);
 		self.velocity_last.clone_from(&self.velocity);
-		
+
 		if !self.active {
 			return;
 		}
@@ -180,55 +188,51 @@ impl Camera {
 		
 		// --- Apply speed multiplier?
 		if window.get_key(Key::LeftShift) == Action::Press {
-			move_speed = move_speed * 5.0;
+			move_speed *= 5.0;
 		}
-		
-		// --- Move downwards?
-		if window.get_key(Key::LeftControl) == Action::Press {
-			self.velocity += Vector3::new(0.0, -1.0, 0.0) * move_speed;
-		}
-		
-		// --- Move upwards?
-		if window.get_key(Key::Space) == Action::Press {
-			self.velocity += Vector3::new(0.0, 1.0, 0.0) * move_speed;
-		}
-		
+
+		// FOV effect
+		self.field_of_view = self.min_fov + self.velocity.magnitude() * 23.42;
+
+		// --- Move ---
 		let yaw = cgmath::Deg(self.rotation.y);
-		let mat = Matrix4::from_angle_y(yaw);
-		
-		// --- Move forwards?
-		let forward = Vector3::new(0.0, 0.0, 1.0);
-		let forward = Matrix4::transform_vector(&mat, forward);
-		if window.get_key(Key::W) == Action::Press {
-			self.velocity += forward * move_speed;
+		let mut mat = Matrix4::from_angle_y(yaw);
+
+		let forwards = (window.get_key(Key::W) == Action::Press) as i8;
+		let backwards = (window.get_key(Key::S) == Action::Press) as i8;
+		let strafe_left = (window.get_key(Key::A) == Action::Press) as i8;
+		let strafe_right = (window.get_key(Key::D) == Action::Press) as i8;
+
+		let mut direction = Vector3::new(0.0, 0.0, 0.0);
+
+		// if only backwards is 1 it results in -1 cancels out with forwards if forwards is 1 and if
+		// forwards is 1 it will be 1
+		direction.z += (forwards - backwards) as f32;
+		direction.x += (strafe_right - strafe_left) as f32;
+
+		// crane or drone mode for y axis
+		if self.crane {
+			let up = (window.get_key(Key::Space) == Action::Press) as i8;
+			let down = (window.get_key(Key::LeftControl) == Action::Press) as i8;
+			direction.y += (up - down) as f32;
 		}
-		
-		// --- Move backwards?
-		let backward = Vector3::new(0.0, 0.0, -1.0);
-		let backward = Matrix4::transform_vector(&mat, backward);
-		if window.get_key(Key::S) == Action::Press {
-			self.velocity += backward * move_speed;
+		else {
+			let pitch = cgmath::Deg(self.rotation.x);
+			mat = mat * Matrix4::from_angle_x(pitch);
 		}
-		
-		// --- Move sideways to the left?
-		let left = Vector3::new(-1.0, 0.0, 0.0);
-		let left = Matrix4::transform_vector(&mat, left);
-		if window.get_key(Key::A) == Action::Press {
-			self.velocity += left * move_speed;
-		}
-		
-		// --- Move sideways to the right?
-		let right = Vector3::new(1.0, 0.0, 0.0);
-		let right = Matrix4::transform_vector(&mat, right);
-		if window.get_key(Key::D) == Action::Press {
-			self.velocity += right * move_speed;
-		}
-		
+
+		// ensure that in all directions the vector is 1 unit long
+		direction.normalize();
+
+		let transformed = Matrix4::transform_vector(&mat, direction);
+		self.velocity += transformed * move_speed;
+		// ------------
+
 		// Apply velocity
-		self.position = self.position + self.velocity;
+		self.position += self.velocity;
 		
-		// Reduce velocity
-		self.velocity = self.velocity * 0.5;
+		// Friction
+		self.velocity *= 0.75;
 	}
 }
 
@@ -244,7 +248,7 @@ impl std::fmt::Display for Camera {
 			self.position_last.y,
 			self.position_last.z,
 			self.rotation_last.x,
-			self.rotation_last.y
+			self.rotation_last.y,
 		)
 	}
 }
