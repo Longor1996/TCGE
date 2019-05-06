@@ -5,6 +5,7 @@
 
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
+use std::collections::hash_map::Iter;
 
 pub struct Universe {
 	blocks: FxHashMap<BlockId, Block>,
@@ -35,6 +36,10 @@ impl Universe {
 		self.blocks.insert(block.id, block);
 	}
 	
+	pub fn list_blocks(&self) -> Iter<BlockId, Block> {
+		self.blocks.iter()
+	}
+	
 	pub fn get_block_by_name(&self, name: &str) -> Option<&Block> {
 		for (_id, block) in self.blocks.iter() {
 			if block.name == name {
@@ -46,7 +51,7 @@ impl Universe {
 	}
 	
 	pub fn get_block_by_name_unchecked(&self, name: &str) -> &Block {
-		self.get_block_by_name(name).unwrap()
+		self.get_block_by_name(name).expect("Could not find block-type.")
 	}
 	
 	pub fn get_block_by_id(&self, id: BlockId) -> &Block {
@@ -115,14 +120,22 @@ impl PartialEq for BlockState {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub fn define_universe(
-	_config: &toml::value::Table
+	config: &toml::value::Table
 ) -> UniverseRef {
 	let mut universe = Universe::new();
 	
 	universe.register_block("air");
 	universe.register_block("bedrock");
-	universe.register_block("bedrock2");
-	universe.register_block("bedrock3");
+	
+	if let Some(blocks) = config
+		.get("blocks")
+		.unwrap_or(&toml::Value::Boolean(false))
+		.as_table()
+	{
+		for (block_name, _block_info) in blocks {
+			universe.register_block(block_name);
+		}
+	};
 	
 	return Rc::new(universe)
 }
