@@ -18,6 +18,23 @@ impl Universe {
 		}
 	}
 	
+	fn register_block(&mut self, name: &str) {
+		let next_id = self.blocks.len();
+		let block_id = BlockId::new(next_id);
+		
+		let default_state = BlockState {
+			id: block_id, data: ()
+		};
+		
+		let block = Block {
+			id: block_id,
+			name: name.to_string(),
+			default_state
+		};
+		
+		self.blocks.insert(block.id, block);
+	}
+	
 	pub fn get_block_by_name(&self, name: &str) -> Option<&Block> {
 		for (_id, block) in self.blocks.iter() {
 			if block.name == name {
@@ -48,8 +65,8 @@ pub struct BlockId {
 }
 
 impl BlockId {
-	pub fn new(id: u16) -> BlockId {
-		BlockId {id}
+	pub fn new(id: usize) -> BlockId {
+		BlockId {id: id as u16}
 	}
 	
 	pub fn get_raw_id(&self) -> usize {
@@ -102,49 +119,10 @@ pub fn define_universe(
 ) -> UniverseRef {
 	let mut universe = Universe::new();
 	
-	let air_id = BlockId::new(0);
-	let air = Block {
-		id: air_id,
-		name: "air".to_string(),
-		default_state: BlockState {
-			id: air_id,
-			data: ()
-		}
-	};
-	universe.blocks.insert(air.id, air);
-	
-	let bedrock_id = BlockId::new(1);
-	let bedrock = Block {
-		id: bedrock_id,
-		name: "bedrock".to_string(),
-		default_state: BlockState {
-			id: bedrock_id,
-			data: ()
-		}
-	};
-	universe.blocks.insert(bedrock.id, bedrock);
-	
-	let bedrock2_id = BlockId::new(2);
-	let bedrock2 = Block {
-		id: bedrock2_id,
-		name: "bedrock2".to_string(),
-		default_state: BlockState {
-			id: bedrock2_id,
-			data: ()
-		}
-	};
-	universe.blocks.insert(bedrock2.id, bedrock2);
-	
-	let bedrock3_id = BlockId::new(3);
-	let bedrock3 = Block {
-		id: bedrock3_id,
-		name: "bedrock3".to_string(),
-		default_state: BlockState {
-			id: bedrock3_id,
-			data: ()
-		}
-	};
-	universe.blocks.insert(bedrock3.id, bedrock3);
+	universe.register_block("air");
+	universe.register_block("bedrock");
+	universe.register_block("bedrock2");
+	universe.register_block("bedrock3");
 	
 	return Rc::new(universe)
 }
