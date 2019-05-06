@@ -11,6 +11,11 @@ impl BlockCoord {
 			x, y, z
 		}
 	}
+	pub fn set(&mut self, x: isize, y: isize, z: isize) {
+		self.x = x;
+		self.y = y;
+		self.z = z;
+	}
 	
 	pub fn as_vec(&self) -> cgmath::Vector3<f32> {
 		cgmath::Vector3 {
