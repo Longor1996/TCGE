@@ -1,4 +1,4 @@
-
+/// Represents a ray travelling from a source to a destination trough a infinite uniform grid of unknown type.
 pub struct BlockRaycast {
 	gx: f32,
 	gy: f32,
@@ -22,14 +22,21 @@ pub struct BlockRaycast {
 	visited: usize,
 }
 
+// Small helper to reduce clutter.
+type VEC3 = cgmath::Vector3<f32>;
+
 impl BlockRaycast {
 	
-	pub fn new_from_src_dir_len(src: cgmath::Vector3<f32>, dir: cgmath::Vector3<f32>, len: f32) -> BlockRaycast {
+	/// Create a new `BlockRaycast` given a source-position, direction and length/distance.
+	pub fn new_from_src_dir_len(src: VEC3, dir: VEC3, len: f32) -> Self {
 		let dst = src + (dir * len);
-		BlockRaycast::new_from_src_dst(src, dst)
+		Self::new_from_src_dst(src, dst)
 	}
 	
-	pub fn new_from_src_dst(src: cgmath::Vector3<f32>, dst: cgmath::Vector3<f32>) -> BlockRaycast {
+	/// Create a new `BlockRaycast` given a source- and a destination-position.
+	///
+	/// This function prepares the necessary variables the algorithm requires to work.
+	pub fn new_from_src_dst(src: VEC3, dst: VEC3) -> Self {
 		let gx0idx = src.x.floor();
 		let gy0idx = src.y.floor();
 		let gz0idx = src.z.floor();
@@ -38,9 +45,9 @@ impl BlockRaycast {
 		let gy1idx = dst.y.floor();
 		let gz1idx = dst.z.floor();
 		
-		let sx = BlockRaycast::psign(gx0idx, gx1idx);
-		let sy = BlockRaycast::psign(gy0idx, gy1idx);
-		let sz = BlockRaycast::psign(gz0idx, gz1idx);
+		let sx = Self::psign(gx0idx, gx1idx);
+		let sy = Self::psign(gy0idx, gy1idx);
+		let sz = Self::psign(gz0idx, gz1idx);
 		
 		// Planes for each axis that we will next cross
 		let gxp = gx0idx + (if gx1idx > gx0idx { 1.0 } else { 0.0 });
@@ -69,7 +76,7 @@ impl BlockRaycast {
 		let derry = sy * vxvz;
 		let derrz = sz * vxvy;
 		
-		BlockRaycast {
+		Self {
 			done: false,
 			visited: 0,
 			
@@ -86,6 +93,7 @@ impl BlockRaycast {
 		}
 	}
 	
+	/// The current (voxel) position.
 	pub fn current(&self) -> (isize, isize, isize) {
 		(
 			self.gx as isize,
@@ -94,6 +102,7 @@ impl BlockRaycast {
 		)
 	}
 	
+	/// The previous (voxel) position.
 	pub fn previous(&self) -> (isize, isize, isize) {
 		(
 			self.lx as isize,
@@ -102,6 +111,7 @@ impl BlockRaycast {
 		)
 	}
 	
+	/// Wraps the state-handling of calculating the next step.
 	pub fn step(&mut self) -> Option<(isize, isize, isize)> {
 		if self.done {
 			return None
@@ -122,6 +132,7 @@ impl BlockRaycast {
 		return Some(ret)
 	}
 	
+	/// Calculates the next step using Bresenhams Line Algorithm (3D adaptation).
 	fn step_compute(&mut self) {
 		self.lx = self.gx;
 		self.ly = self.gy;
@@ -145,6 +156,7 @@ impl BlockRaycast {
 		}
 	}
 	
+	/// Returns a float indicating which number is bigger.
 	fn psign(a: f32, b: f32) -> f32 {
 		if b > a {
 			1.0
