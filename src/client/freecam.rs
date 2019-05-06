@@ -32,7 +32,6 @@ pub struct Camera {
 	invert_mouse: bool,
 	move_speed: f32,
 	pub crane: bool,
-	min_fov: f32,
 }
 
 impl Camera {
@@ -54,8 +53,7 @@ impl Camera {
 			mouse_sensivity: 0.25,
 			invert_mouse: false,
 			move_speed: 2.0 / 30.0,
-			crane: true,
-			min_fov: 90.0
+			crane: true
 		}
 	}
 	
@@ -120,7 +118,12 @@ impl Camera {
 	/// Given a viewport-size and an interpolation factor, compute the Projection-Matrix for this camera.
 	pub fn projection(&self, _interpolation: f32, size: (i32, i32)) -> cgmath::Matrix4<f32> {
 		let (width, height) = size;
-		let fov = cgmath::Rad::from(cgmath::Deg(self.field_of_view));
+		
+		// Apply velocity to the FoV for speedy-effect
+		// TODO: Add an option to disable this.
+		let field_of_view = self.field_of_view + self.velocity.magnitude() * 23.42;
+		
+		let fov = cgmath::Rad::from(cgmath::Deg(field_of_view));
 		
 		// --- First compute the projection matrix...
 		let perspective = cgmath::PerspectiveFov {
@@ -192,10 +195,6 @@ impl Camera {
 		if window.get_key(Key::LeftShift) == Action::Press {
 			move_speed *= 5.0;
 		}
-		
-		// Apply velocity to the FoV for speedy-effect
-		// TODO: Add an option to disable this.
-		self.field_of_view = self.min_fov + self.velocity.magnitude() * 23.42;
 		
 		// --- Construct velocity vector...
 		let yaw = cgmath::Deg(self.rotation.y);
