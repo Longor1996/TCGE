@@ -212,19 +212,37 @@ impl ChunkStorage {
 		storage
 	}
 	
+	pub fn get_chunk(&self, pos: &ChunkCoord) -> Option<&Chunk> {
+		for chunk in self.chunks.iter() {
+			if chunk.pos == *pos {
+				return Some(chunk)
+			}
+		}
+		
+		return None;
+	}
+	
+	pub fn get_chunk_mut(&mut self, pos: &ChunkCoord) -> Option<&mut Chunk> {
+		for chunk in self.chunks.iter_mut() {
+			if chunk.pos == *pos {
+				return Some(chunk)
+			}
+		}
+		
+		return None;
+	}
+	
 	pub fn get_block(&self, pos: &BlockCoord) -> Option<BlockState> {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK as isize;
 		
-		for chunk in self.chunks.iter() {
-			if chunk.pos == cpos {
-				let cx = pos.x & csm;
-				let cy = pos.y & csm;
-				let cz = pos.z & csm;
-				match chunk.get_block(cx, cy, cz) {
-					Some(x) => return Some(x),
-					None => ()
-				}
+		if let Some(chunk) = self.get_chunk(&cpos) {
+			let cx = pos.x & csm;
+			let cy = pos.y & csm;
+			let cz = pos.z & csm;
+			match chunk.get_block(cx, cy, cz) {
+				Some(x) => return Some(x),
+				None => ()
 			}
 		}
 		
@@ -235,15 +253,13 @@ impl ChunkStorage {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK as isize;
 		
-		for chunk in self.chunks.iter_mut() {
-			if chunk.pos == cpos {
-				let cx = pos.x & csm;
-				let cy = pos.y & csm;
-				let cz = pos.z & csm;
-				
-				chunk.set_block(cx, cy, cz, state);
-				return true;
-			}
+		if let Some(chunk) = self.get_chunk_mut(&cpos) {
+			let cx = pos.x & csm;
+			let cy = pos.y & csm;
+			let cz = pos.z & csm;
+			
+			chunk.set_block(cx, cy, cz, state);
+			return true;
 		}
 		
 		return false;
