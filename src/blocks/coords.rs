@@ -6,8 +6,8 @@ pub struct BlockCoord {
 }
 
 impl BlockCoord {
-	pub fn new(x: isize, y: isize, z: isize) -> BlockCoord {
-		BlockCoord {
+	pub fn new(x: isize, y: isize, z: isize) -> Self {
+		Self {
 			x, y, z
 		}
 	}
@@ -19,10 +19,26 @@ impl BlockCoord {
 			z: self.z as f32
 		}
 	}
+	
+	pub fn add(&self, x: isize, y: isize, z: isize) -> Self {
+		Self {
+			x: self.x + x,
+			y: self.y + y,
+			z: self.z + z,
+		}
+	}
+	
+	pub fn sub(&self, x: isize, y: isize, z: isize) -> Self {
+		Self {
+			x: self.x - x,
+			y: self.y - y,
+			z: self.z - z,
+		}
+	}
 }
 
 impl PartialEq for BlockCoord {
-	fn eq(&self, other: &BlockCoord) -> bool {
+	fn eq(&self, other: &Self) -> bool {
 		self.x == other.x
 			&& self.y == other.y
 			&& self.z == other.z
