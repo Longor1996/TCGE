@@ -246,15 +246,7 @@ fn run(opts: cmd_opts::CmdOptions, settings: settings::Settings) -> Result<(), f
 				
 				render_state_gui.debug_text.clear();
 				
-				render_state_gui.debug_text.push((
-					0.0, 0.0,
-					format!("TCGE {version} \nFrametime: {mpf}ms \n{fps} FPS, {tps} TPS",
-						version = env!("VERSION"),
-						mpf = (frame_time * 1000.0).ceil(),
-						fps = last_fps.floor(),
-						tps = last_tps.round()
-					)
-				));
+				let mut block_count = 0;
 				
 				if let Ok(scene) = router.borrow_mut().nodes.get_node_component_downcast::<scene::Scene>(0) {
 					let camera = scene.camera.borrow();
@@ -276,7 +268,20 @@ fn run(opts: cmd_opts::CmdOptions, settings: settings::Settings) -> Result<(), f
 							block = scene.blockdef.get_block_by_id(block.id).get_name()
 						)
 					));
+					
+					block_count = scene.chunks.get_approximate_volume();
 				}
+				
+				render_state_gui.debug_text.push((
+					0.0, 0.0,
+					format!("TCGE {version} \n{fps} FPS ({mpf}ms), {tps} TPS\nBlocks: {blocks}",
+						version = env!("VERSION"),
+						mpf = (frame_time * 1000.0).ceil(),
+						fps = last_fps.floor(),
+						tps = last_tps.round(),
+						blocks = block_count
+					)
+				));
 				
 				render_gui(&mut render_state_gui);
 			}

@@ -411,4 +411,8 @@ impl ChunkStorage {
 			self.set_block(&pos, state);
 		}
 	}
+	
+	pub fn get_approximate_volume(&self) -> u64 {
+		(self.chunks.len() as u64) * (CHUNK_VOLUME as u64)
+	}
 }
