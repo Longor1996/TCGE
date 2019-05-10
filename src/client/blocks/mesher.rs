@@ -3,6 +3,9 @@ use super::super::render::utility::gl_label_object;
 use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
+use super::CHUNK_SIZE_MASK;
+use crate::client::blocks::ChunkCoord;
+use crate::blocks::BlockCoord;
 
 /// The graphical state of a chunk.
 pub enum ChunkMeshState {
@@ -13,7 +16,28 @@ pub enum ChunkMeshState {
 	Meshed(render::ChunkMesh),
 }
 
-pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
+
+fn get_block(neighbours: &[Option<&Chunk>; 27], pos: &BlockCoord) -> Option<blockdef::BlockState> {
+	let cpos = ChunkCoord::new_from_block(pos);
+	let csm = CHUNK_SIZE_MASK as isize;
+	
+	for chunk in neighbours.iter() {
+		if let Some(chunk) = chunk {
+			if chunk.pos == cpos {
+				let cx = pos.x & csm;
+				let cy = pos.y & csm;
+				let cz = pos.z & csm;
+				if let Some(block) = chunk.get_block(cx,cy,cz) {
+					return Some(block)
+				}
+			}
+		}
+	}
+	
+	None
+}
+
+pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option<&Chunk>; 27]) -> ChunkMeshState {
 	let mut vertices: Vec<ChunkMeshVertex> = vec![];
 	
 	let cpos = chunk.pos;
@@ -37,13 +61,18 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
 					continue;
 				}
 				
+				let cbx = x + cpos.x*CHUNK_SIZE as isize;
+				let cby = y + cpos.y*CHUNK_SIZE as isize;
+				let cbz = z + cpos.z*CHUNK_SIZE as isize;
+				let pos = BlockCoord::new(cbx,cby,cbz);
+				
 				let cbp = vertices.len();
 				
 				// This line is the dumbest thing in the whole project...
 				let uv = BlockUv::new_from_pos(block.id.get_raw_id() as u8 - 1, 0);
 				// TODO: Implement the static block-bakery.
 				
-				if chunk.get_block(x,y+1,z).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.add(0,1,0)).unwrap_or(air) == air {
 					quad_to_tris(&[ // top
 						(N, S, S, uv.umin, uv.vmin).into(),
 						(S, S, S, uv.umax, uv.vmin).into(),
@@ -52,7 +81,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
 					], &mut vertices);
 				}
 				
-				if chunk.get_block(x,y-1,z).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.add(0,-1,0)).unwrap_or(air) == air {
 					quad_to_tris(&[ // bottom
 						(N, N, N, uv.umin, uv.vmin).into(),
 						(S, N, N, uv.umax, uv.vmin).into(),
@@ -61,7 +90,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
 					], &mut vertices);
 				}
 				
-				if chunk.get_block(x,y,z-1).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.add(0,0,-1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // front
 						(N, S, N, uv.umin, uv.vmin).into(), // a
 						(S, S, N, uv.umax, uv.vmin).into(), // b
@@ -70,7 +99,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
 					], &mut vertices);
 				}
 				
-				if chunk.get_block(x,y,z+1).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.add(0,0,1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // back
 						(N, N, S, uv.umin, uv.vmin).into(), // d
 						(S, N, S, uv.umax, uv.vmin).into(), // c
@@ -79,7 +108,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
 					], &mut vertices);
 				}
 				
-				if chunk.get_block(x-1,y,z).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.add(-1,0,0)).unwrap_or(air) == air {
 					quad_to_tris(&[ // left
 						(N, S, S, uv.umin, uv.vmin).into(), // a
 						(N, S, N, uv.umax, uv.vmin).into(), // b
@@ -88,7 +117,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk) -> ChunkMeshState {
 					], &mut vertices);
 				}
 				
-				if chunk.get_block(x+1,y,z).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.add(1, 0,0)).unwrap_or(air) == air {
 					quad_to_tris(&[ // right
 						(S, N, S, uv.umin, uv.vmin).into(), // d
 						(S, N, N, uv.umax, uv.vmin).into(), // c

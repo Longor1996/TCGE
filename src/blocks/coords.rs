@@ -11,6 +11,7 @@ impl BlockCoord {
 			x, y, z
 		}
 	}
+	
 	pub fn set(&mut self, x: isize, y: isize, z: isize) {
 		self.x = x;
 		self.y = y;

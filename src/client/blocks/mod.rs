@@ -39,6 +39,28 @@ impl ChunkCoord {
 		}
 	}
 	
+	pub fn set(&mut self, x: isize, y: isize, z: isize) {
+		self.x = x;
+		self.y = y;
+		self.z = z;
+	}
+	
+	pub fn add(&self, x: isize, y: isize, z: isize) -> Self {
+		Self {
+			x: self.x + x,
+			y: self.y + y,
+			z: self.z + z,
+		}
+	}
+	
+	pub fn sub(&self, x: isize, y: isize, z: isize) -> Self {
+		Self {
+			x: self.x - x,
+			y: self.y - y,
+			z: self.z - z,
+		}
+	}
+	
 	pub fn as_vec(&self) -> cgmath::Vector3<f32> {
 		cgmath::Vector3 {
 			x: self.x as f32,
@@ -99,6 +121,10 @@ impl Chunk {
 			.get_block_by_name_unchecked("bedrock")
 			.get_default_state();
 		
+		if new.pos.y == 0 {
+			new.fill_with_floor(bedrock);
+		}
+		
 		// new.fill_with_noise(BLOCK_ADM, 0.1);
 		new.fill_with_grid(bedrock);
 		
@@ -115,6 +141,14 @@ impl Chunk {
 		}
 		
 		return Some(value as usize)
+	}
+	
+	pub fn fill_with_floor(&mut self, fill: BlockState) {
+		for z in 0..CHUNK_SIZE as isize {
+			for x in 0..CHUNK_SIZE as isize {
+				self.set_block(x, 0, z, fill);
+			}
+		}
 	}
 	
 	pub fn fill_with_grid(&mut self, fill: BlockState) {
@@ -164,6 +198,11 @@ impl Chunk {
 		let z = Chunk::clamp_chunk_coord(z)?;
 		
 		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
+		
+		if self.blocks[index] == state {
+			return None
+		}
+		
 		self.blocks[index] = state;
 		self.last_update = current_time_nanos();
 		Some(())
@@ -233,6 +272,56 @@ impl ChunkStorage {
 		return None;
 	}
 	
+	pub fn get_chunks_around(&self, pos: &ChunkCoord) -> [Option<&Chunk>;27] {
+		let positions = [
+			// bottom layer
+			pos.add(-1,-1,-1),
+			pos.add( 0,-1,-1),
+			pos.add( 1,-1,-1),
+			pos.add(-1,-1, 0),
+			pos.add( 0,-1, 0),
+			pos.add( 1,-1, 0),
+			pos.add(-1,-1, 1),
+			pos.add( 0,-1, 1),
+			pos.add( 1,-1, 1),
+			
+			// middle layer
+			pos.add(-1, 0,-1),
+			pos.add( 0, 0,-1),
+			pos.add( 1, 0,-1),
+			pos.add(-1, 0, 0),
+			pos.add( 0, 0, 0), // central chunk
+			pos.add( 1, 0, 0),
+			pos.add(-1, 0, 1),
+			pos.add( 0, 0, 1),
+			pos.add( 1, 0, 1),
+			
+			// top layer
+			pos.add(-1, 1,-1),
+			pos.add( 0, 1,-1),
+			pos.add( 1, 1,-1),
+			pos.add(-1, 1, 0),
+			pos.add( 0, 1, 0),
+			pos.add( 1, 1, 0),
+			pos.add(-1, 1, 1),
+			pos.add( 0, 1, 1),
+			pos.add( 1, 1, 1),
+		];
+		
+		let mut chunks: [Option<&Chunk>;27] = [None; 27];
+		
+		for chunk in self.chunks.iter() {
+			let chunk_pos = chunk.pos;
+			for (index, position) in positions.iter().enumerate() {
+				if chunk_pos == *position {
+					chunks[index] = Some(chunk);
+				}
+			}
+		}
+		
+		chunks
+	}
+	
 	pub fn get_block(&self, pos: &BlockCoord) -> Option<BlockState> {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK as isize;
@@ -254,16 +343,30 @@ impl ChunkStorage {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK as isize;
 		
-		if let Some(chunk) = self.get_chunk_mut(&cpos) {
+		let success = if let Some(chunk) = self.get_chunk_mut(&cpos) {
 			let cx = pos.x & csm;
 			let cy = pos.y & csm;
 			let cz = pos.z & csm;
 			
-			chunk.set_block(cx, cy, cz, state);
-			return true;
+			match chunk.set_block(cx, cy, cz, state) {
+				Some(_) => true,
+				None    => false
+			}
+		} else {
+			false
+		};
+		
+		if success {
+			let now = current_time_nanos();
+			self.get_chunk_mut(&cpos.add(-1,0,0)).map(|c| {c.last_update = now});
+			self.get_chunk_mut(&cpos.add(1,0,0)).map(|c| {c.last_update = now});
+			self.get_chunk_mut(&cpos.add(0,-1,0)).map(|c| {c.last_update = now});
+			self.get_chunk_mut(&cpos.add(0,1,0)).map(|c| {c.last_update = now});
+			self.get_chunk_mut(&cpos.add(0,0,-1)).map(|c| {c.last_update = now});
+			self.get_chunk_mut(&cpos.add(0,0,1)).map(|c| {c.last_update = now});
 		}
 		
-		return false;
+		return success;
 	}
 	
 	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> Option<(BlockCoord, BlockCoord, BlockState)> {

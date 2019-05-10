@@ -79,16 +79,18 @@ impl ChunkRenderManager {
 			gl::BindTexture(gl::TEXTURE_2D, self.material.texatlas.id);
 		}
 		
-		let mut max_uploads_per_frame: usize = 1;
+		let mut max_uploads_per_frame: usize = 7;
 		for chunk in scene.chunks.chunks.iter() {
 			let cpos = &chunk.pos;
 			
 			if self.chunks.contains_key(cpos) {
 				let (time, mesh) = self.chunks.get_mut(cpos).unwrap();
 				
-				if chunk.last_update > *time {
+				if chunk.last_update > *time && max_uploads_per_frame > 0 {
+					max_uploads_per_frame -= 1;
+					let neighbours = scene.chunks.get_chunks_around(cpos);
 					*time = chunk.last_update;
-					*mesh = mesher::mesh(self.blockdef.clone(), &chunk);
+					*mesh = mesher::mesh(self.blockdef.clone(), &chunk, &neighbours);
 				}
 				
 				if let mesher::ChunkMeshState::Meshed(mesh) = mesh {
@@ -98,7 +100,8 @@ impl ChunkRenderManager {
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
-					let mesh = mesher::mesh(self.blockdef.clone(), &chunk);
+					let neighbours = scene.chunks.get_chunks_around(cpos);
+					let mesh = mesher::mesh(self.blockdef.clone(), &chunk, &neighbours);
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
 				}
 			}
