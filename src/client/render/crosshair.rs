@@ -1,9 +1,11 @@
 use cgmath::Matrix4;
+
+use crate::blocks;
+use crate::resources;
+
 use super::utility;
 use super::geometry;
 use super::materials;
-use super::super::super::blocks;
-use super::super::super::resources;
 
 const HALF_VEC: cgmath::Vector3<f32> = cgmath::Vector3::<f32> {x: 0.5, y: 0.5, z: 0.5};
 

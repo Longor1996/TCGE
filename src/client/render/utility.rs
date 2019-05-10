@@ -2,7 +2,7 @@
 
 // TODO: Once CDML is implemented, rewrite loading to be more... dynamic.
 
-use super::super::super::resources;
+use crate::resources;
 use std::ffi::{CString, CStr};
 use super::cgmath::prelude::*;
 

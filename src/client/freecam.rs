@@ -3,9 +3,10 @@
 // TODO: Integrate the debug-camera with the ECS once it comes up...
 // TODO: The camera will need to be abstracted into a PlayerController...
 
-use super::glfw::{Key, Action};
+use crate::blocks;
+
+use glfw::{Key, Action};
 use super::settings;
-use super::super::blocks;
 
 #[allow(unused)]
 use super::cgmath::{

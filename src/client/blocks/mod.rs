@@ -1,7 +1,7 @@
-use super::super::blocks as blockdef;
-use super::super::blocks::BlockState;
-use super::super::blocks::BlockCoord;
-use super::super::util::current_time_nanos;
+use crate::blocks as blockdef;
+use crate::blocks::BlockState;
+use crate::blocks::BlockCoord;
+use crate::util::current_time_nanos;
 
 const CHUNK_SIZE: usize = 16;
 const CHUNK_SIZE_SHIFT: usize = 4;

@@ -1,4 +1,4 @@
-use super::super::super::blocks as blockdef;
+use crate::blocks as blockdef;
 use super::super::render::utility::gl_label_object;
 use super::render;
 use super::Chunk;
@@ -92,37 +92,37 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 				
 				if get_block(neighbours, &pos.add(0,0,-1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // front
-						(N, S, N, uv.umin, uv.vmin).into(), // a
-						(S, S, N, uv.umax, uv.vmin).into(), // b
-						(S, N, N, uv.umax, uv.vmax).into(), // c
-						(N, N, N, uv.umin, uv.vmax).into(), // d
+						(N, S, N, uv.umin, uv.vmin).into(),
+						(S, S, N, uv.umax, uv.vmin).into(),
+						(S, N, N, uv.umax, uv.vmax).into(),
+						(N, N, N, uv.umin, uv.vmax).into(),
 					], &mut vertices);
 				}
 				
 				if get_block(neighbours, &pos.add(0,0,1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // back
-						(N, N, S, uv.umin, uv.vmin).into(), // d
-						(S, N, S, uv.umax, uv.vmin).into(), // c
-						(S, S, S, uv.umax, uv.vmax).into(), // b
-						(N, S, S, uv.umin, uv.vmax).into(), // a
+						(N, N, S, uv.umin, uv.vmin).into(),
+						(S, N, S, uv.umax, uv.vmin).into(),
+						(S, S, S, uv.umax, uv.vmax).into(),
+						(N, S, S, uv.umin, uv.vmax).into(),
 					], &mut vertices);
 				}
 				
 				if get_block(neighbours, &pos.add(-1,0,0)).unwrap_or(air) == air {
 					quad_to_tris(&[ // left
-						(N, S, S, uv.umin, uv.vmin).into(), // a
-						(N, S, N, uv.umax, uv.vmin).into(), // b
-						(N, N, N, uv.umax, uv.vmax).into(), // c
-						(N, N, S, uv.umin, uv.vmax).into(), // d
+						(N, S, S, uv.umin, uv.vmin).into(),
+						(N, S, N, uv.umax, uv.vmin).into(),
+						(N, N, N, uv.umax, uv.vmax).into(),
+						(N, N, S, uv.umin, uv.vmax).into(),
 					], &mut vertices);
 				}
 				
 				if get_block(neighbours, &pos.add(1, 0,0)).unwrap_or(air) == air {
 					quad_to_tris(&[ // right
-						(S, N, S, uv.umin, uv.vmin).into(), // d
-						(S, N, N, uv.umax, uv.vmin).into(), // c
-						(S, S, N, uv.umax, uv.vmax).into(), // b
-						(S, S, S, uv.umin, uv.vmax).into(), // a
+						(S, N, S, uv.umin, uv.vmin).into(),
+						(S, N, N, uv.umax, uv.vmin).into(),
+						(S, S, N, uv.umax, uv.vmax).into(),
+						(S, S, S, uv.umin, uv.vmax).into(),
 					], &mut vertices);
 				}
 				

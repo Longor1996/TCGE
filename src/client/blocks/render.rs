@@ -1,7 +1,8 @@
 use rustc_hash::FxHashMap;
-use super::super::super::resources;
-use super::super::super::blocks as blockdef;
-use super::super::super::util::current_time_nanos;
+use crate::resources;
+use crate::blocks as blockdef;
+use crate::util::current_time_nanos;
+
 use super::super::render;
 use super::super::scene;
 

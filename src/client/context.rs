@@ -1,14 +1,14 @@
 //! Module for managing the game-window and associated events (mostly GLFW).
 
-use super::super::router;
+use crate::router;
+use crate::blocks::BlockCoord;
+
 use super::cmd_opts;
 use super::scene;
-
-use super::glfw::{Context, Key, MouseButton, Action};
+use glfw::{Context, Key, MouseButton, Action};
 use std::sync::mpsc::Receiver;
 use std::cell::RefMut;
 use std::ops::DerefMut;
-use crate::blocks::BlockCoord;
 
 pub struct GlfwContextComponent {
 	pub glfw: glfw::Glfw,

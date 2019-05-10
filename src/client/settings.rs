@@ -1,7 +1,6 @@
 extern crate toml;
-use super::super::router;
+use crate::router;
 use std::fs;
-use crate::client::settings::SettingsError::LoadError;
 use std::io::Read;
 
 pub struct Settings {
@@ -26,19 +25,19 @@ impl Settings {
 		let config_file = config_dir.join("engine.toml");
 		
 		let mut config_file = fs::File::open(config_file.as_path())
-			.map_err(|err| {LoadError(err.to_string())})?;
+			.map_err(|err| {SettingsError::LoadError(err.to_string())})?;
 		
 		let mut config_str = String::new();
 		config_file.read_to_string(&mut config_str)
-			.map_err(|err| {LoadError(err.to_string())})?;
+			.map_err(|err| {SettingsError::LoadError(err.to_string())})?;
 		
 		let config = config_str.parse::<toml::Value>()
-			.map_err(|err| {LoadError(err.to_string())})?;
+			.map_err(|err| {SettingsError::LoadError(err.to_string())})?;
 		
 		if let Some(config) = config.as_table() {
 			self.table = config.clone();
 		} else {
-			return Err(LoadError("Top-Level value must be a table.".to_string()));
+			return Err(SettingsError::LoadError("Top-Level value must be a table.".to_string()));
 		}
 		
 		Ok(())

@@ -1,12 +1,13 @@
 //! Represents a simple prototypical 'game'-session.
 
-use super::super::resources;
-use super::super::router;
+use crate::resources;
+use crate::router;
+use crate::blocks as blockdef;
+
 use super::render;
 use super::geometry;
 use super::freecam;
 use super::blocks;
-use super::super::blocks as blockdef;
 
 pub struct Scene {
 	pub camera: freecam::Camera,

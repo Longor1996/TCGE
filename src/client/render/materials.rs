@@ -1,7 +1,7 @@
 //! This module contains basic materials/shaders for rendering.
 
+use crate::resources::Resources;
 use super::utility;
-use super::super::super::resources::Resources;
 
 pub struct ShaderRandom {
 	pub shader_program: utility::Program,
