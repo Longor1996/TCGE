@@ -29,6 +29,7 @@ time = "0.1.42"
 cgmath = "0.17.0"
 clap = "~2.32.0"
 rustc-hash = "1.0.1"
+# enum-map = "0.5.0"
 # machine = "0.2.0"
 
 # debugging
@@ -45,7 +46,7 @@ rustc-hash = "1.0.1"
 # graphics
 gl = "0.12.0"
 glfw = "0.28.0"
-image = "0.21.1"
+image = {version = "0.21.1", default-features = false, features = ["gif_codec", "png_codec", "ico"]}
 # https://crates.io/keywords/renderdoc
 
 # user interface?
