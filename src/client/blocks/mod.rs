@@ -110,25 +110,12 @@ impl Chunk {
 			.get_block_by_name_unchecked("air")
 			.get_default_state();
 		
-		let mut new = Chunk {
+		Chunk {
 			pos: ChunkCoord {x,y,z},
 			blockdef: blockdef.clone(),
 			blocks: Box::new([air; CHUNK_VOLUME]),
 			last_update: current_time_nanos()
-		};
-		
-		let bedrock = blockdef
-			.get_block_by_name_unchecked("bedrock")
-			.get_default_state();
-		
-		if new.pos.y == 0 {
-			new.fill_with_floor(bedrock);
 		}
-		
-		// new.fill_with_noise(BLOCK_ADM, 0.1);
-		new.fill_with_grid(bedrock);
-		
-		new
 	}
 	
 	pub fn clamp_chunk_coord(value: isize) -> Option<usize> {
@@ -247,10 +234,25 @@ impl ChunkStorage {
 			* (range*2 +1)
 		) as usize);
 		
+		// Get the only basic solid...
+		let bedrock = blockdef
+			.get_block_by_name_unchecked("bedrock")
+			.get_default_state();
+		
 		for y in 0..height {
 			for z in -range..range {
 				for x in -range..range {
-					let chunk = Chunk::new(blockdef.clone(), x, y, z);
+					let mut chunk = Chunk::new(blockdef.clone(), x, y, z);
+					
+					if chunk.pos.y == 0 {
+						chunk.fill_with_floor(bedrock);
+					}
+					
+					// new.fill_with_noise(BLOCK_ADM, 0.1);
+					chunk.fill_with_grid(bedrock);
+					
+					// TODO: Add some simple worldgen right here.
+					
 					storage.chunks.push(chunk);
 				}
 			}
