@@ -99,7 +99,7 @@ impl std::fmt::Display for ChunkCoord {
 pub struct Chunk {
 	pub pos: ChunkCoord,
 	pub blockdef: blockdef::UniverseRef,
-	pub blocks: [BlockState; CHUNK_VOLUME],
+	pub blocks: Box<[BlockState; CHUNK_VOLUME]>,
 	pub last_update: u128
 }
 
@@ -113,7 +113,7 @@ impl Chunk {
 		let mut new = Chunk {
 			pos: ChunkCoord {x,y,z},
 			blockdef: blockdef.clone(),
-			blocks: [air; CHUNK_VOLUME],
+			blocks: Box::new([air; CHUNK_VOLUME]),
 			last_update: current_time_nanos()
 		};
 		
@@ -239,6 +239,13 @@ impl ChunkStorage {
 				height = h as isize;
 			}
 		}
+		
+		// Reserve some memory.
+		storage.chunks.reserve((
+			(height)
+			* (range*2 +1)
+			* (range*2 +1)
+		) as usize);
 		
 		for y in 0..height {
 			for z in -range..range {
