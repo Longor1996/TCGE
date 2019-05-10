@@ -92,6 +92,7 @@ impl CrosshairRenderer3D {
 		unsafe {
 			gl::Enable(gl::BLEND);
 			gl::Enable(gl::TEXTURE_2D);
+			gl::Disable(gl::CULL_FACE);
 			gl::BlendFunc(gl::ONE_MINUS_DST_COLOR, gl::ZERO);
 			gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 		}
@@ -113,6 +114,7 @@ impl CrosshairRenderer3D {
 			gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 			gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 			gl::Disable(gl::TEXTURE_2D);
+			gl::Enable(gl::CULL_FACE);
 		}
 		
 		utility::gl_pop_debug();
