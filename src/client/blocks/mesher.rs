@@ -127,9 +127,9 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 				}
 				
 				for vertex in &mut vertices[cbp..] {
-					vertex.x += (x + cpos.x*CHUNK_SIZE as isize) as f32;
-					vertex.y += (y + cpos.y*CHUNK_SIZE as isize) as f32;
-					vertex.z += (z + cpos.z*CHUNK_SIZE as isize) as f32;
+					vertex.x += cbx as f32;
+					vertex.y += cby as f32;
+					vertex.z += cbz as f32;
 				}
 			}
 		}
