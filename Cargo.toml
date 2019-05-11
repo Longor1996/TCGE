@@ -61,7 +61,7 @@ image = {version = "0.21.1", default-features = false, features = ["gif_codec", 
 ## quic = "0.0.3"
 
 # procedural
-## simdnoise = "*"
+fuss = "0.2.2"
 
 # modding
 ## https://crates.io/crates/wasmer-runtime/

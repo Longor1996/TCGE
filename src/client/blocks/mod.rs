@@ -239,6 +239,10 @@ impl ChunkStorage {
 			.get_block_by_name_unchecked("bedrock")
 			.get_default_state();
 		
+		extern crate fuss;
+		use fuss::Simplex;
+		let sn = Simplex::new();
+		
 		for y in 0..height {
 			for z in -range..range {
 				for x in -range..range {
@@ -246,10 +250,35 @@ impl ChunkStorage {
 					
 					if chunk.pos.y == 0 {
 						chunk.fill_with_floor(bedrock);
+						
+						// Determine chunk coordinates within noise-field.
+						let bcx = chunk.pos.x as f32 * CHUNK_SIZE as f32;
+						let bcz = chunk.pos.z as f32 * CHUNK_SIZE as f32;
+						
+						// Given the noise, fill in the blocks.
+						for bz in 0..CHUNK_SIZE as isize {
+							for bx in 0..CHUNK_SIZE as isize {
+								
+								let block_x = (bcx + bx as f32) / CHUNK_SIZE as f32 / 5.0;
+								let block_z = (bcz + bz as f32) / CHUNK_SIZE as f32 / 5.0;
+								
+								let noise = sn.noise_2d(block_x, block_z);
+								let noise = (noise + 1.0) * 0.5;
+								let noise = noise * 15.0;
+								let n = noise as isize;
+								
+								if n >= 0 {
+									// Fill in block-column
+									for by in 0..n {
+										chunk.set_block(bx, by, bz, bedrock);
+									}
+								}
+							}
+						}
 					}
 					
-					// new.fill_with_noise(BLOCK_ADM, 0.1);
-					chunk.fill_with_grid(bedrock);
+					// chunk.fill_with_noise(bedrock, 0.1);
+					// chunk.fill_with_grid(bedrock);
 					
 					// TODO: Add some simple worldgen right here.
 					
