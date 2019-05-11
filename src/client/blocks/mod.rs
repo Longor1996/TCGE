@@ -255,13 +255,15 @@ impl ChunkStorage {
 						let bcx = chunk.pos.x as f32 * CHUNK_SIZE as f32;
 						let bcz = chunk.pos.z as f32 * CHUNK_SIZE as f32;
 						
-						// Given the noise, fill in the blocks.
+						// For every column of blocks in the chunk...
 						for bz in 0..CHUNK_SIZE as isize {
 							for bx in 0..CHUNK_SIZE as isize {
 								
+								// Get coordinates within noise-field...
 								let block_x = (bcx + bx as f32) / CHUNK_SIZE as f32 / 5.0;
 								let block_z = (bcz + bz as f32) / CHUNK_SIZE as f32 / 5.0;
 								
+								// Calculate noise with the 'fuss' library...
 								let noise = sn.noise_2d(block_x, block_z);
 								let noise = (noise + 1.0) * 0.5;
 								let noise = noise * 15.0;
