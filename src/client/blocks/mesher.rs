@@ -72,7 +72,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 				let uv = BlockUv::new_from_pos(block.id.get_raw_id() as u8 - 1, 0);
 				// TODO: Implement the static block-bakery.
 				
-				if get_block(neighbours, &pos.add(0,1,0)).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.up(1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // top
 						(N, S, S, uv.umin, uv.vmin).into(),
 						(S, S, S, uv.umax, uv.vmin).into(),
@@ -81,7 +81,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 					], &mut vertices);
 				}
 				
-				if get_block(neighbours, &pos.add(0,-1,0)).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.down(1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // bottom
 						(N, N, N, uv.umin, uv.vmin).into(),
 						(S, N, N, uv.umax, uv.vmin).into(),
@@ -90,7 +90,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 					], &mut vertices);
 				}
 				
-				if get_block(neighbours, &pos.add(0,0,-1)).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.forward(1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // front
 						(N, S, N, uv.umin, uv.vmin).into(),
 						(S, S, N, uv.umax, uv.vmin).into(),
@@ -99,7 +99,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 					], &mut vertices);
 				}
 				
-				if get_block(neighbours, &pos.add(0,0,1)).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.backward(1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // back
 						(N, N, S, uv.umin, uv.vmin).into(),
 						(S, N, S, uv.umax, uv.vmin).into(),
@@ -108,7 +108,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 					], &mut vertices);
 				}
 				
-				if get_block(neighbours, &pos.add(-1,0,0)).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.left(1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // left
 						(N, S, S, uv.umin, uv.vmin).into(),
 						(N, S, N, uv.umax, uv.vmin).into(),
@@ -117,7 +117,7 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 					], &mut vertices);
 				}
 				
-				if get_block(neighbours, &pos.add(1, 0,0)).unwrap_or(air) == air {
+				if get_block(neighbours, &pos.right(1)).unwrap_or(air) == air {
 					quad_to_tris(&[ // right
 						(S, N, S, uv.umin, uv.vmin).into(),
 						(S, N, N, uv.umax, uv.vmin).into(),
