@@ -41,6 +41,54 @@ impl BlockCoord {
 			z: self.z - z,
 		}
 	}
+	
+	pub fn up(&self, distance: isize) -> Self {
+		Self {
+			x: self.x,
+			y: self.y + distance,
+			z: self.z,
+		}
+	}
+	
+	pub fn down(&self, distance: isize) -> Self {
+		Self {
+			x: self.x,
+			y: self.y - distance,
+			z: self.z,
+		}
+	}
+	
+	pub fn left(&self, distance: isize) -> Self {
+		Self {
+			x: self.x - distance,
+			y: self.y,
+			z: self.z,
+		}
+	}
+	
+	pub fn right(&self, distance: isize) -> Self {
+		Self {
+			x: self.x + distance,
+			y: self.y,
+			z: self.z,
+		}
+	}
+	
+	pub fn forward(&self, distance: isize) -> Self {
+		Self {
+			x: self.x,
+			y: self.y,
+			z: self.z - distance,
+		}
+	}
+	
+	pub fn backward(&self, distance: isize) -> Self {
+		Self {
+			x: self.x,
+			y: self.y,
+			z: self.z + distance,
+		}
+	}
 }
 
 impl PartialEq for BlockCoord {
