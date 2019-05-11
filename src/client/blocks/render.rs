@@ -51,11 +51,12 @@ impl ShaderBlocks {
 }
 
 pub struct ChunkRenderManager {
-	#[allow(dead_code)] // Not needed... yet.
+	// Static
 	blockdef: blockdef::UniverseRef,
-	
-	chunks: FxHashMap<ChunkCoord, (u128, mesher::ChunkMeshState)>,
 	material: ShaderBlocks,
+	
+	// Dynamic
+	chunks: FxHashMap<ChunkCoord, (u128, mesher::ChunkMeshState)>,
 }
 
 impl ChunkRenderManager {
@@ -64,8 +65,8 @@ impl ChunkRenderManager {
 		
 		Ok(ChunkRenderManager {
 			blockdef: blockdef.clone(),
-			chunks: FxHashMap::default(),
 			material,
+			chunks: FxHashMap::default(),
 		})
 	}
 	

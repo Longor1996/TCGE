@@ -1,11 +1,11 @@
 use crate::blocks as blockdef;
+use crate::blocks::BlockCoord;
+use crate::client::blocks::ChunkCoord;
 use super::super::render::utility::gl_label_object;
 use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
 use super::CHUNK_SIZE_MASK;
-use crate::client::blocks::ChunkCoord;
-use crate::blocks::BlockCoord;
 
 /// The graphical state of a chunk.
 pub enum ChunkMeshState {
