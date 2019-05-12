@@ -1,5 +1,5 @@
 use crate::blocks as blockdef;
-use crate::blocks::BlockCoord;
+use crate::blocks::{BlockCoord, Block};
 use crate::client::blocks::ChunkCoord;
 use super::super::render::utility::gl_label_object;
 use super::static_bakery;
@@ -7,6 +7,8 @@ use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
 use super::CHUNK_SIZE_MASK;
+use super::CHUNK_SIZE_I;
+use super::CHUNK_SIZE_MASK_I;
 
 /// The graphical state of a chunk.
 pub enum ChunkMeshState {
@@ -17,26 +19,6 @@ pub enum ChunkMeshState {
 	Meshed(render::ChunkMesh),
 }
 
-
-fn get_block(neighbours: &[Option<&Chunk>; 27], pos: &BlockCoord) -> Option<blockdef::BlockState> {
-	let cpos = ChunkCoord::new_from_block(pos);
-	let csm = CHUNK_SIZE_MASK as isize;
-	
-	for chunk in neighbours.iter() {
-		if let Some(chunk) = chunk {
-			if chunk.pos == cpos {
-				let cx = pos.x & csm;
-				let cy = pos.y & csm;
-				let cz = pos.z & csm;
-				if let Some(block) = chunk.get_block(cx,cy,cz) {
-					return Some(block)
-				}
-			}
-		}
-	}
-	
-	None
-}
 
 pub fn mesh(
 	blockdef: blockdef::UniverseRef,
@@ -49,9 +31,9 @@ pub fn mesh(
 	quad_buf.reserve(4*6);
 	
 	let cpos = chunk.pos;
-	let cx = cpos.x * (CHUNK_SIZE as isize);
-	let cy = cpos.y * (CHUNK_SIZE as isize);
-	let cz = cpos.z * (CHUNK_SIZE as isize);
+	let cx = cpos.x * CHUNK_SIZE_I;
+	let cy = cpos.y * CHUNK_SIZE_I;
+	let cz = cpos.z * CHUNK_SIZE_I;
 	
 	let air = blockdef
 		.get_block_by_name_unchecked("air")
@@ -62,6 +44,29 @@ pub fn mesh(
 	let start = crate::util::current_time_nanos();
 	
 	let mut block_pos = BlockCoord::new(0, 0, 0);
+	
+	let get_block = |
+		offset: &BlockCoord,
+	| {
+		if cpos.contains_block(offset) {
+			return Some(unsafe {
+				chunk.get_block_unchecked(offset.x, offset.y, offset.z)
+			})
+		}
+		
+		let o_cpos = ChunkCoord::new_from_block(offset);
+		for o_chunk in neighbours.iter() {
+			if let Some(o_chunk) = o_chunk {
+				if o_chunk.pos == o_cpos {
+					return Some(unsafe {
+						o_chunk.get_block_unchecked(offset.x, offset.y, offset.z)
+					})
+				}
+			}
+		}
+		
+		None
+	};
 	
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
@@ -83,12 +88,12 @@ pub fn mesh(
 				let cbp = vertices.len();
 				
 				context.set_occlusion(
-					get_block(neighbours, &block_pos.right   (1)).unwrap_or(air) != air,
-					get_block(neighbours, &block_pos.up      (1)).unwrap_or(air) != air,
-					get_block(neighbours, &block_pos.backward(1)).unwrap_or(air) != air,
-					get_block(neighbours, &block_pos.left    (1)).unwrap_or(air) != air,
-					get_block(neighbours, &block_pos.down    (1)).unwrap_or(air) != air,
-					get_block(neighbours, &block_pos.forward (1)).unwrap_or(air) != air,
+					get_block(&block_pos.right   (1)).unwrap_or(air) != air,
+					get_block(&block_pos.up      (1)).unwrap_or(air) != air,
+					get_block(&block_pos.backward(1)).unwrap_or(air) != air,
+					get_block(&block_pos.left    (1)).unwrap_or(air) != air,
+					get_block(&block_pos.down    (1)).unwrap_or(air) != air,
+					get_block(&block_pos.forward (1)).unwrap_or(air) != air,
 					true
 				);
 				

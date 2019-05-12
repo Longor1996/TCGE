@@ -7,6 +7,9 @@ const CHUNK_SIZE: usize = 16;
 const CHUNK_SIZE_SHIFT: usize = 4;
 const CHUNK_SIZE_MASK: usize = 0b1111;
 
+const CHUNK_SIZE_I: isize = CHUNK_SIZE as isize;
+const CHUNK_SIZE_MASK_I: isize = CHUNK_SIZE_MASK as isize;
+
 const CHUNK_SLICE: usize = CHUNK_SIZE*CHUNK_SIZE;
 const CHUNK_VOLUME: usize = CHUNK_SLICE*CHUNK_SIZE;
 
@@ -68,6 +71,15 @@ impl ChunkCoord {
 			y: self.y as f32,
 			z: self.z as f32
 		}
+	}
+	
+	pub fn contains_block(&self, block: &BlockCoord) -> bool {
+		let cx = self.x * CHUNK_SIZE_I;
+		let cy = self.y * CHUNK_SIZE_I;
+		let cz = self.z * CHUNK_SIZE_I;
+		   block.x >= cx && block.x < cx+CHUNK_SIZE_I
+		&& block.y >= cy && block.y < cy+CHUNK_SIZE_I
+		&& block.z >= cz && block.z < cz+CHUNK_SIZE_I
 	}
 }
 
