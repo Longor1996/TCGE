@@ -3,6 +3,9 @@
 pub mod utf8;
 pub mod gameloop;
 
+pub mod tiny_profiler;
+pub use self::tiny_profiler::TinyProfiler;
+
 pub fn current_time_nanos() -> u128 {
 	use std::time::{SystemTime, UNIX_EPOCH};
 	let start = SystemTime::now();
