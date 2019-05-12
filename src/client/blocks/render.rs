@@ -59,6 +59,7 @@ pub struct ChunkRenderManager {
 	
 	// Dynamic
 	chunks: FxHashMap<ChunkCoord, (u128, mesher::ChunkMeshState)>,
+	mesher: mesher::MesherThreadState,
 }
 
 impl ChunkRenderManager {
@@ -71,6 +72,7 @@ impl ChunkRenderManager {
 			material,
 			static_bakery,
 			chunks: FxHashMap::default(),
+			mesher: mesher::MesherThreadState::new()
 		})
 	}
 	
@@ -96,7 +98,7 @@ impl ChunkRenderManager {
 					max_uploads_per_frame -= 1;
 					let neighbours = scene.chunks.get_chunks_around(cpos);
 					*time = chunk.last_update;
-					*mesh = mesher::mesh(self.blockdef.clone(), &self.static_bakery, &chunk, &neighbours);
+					*mesh = mesher::mesh(&mut self.mesher, self.blockdef.clone(), &self.static_bakery, &chunk, &neighbours);
 				}
 				
 				if let mesher::ChunkMeshState::Meshed(mesh) = mesh {
@@ -107,7 +109,7 @@ impl ChunkRenderManager {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
 					let neighbours = scene.chunks.get_chunks_around(cpos);
-					let mesh = mesher::mesh(self.blockdef.clone(), &self.static_bakery, &chunk, &neighbours);
+					let mesh = mesher::mesh(&mut self.mesher, self.blockdef.clone(), &self.static_bakery, &chunk, &neighbours);
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
 				}
 			}

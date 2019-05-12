@@ -3,6 +3,7 @@ use crate::blocks::{BlockCoord, Block};
 use crate::client::blocks::ChunkCoord;
 use super::super::render::utility::gl_label_object;
 use super::static_bakery;
+use super::static_bakery::BakedBlockMeshVertex;
 use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
@@ -16,34 +17,50 @@ pub enum ChunkMeshState {
 	Meshed(render::ChunkMesh),
 }
 
+pub struct MesherThreadState {
+	vertices: Vec<ChunkMeshVertex>,
+	quad_buf: Vec<BakedBlockMeshVertex>
+}
+
+impl MesherThreadState {
+	pub fn new() -> MesherThreadState{
+		MesherThreadState {
+			vertices: vec![],
+			quad_buf: vec![],
+		}
+	}
+	
+	pub fn reset(&mut self) {
+		self.vertices.clear();
+		self.quad_buf.clear();
+	}
+}
 
 pub fn mesh(
+	mesher: &mut MesherThreadState,
 	blockdef: blockdef::UniverseRef,
 	static_bakery: &static_bakery::StaticBlockBakery,
 	chunk: &Chunk,
 	neighbours: &[Option<&Chunk>; 27]
 ) -> ChunkMeshState {
-	let mut vertices: Vec<ChunkMeshVertex> = vec![];
-	let mut quad_buf: Vec<static_bakery::BakedBlockMeshVertex> = vec![];
-	quad_buf.reserve(4*6);
+	let start = crate::util::current_time_nanos();
 	
-	let cpos = chunk.pos;
-	let (cx, cy, cz) = cpos.to_block_coord();
+	// --- Reset state of the mesher, clearing the buffers.
+	mesher.reset();
+	let vertices = &mut mesher.vertices;
+	let mut quad_buf = &mut mesher.quad_buf;
 	
 	let air = blockdef
 		.get_block_by_name_unchecked("air")
 		.get_default_state();
 	
-	let mut context = static_bakery::BakeryContext::new();
+	let (cx, cy, cz) = chunk.pos.to_block_coord();
 	
-	let start = crate::util::current_time_nanos();
-	
-	let mut block_pos = BlockCoord::new(0, 0, 0);
-	
+	// --- Local function for fetching blocks quickly...
 	let get_block = |
 		offset: &BlockCoord,
 	| {
-		if cpos.contains_block(offset) {
+		if chunk.pos.contains_block(offset) {
 			return Some(unsafe {
 				chunk.get_block_unchecked(offset.x, offset.y, offset.z)
 			})
@@ -62,6 +79,9 @@ pub fn mesh(
 		
 		None
 	};
+	
+	let mut block_pos = BlockCoord::new(0, 0, 0);
+	let mut context = static_bakery::BakeryContext::new();
 	
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
@@ -119,7 +139,10 @@ pub fn mesh(
 	}
 	
 	let end = crate::util::current_time_nanos();
-	debug!("Took {}ns to mesh chunk {}.", end - start, chunk.pos);
+	let duration = end - start;
+	if duration > 100 {
+		debug!("Took {}ns to mesh chunk {}.", duration, chunk.pos);
+	}
 	
 	return upload(chunk, &vertices);
 }
@@ -221,8 +244,8 @@ impl From<(f32, f32, f32, f32, f32)> for ChunkMeshVertex {
 	}
 }
 
-impl From<static_bakery::BakedBlockMeshVertex> for ChunkMeshVertex {
-	fn from(other: static_bakery::BakedBlockMeshVertex) -> Self {
+impl From<BakedBlockMeshVertex> for ChunkMeshVertex {
+	fn from(other: BakedBlockMeshVertex) -> Self {
 		Self::new(other.x, other.y, other.z, other.u, other.v)
 	}
 }
