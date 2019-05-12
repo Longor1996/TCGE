@@ -23,7 +23,16 @@ impl StaticBlockBakery {
 	}
 	
 	fn bake_block(_res: &resources::Resources, block: &blockdef::Block) -> Result<Box<BakedBlock>, render::utility::Error> {
-		let mut sides = FxHashMap::default();
+		let mut sides: [Vec<BakedBlockMeshVertex>; 8] = [
+			Vec::new(),
+			Vec::new(),
+			Vec::new(),
+			Vec::new(),
+			Vec::new(),
+			Vec::new(),
+			Vec::new(),
+			Vec::new()
+		];
 		
 		if block.get_id().get_raw_id() == 0 {
 			return Ok(Box::new(BasicBakedBlock {
@@ -35,28 +44,28 @@ impl StaticBlockBakery {
 		const S: f32 = 1.0;
 		let uv = BlockUv::new_from_pos((block.get_id().get_raw_id()) as u8 - 1, 0);
 		
-		sides.insert(Face::Ypos, vec![
+		sides[Face::Ypos.id() as usize].extend_from_slice(&[
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
 			(N, S, N, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides.insert(Face::Yneg, vec![
+		sides[Face::Yneg.id() as usize].extend_from_slice(&[
 			(N, N, N, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides.insert(Face::Zneg, vec![
+		sides[Face::Zneg.id() as usize].extend_from_slice(&[
 			(N, S, N, uv.umin, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmax).into(),
 			(N, N, N, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides.insert(Face::Zpos, vec![
+		sides[Face::Zpos.id() as usize].extend_from_slice(&[
 			(N, N, S, uv.umin, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmax).into(),
@@ -64,7 +73,7 @@ impl StaticBlockBakery {
 		
 		]);
 		
-		sides.insert(Face::Xneg, vec![
+		sides[Face::Xneg.id() as usize].extend_from_slice(&[
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(N, S, N, uv.umax, uv.vmin).into(),
 			(N, N, N, uv.umax, uv.vmax).into(),
@@ -72,7 +81,7 @@ impl StaticBlockBakery {
 		
 		]);
 		
-		sides.insert(Face::Xpos, vec![
+		sides[Face::Xpos.id() as usize].extend_from_slice(&[
 			(S, N, S, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
@@ -133,7 +142,7 @@ trait BakedBlock {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct BasicBakedBlock {
-	sides: FxHashMap<Face, Vec<BakedBlockMeshVertex>>,
+	sides: [Vec<BakedBlockMeshVertex>;8],
 }
 
 impl BasicBakedBlock {
@@ -144,14 +153,7 @@ impl BasicBakedBlock {
 			return;
 		}
 		
-		let vertices = match self.sides.get(&face) {
-			Some(v) => v,
-			None => return
-		};
-		
-		for vertex in vertices {
-			out.push(*vertex);
-		}
+		out.extend_from_slice(&self.sides[face_id])
 	}
 }
 
