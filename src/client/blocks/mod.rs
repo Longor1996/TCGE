@@ -75,12 +75,14 @@ impl ChunkCoord {
 	}
 	
 	pub fn contains_block(&self, block: &BlockCoord) -> bool {
-		let cx = self.x * CHUNK_SIZE_I;
-		let cy = self.y * CHUNK_SIZE_I;
-		let cz = self.z * CHUNK_SIZE_I;
+		let (cx, cy, cz) = self.to_block_coord();
 		   block.x >= cx && block.x < cx+CHUNK_SIZE_I
 		&& block.y >= cy && block.y < cy+CHUNK_SIZE_I
 		&& block.z >= cz && block.z < cz+CHUNK_SIZE_I
+	}
+	
+	pub fn to_block_coord(&self) -> (isize, isize, isize) {
+		(self.x * CHUNK_SIZE_I, self.y * CHUNK_SIZE_I, self.z * CHUNK_SIZE_I)
 	}
 }
 

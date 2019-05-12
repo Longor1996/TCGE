@@ -6,7 +6,6 @@ use super::static_bakery;
 use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
-use super::CHUNK_SIZE_I;
 
 /// The graphical state of a chunk.
 pub enum ChunkMeshState {
@@ -29,9 +28,7 @@ pub fn mesh(
 	quad_buf.reserve(4*6);
 	
 	let cpos = chunk.pos;
-	let cx = cpos.x * CHUNK_SIZE_I;
-	let cy = cpos.y * CHUNK_SIZE_I;
-	let cz = cpos.z * CHUNK_SIZE_I;
+	let (cx, cy, cz) = cpos.to_block_coord();
 	
 	let air = blockdef
 		.get_block_by_name_unchecked("air")
@@ -109,10 +106,13 @@ pub fn mesh(
 				
 				quad_buf.clear();
 				
+				let cbx = cbx as f32;
+				let cby = cby as f32;
+				let cbz = cbz as f32;
 				for vertex in &mut vertices[cbp..] {
-					vertex.x += cbx as f32;
-					vertex.y += cby as f32;
-					vertex.z += cbz as f32;
+					vertex.x += cbx;
+					vertex.y += cby;
+					vertex.z += cbz;
 				}
 			}
 		}
