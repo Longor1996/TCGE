@@ -7,6 +7,7 @@ const CHUNK_SIZE: usize = 16;
 const CHUNK_SIZE_SHIFT: usize = 4;
 const CHUNK_SIZE_MASK: usize = 0b1111;
 
+const CHUNK_SIZE_F: f32 = CHUNK_SIZE as f32;
 const CHUNK_SIZE_I: isize = CHUNK_SIZE as isize;
 const CHUNK_SIZE_MASK_I: isize = CHUNK_SIZE_MASK as isize;
 
@@ -136,7 +137,7 @@ impl Chunk {
 			return None
 		}
 		
-		if value >= CHUNK_SIZE as isize {
+		if value >= CHUNK_SIZE_I {
 			return None
 		}
 		
@@ -144,15 +145,15 @@ impl Chunk {
 	}
 	
 	pub fn fill_with_floor(&mut self, fill: BlockState) {
-		for z in 0..CHUNK_SIZE as isize {
-			for x in 0..CHUNK_SIZE as isize {
+		for z in 0..CHUNK_SIZE_I {
+			for x in 0..CHUNK_SIZE_I {
 				self.set_block(x, 0, z, fill);
 			}
 		}
 	}
 	
 	pub fn fill_with_grid(&mut self, fill: BlockState) {
-		const I: isize = (CHUNK_SIZE - 1) as isize;
+		const I: isize = CHUNK_SIZE_I - 1;
 		for i in 0..=I {
 			self.set_block(i,0,0,fill);
 			self.set_block(i,I,0,fill);
@@ -273,16 +274,16 @@ impl ChunkStorage {
 						chunk.fill_with_floor(bedrock);
 						
 						// Determine chunk coordinates within noise-field.
-						let bcx = chunk.pos.x as f32 * CHUNK_SIZE as f32;
-						let bcz = chunk.pos.z as f32 * CHUNK_SIZE as f32;
+						let bcx = chunk.pos.x as f32 * CHUNK_SIZE_F;
+						let bcz = chunk.pos.z as f32 * CHUNK_SIZE_F;
 						
 						// For every column of blocks in the chunk...
-						for bz in 0..CHUNK_SIZE as isize {
-							for bx in 0..CHUNK_SIZE as isize {
+						for bz in 0..CHUNK_SIZE_I {
+							for bx in 0..CHUNK_SIZE_I {
 								
 								// Get coordinates within noise-field...
-								let block_x = (bcx + bx as f32) / CHUNK_SIZE as f32 / 5.0;
-								let block_z = (bcz + bz as f32) / CHUNK_SIZE as f32 / 5.0;
+								let block_x = (bcx + bx as f32) / CHUNK_SIZE_F / 5.0;
+								let block_z = (bcz + bz as f32) / CHUNK_SIZE_F / 5.0;
 								
 								// Calculate noise with the 'fuss' library...
 								let noise = sn.noise_2d(block_x, block_z);
@@ -385,12 +386,11 @@ impl ChunkStorage {
 	
 	pub fn get_block(&self, pos: &BlockCoord) -> Option<BlockState> {
 		let cpos = ChunkCoord::new_from_block(pos);
-		let csm = CHUNK_SIZE_MASK as isize;
 		
 		if let Some(chunk) = self.get_chunk(&cpos) {
-			let cx = pos.x & csm;
-			let cy = pos.y & csm;
-			let cz = pos.z & csm;
+			let cx = pos.x & CHUNK_SIZE_MASK_I;
+			let cy = pos.y & CHUNK_SIZE_MASK_I;
+			let cz = pos.z & CHUNK_SIZE_MASK_I;
 			match chunk.get_block(cx, cy, cz) {
 				Some(x) => return Some(x),
 				None => ()
@@ -402,7 +402,7 @@ impl ChunkStorage {
 	
 	pub fn set_block(&mut self, pos: &BlockCoord, state: BlockState) -> bool {
 		let cpos = ChunkCoord::new_from_block(pos);
-		let csm = CHUNK_SIZE_MASK as isize;
+		let csm = CHUNK_SIZE_MASK_I;
 		
 		let success = if let Some(chunk) = self.get_chunk_mut(&cpos) {
 			let cx = pos.x & csm;

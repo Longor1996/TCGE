@@ -6,9 +6,7 @@ use super::static_bakery;
 use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
-use super::CHUNK_SIZE_MASK;
 use super::CHUNK_SIZE_I;
-use super::CHUNK_SIZE_MASK_I;
 
 /// The graphical state of a chunk.
 pub enum ChunkMeshState {
