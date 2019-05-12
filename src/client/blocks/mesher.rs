@@ -1,5 +1,5 @@
 use crate::blocks as blockdef;
-use crate::blocks::{BlockCoord, Block};
+use crate::blocks::BlockCoord;
 use crate::client::blocks::ChunkCoord;
 use super::super::render::utility::gl_label_object;
 use super::static_bakery;
@@ -112,6 +112,7 @@ pub fn mesh(
 					true
 				);
 				
+				quad_buf.clear();
 				static_bakery.render_block(&context, &block, &mut quad_buf);
 				
 				for quad in quad_buf.chunks_exact(4) {
@@ -123,8 +124,6 @@ pub fn mesh(
 					vertices.push(quad[2].into()); // c
 					vertices.push(quad[3].into()); // d
 				}
-				
-				quad_buf.clear();
 				
 				let cbx = cbx as f32;
 				let cby = cby as f32;
