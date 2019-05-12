@@ -2,6 +2,7 @@ use crate::blocks as blockdef;
 use crate::blocks::BlockCoord;
 use crate::client::blocks::ChunkCoord;
 use super::super::render::utility::gl_label_object;
+use super::static_bakery;
 use super::render;
 use super::Chunk;
 use super::CHUNK_SIZE;
@@ -37,17 +38,30 @@ fn get_block(neighbours: &[Option<&Chunk>; 27], pos: &BlockCoord) -> Option<bloc
 	None
 }
 
-pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option<&Chunk>; 27]) -> ChunkMeshState {
+pub fn mesh(
+	blockdef: blockdef::UniverseRef,
+	static_bakery: &static_bakery::StaticBlockBakery,
+	chunk: &Chunk,
+	neighbours: &[Option<&Chunk>; 27]
+) -> ChunkMeshState {
 	let mut vertices: Vec<ChunkMeshVertex> = vec![];
+	let mut quad_buf: Vec<static_bakery::BakedBlockMeshVertex> = vec![];
+	quad_buf.reserve(4*6);
 	
 	let cpos = chunk.pos;
-	
-	const N: f32 = 0.0;
-	const S: f32 = 1.0;
+	let cx = cpos.x * (CHUNK_SIZE as isize);
+	let cy = cpos.y * (CHUNK_SIZE as isize);
+	let cz = cpos.z * (CHUNK_SIZE as isize);
 	
 	let air = blockdef
 		.get_block_by_name_unchecked("air")
 		.get_default_state();
+	
+	let mut context = static_bakery::BakeryContext::new();
+	
+	let start = crate::util::current_time_nanos();
+	
+	let mut block_pos = BlockCoord::new(0, 0, 0);
 	
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
@@ -55,76 +69,42 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 				let x = x as isize;
 				let y = y as isize;
 				let z = z as isize;
-				let block = chunk.get_block(x, y, z).unwrap_or(air);
+				let block = unsafe {chunk.get_block_unchecked(x, y, z)};
 				
 				if block == air {
 					continue;
 				}
 				
-				let cbx = x + cpos.x*CHUNK_SIZE as isize;
-				let cby = y + cpos.y*CHUNK_SIZE as isize;
-				let cbz = z + cpos.z*CHUNK_SIZE as isize;
-				let pos = BlockCoord::new(cbx,cby,cbz);
+				let cbx = x + cx;
+				let cby = y + cy;
+				let cbz = z + cz;
+				block_pos.set(cbx, cby, cbz);
 				
 				let cbp = vertices.len();
 				
-				// This line is the dumbest thing in the whole project...
-				let uv = BlockUv::new_from_pos(block.id.get_raw_id() as u8 - 1, 0);
-				// TODO: Implement the static block-bakery.
+				context.set_occlusion(
+					get_block(neighbours, &block_pos.right   (1)).unwrap_or(air) != air,
+					get_block(neighbours, &block_pos.up      (1)).unwrap_or(air) != air,
+					get_block(neighbours, &block_pos.backward(1)).unwrap_or(air) != air,
+					get_block(neighbours, &block_pos.left    (1)).unwrap_or(air) != air,
+					get_block(neighbours, &block_pos.down    (1)).unwrap_or(air) != air,
+					get_block(neighbours, &block_pos.forward (1)).unwrap_or(air) != air,
+					true
+				);
 				
-				if get_block(neighbours, &pos.up(1)).unwrap_or(air) == air {
-					quad_to_tris(&[ // top
-						(N, S, S, uv.umin, uv.vmin).into(),
-						(S, S, S, uv.umax, uv.vmin).into(),
-						(S, S, N, uv.umax, uv.vmax).into(),
-						(N, S, N, uv.umin, uv.vmax).into(),
-					], &mut vertices);
+				static_bakery.render_block(&context, &block, &mut quad_buf);
+				
+				for quad in quad_buf.chunks_exact(4) {
+					vertices.reserve(6);
+					vertices.push(quad[0].into()); // a
+					vertices.push(quad[1].into()); // b
+					vertices.push(quad[3].into()); // d
+					vertices.push(quad[1].into()); // b
+					vertices.push(quad[2].into()); // c
+					vertices.push(quad[3].into()); // d
 				}
 				
-				if get_block(neighbours, &pos.down(1)).unwrap_or(air) == air {
-					quad_to_tris(&[ // bottom
-						(N, N, N, uv.umin, uv.vmin).into(),
-						(S, N, N, uv.umax, uv.vmin).into(),
-						(S, N, S, uv.umax, uv.vmax).into(),
-						(N, N, S, uv.umin, uv.vmax).into(),
-					], &mut vertices);
-				}
-				
-				if get_block(neighbours, &pos.forward(1)).unwrap_or(air) == air {
-					quad_to_tris(&[ // front
-						(N, S, N, uv.umin, uv.vmin).into(),
-						(S, S, N, uv.umax, uv.vmin).into(),
-						(S, N, N, uv.umax, uv.vmax).into(),
-						(N, N, N, uv.umin, uv.vmax).into(),
-					], &mut vertices);
-				}
-				
-				if get_block(neighbours, &pos.backward(1)).unwrap_or(air) == air {
-					quad_to_tris(&[ // back
-						(N, N, S, uv.umin, uv.vmin).into(),
-						(S, N, S, uv.umax, uv.vmin).into(),
-						(S, S, S, uv.umax, uv.vmax).into(),
-						(N, S, S, uv.umin, uv.vmax).into(),
-					], &mut vertices);
-				}
-				
-				if get_block(neighbours, &pos.left(1)).unwrap_or(air) == air {
-					quad_to_tris(&[ // left
-						(N, S, S, uv.umin, uv.vmin).into(),
-						(N, S, N, uv.umax, uv.vmin).into(),
-						(N, N, N, uv.umax, uv.vmax).into(),
-						(N, N, S, uv.umin, uv.vmax).into(),
-					], &mut vertices);
-				}
-				
-				if get_block(neighbours, &pos.right(1)).unwrap_or(air) == air {
-					quad_to_tris(&[ // right
-						(S, N, S, uv.umin, uv.vmin).into(),
-						(S, N, N, uv.umax, uv.vmin).into(),
-						(S, S, N, uv.umax, uv.vmax).into(),
-						(S, S, S, uv.umin, uv.vmax).into(),
-					], &mut vertices);
-				}
+				quad_buf.clear();
 				
 				for vertex in &mut vertices[cbp..] {
 					vertex.x += cbx as f32;
@@ -134,6 +114,9 @@ pub fn mesh(blockdef: blockdef::UniverseRef, chunk: &Chunk, neighbours: &[Option
 			}
 		}
 	}
+	
+	let end = crate::util::current_time_nanos();
+	debug!("Took {}ns to mesh chunk {}.", end - start, chunk.pos);
 	
 	return upload(chunk, &vertices);
 }
@@ -208,17 +191,6 @@ fn upload(chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>) -> ChunkMeshState {
 	))
 }
 
-fn quad_to_tris(src: &[ChunkMeshVertex; 4], dst: &mut Vec<ChunkMeshVertex>) {
-	dst.reserve(6);
-	dst.push(src[0]);
-	dst.push(src[1]);
-	dst.push(src[3]);
-	dst.push(src[1]);
-	dst.push(src[2]);
-	dst.push(src[3]);
-}
-
-
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 struct ChunkMeshVertex {
@@ -246,23 +218,8 @@ impl From<(f32, f32, f32, f32, f32)> for ChunkMeshVertex {
 	}
 }
 
-struct BlockUv {
-	umin: f32,
-	umax: f32,
-	vmin: f32,
-	vmax: f32,
-}
-
-impl BlockUv {
-	fn new_from_pos(x: u8, y: u8) -> Self {
-		let x = (x as f32) / 16.0;
-		let y = (y as f32) / 16.0;
-		let s = 1.0 / 16.0;
-		Self {
-			umin: x,
-			umax: x+s,
-			vmin: y,
-			vmax: y+s,
-		}
+impl From<static_bakery::BakedBlockMeshVertex> for ChunkMeshVertex {
+	fn from(other: static_bakery::BakedBlockMeshVertex) -> Self {
+		Self::new(other.x, other.y, other.z, other.u, other.v)
 	}
 }

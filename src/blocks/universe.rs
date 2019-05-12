@@ -94,6 +94,10 @@ pub struct Block {
 }
 
 impl Block {
+	pub fn get_id(&self) -> BlockId {
+		self.id
+	}
+	
 	pub fn get_name(&self) -> &str {
 		return self.name.as_str();
 	}

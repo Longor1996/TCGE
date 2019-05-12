@@ -15,6 +15,7 @@ pub use self::raycast::BlockRaycast;
 
 pub mod render;
 pub mod mesher;
+pub mod static_bakery;
 pub use self::render::ChunkRenderManager;
 
 #[derive(Eq, Copy, Clone)]
@@ -177,6 +178,14 @@ impl Chunk {
 		unsafe {
 			Some(*self.blocks.get_unchecked(index))
 		}
+	}
+	
+	pub unsafe fn get_block_unchecked(&self, x: isize, y: isize, z: isize) -> BlockState {
+		let x = (x as usize) & CHUNK_SIZE_MASK;
+		let y = (y as usize) & CHUNK_SIZE_MASK;
+		let z = (z as usize) & CHUNK_SIZE_MASK;
+		let index = y*CHUNK_SLICE + z*CHUNK_SIZE + x;
+		*self.blocks.get_unchecked(index)
 	}
 	
 	pub fn set_block(&mut self, x: isize, y: isize, z: isize, state: BlockState) -> Option<()> {

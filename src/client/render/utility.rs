@@ -20,11 +20,17 @@ pub enum Error {
 	#[fail(display = "Failed to link program {}: {}", name, message)]
 	LinkError { name: String, message: String },
 	
+	#[fail(display = "Failed to parse declaration {}", name)]
+	DeclarationParse { name: String },
+	
 	#[fail(display = "Failed to parse image {}", name)]
 	ImageParse { name: String, #[cause] inner: image::ImageError },
 	
 	#[fail(display = "Failed to parse value {}", name)]
 	ValueParse { name: String },
+	
+	#[fail(display = "Failed to parse model {}", name)]
+	ModelParse { name: String },
 }
 
 impl Error {

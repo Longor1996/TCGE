@@ -8,6 +8,7 @@ use super::super::scene;
 
 use super::ChunkCoord;
 use super::mesher;
+use super::static_bakery;
 
 pub struct ShaderBlocks {
 	pub shader: render::utility::Program,
@@ -54,6 +55,7 @@ pub struct ChunkRenderManager {
 	// Static
 	blockdef: blockdef::UniverseRef,
 	material: ShaderBlocks,
+	static_bakery: static_bakery::StaticBlockBakery,
 	
 	// Dynamic
 	chunks: FxHashMap<ChunkCoord, (u128, mesher::ChunkMeshState)>,
@@ -62,10 +64,12 @@ pub struct ChunkRenderManager {
 impl ChunkRenderManager {
 	pub fn new(res: &resources::Resources, blockdef: blockdef::UniverseRef) -> Result<ChunkRenderManager, render::utility::Error> {
 		let material = ShaderBlocks::new(res)?;
+		let static_bakery = static_bakery::StaticBlockBakery::new(&res, &blockdef)?;
 		
 		Ok(ChunkRenderManager {
 			blockdef: blockdef.clone(),
 			material,
+			static_bakery,
 			chunks: FxHashMap::default(),
 		})
 	}
@@ -92,7 +96,7 @@ impl ChunkRenderManager {
 					max_uploads_per_frame -= 1;
 					let neighbours = scene.chunks.get_chunks_around(cpos);
 					*time = chunk.last_update;
-					*mesh = mesher::mesh(self.blockdef.clone(), &chunk, &neighbours);
+					*mesh = mesher::mesh(self.blockdef.clone(), &self.static_bakery, &chunk, &neighbours);
 				}
 				
 				if let mesher::ChunkMeshState::Meshed(mesh) = mesh {
@@ -103,7 +107,7 @@ impl ChunkRenderManager {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
 					let neighbours = scene.chunks.get_chunks_around(cpos);
-					let mesh = mesher::mesh(self.blockdef.clone(), &chunk, &neighbours);
+					let mesh = mesher::mesh(self.blockdef.clone(), &self.static_bakery, &chunk, &neighbours);
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
 				}
 			}
