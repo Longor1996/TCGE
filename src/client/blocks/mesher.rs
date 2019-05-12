@@ -83,6 +83,11 @@ pub fn mesh(
 	let mut block_pos = BlockCoord::new(0, 0, 0);
 	let mut context = static_bakery::BakeryContext::new();
 	
+	let mut TP_OCCLUSION = crate::util::TinyProfiler::new();
+	let mut TP_GET_BAKED = crate::util::TinyProfiler::new();
+	let mut TP_TESSELLATE = crate::util::TinyProfiler::new();
+	let mut TP_TRANSLATE = crate::util::TinyProfiler::new();
+	
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
 			for x in 0..CHUNK_SIZE {
@@ -102,6 +107,7 @@ pub fn mesh(
 				
 				let cbp = vertices.len();
 				
+				TP_OCCLUSION.start();
 				context.set_occlusion(
 					get_block(&block_pos.right   (1)).unwrap_or(air) != air,
 					get_block(&block_pos.up      (1)).unwrap_or(air) != air,
@@ -111,10 +117,14 @@ pub fn mesh(
 					get_block(&block_pos.forward (1)).unwrap_or(air) != air,
 					true
 				);
+				TP_OCCLUSION.end();
 				
+				TP_GET_BAKED.start();
 				quad_buf.clear();
 				static_bakery.render_block(&context, &block, &mut quad_buf);
+				TP_GET_BAKED.end();
 				
+				TP_TESSELLATE.start();
 				for quad in quad_buf.chunks_exact(4) {
 					vertices.reserve(6);
 					vertices.push(quad[0].into()); // a
@@ -124,7 +134,9 @@ pub fn mesh(
 					vertices.push(quad[2].into()); // c
 					vertices.push(quad[3].into()); // d
 				}
+				TP_TESSELLATE.end();
 				
+				TP_TRANSLATE.start();
 				let cbx = cbx as f32;
 				let cby = cby as f32;
 				let cbz = cbz as f32;
@@ -133,6 +145,7 @@ pub fn mesh(
 					vertex.y += cby;
 					vertex.z += cbz;
 				}
+				TP_TRANSLATE.end();
 			}
 		}
 	}
@@ -141,6 +154,10 @@ pub fn mesh(
 	let duration = end - start;
 	if duration > 100 {
 		debug!("Took {}ns to mesh chunk {}.", duration, chunk.pos);
+		debug!("-- OCCLUSION: {}ns / {}ns", TP_OCCLUSION.average(), TP_OCCLUSION.total());
+		debug!("-- GET_BAKED: {}ns / {}ns", TP_GET_BAKED.average(), TP_GET_BAKED.total());
+		debug!("-- TRIANGLES: {}ns / {}ns", TP_TESSELLATE.average(), TP_TESSELLATE.total());
+		debug!("-- TRANSLATE: {}ns / {}ns", TP_TRANSLATE.average(), TP_TRANSLATE.total());
 	}
 	
 	return upload(chunk, &vertices);
