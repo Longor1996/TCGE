@@ -1,0 +1,10 @@
+[package]
+name = "tcge-common"
+version = "0.1.0"
+authors = ["Longor1996 <lalongok@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+log = "~0.4.6"
+zip = {version = "0.5.2", default-features = false, features = ["deflate"]}
+walkdir = "2.2.8"
