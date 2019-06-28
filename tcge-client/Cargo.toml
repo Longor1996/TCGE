@@ -1,0 +1,29 @@
+[package]
+name = "tcge-client"
+publish = false
+license = "MIT"
+version = "0.1.0"
+authors = ["Longor1996 <lalongok@gmail.com>"]
+
+cargo-features = ["edition"]
+edition = "2018"
+
+[dependencies]
+tcge-common   = { path = "../tcge-common"}
+tcge-backbone = { path = "../tcge-backbone"}
+tcge-blocks   = { path = "../tcge-blocks"}
+tcge-server   = { path = "../tcge-server"}
+tcge-opengl   = { path = "../tcge-opengl"}
+
+# Utility
+rustc-hash = "1.0.1"
+smallvec = {version = "0.6.10", default-features = false, features = ["default"]}
+cgmath = {version = "0.17.0", default-features = false} # cant disable "rand"?
+
+# Logging
+log = "~0.4.6"
+simplelog = "0.6.0"
+
+# Graphics
+glfw = {version = "0.29.0", default-features = false, features = ["glfw-sys"]}
+image = {version = "0.21.1", default-features = false, features = ["gif_codec", "png_codec", "ico"]}
