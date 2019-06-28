@@ -1,0 +1,8 @@
+[package]
+name = "tcge-blocks"
+version = "0.1.0"
+authors = ["Longor1996 <lalongok@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rustc-hash = "1.0.1"
