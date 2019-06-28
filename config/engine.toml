@@ -1,7 +1,0 @@
-[freecam-controls]
-field-of-view = 90.0
-fov-velocity-scaling = false
-mouse-sensitivity = 0.25
-mouse-inverted = false
-movement-speed = 2.0
-crane = true
