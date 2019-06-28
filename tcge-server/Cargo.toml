@@ -1,0 +1,12 @@
+[package]
+name = "tcge-server"
+publish = false
+license = "MIT"
+version = "0.1.0"
+authors = ["Longor1996 <lalongok@gmail.com>"]
+
+cargo-features = ["edition"]
+edition = "2018"
+
+[dependencies]
+tcge-common   = { path = "../tcge-common"}
