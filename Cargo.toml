@@ -1,0 +1,22 @@
+# This is a virtual workspace.
+# One cannot add dependencies here.
+
+[workspace]
+
+members = [
+  "tcge-common", # This contains the "Universe".
+
+  # Utility Crates
+  "tcge-backbone",
+  "tcge-opengl",
+  #"tcge-addons",
+
+  # Actually Gameplay
+  "tcge-blocks",
+  #"tcge-items",
+  #"tcge-entities",
+
+  # Binary Crates
+  "tcge-client",
+  "tcge-server",
+]
