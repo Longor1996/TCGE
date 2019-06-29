@@ -57,11 +57,28 @@ and applying generic 'filesystem' path semantics to it.
 
 ## Default Controls
 
-> TODO: Add controls.
-
 | Button | Action |
 |--------|--------|
-| ? | ? |
+| Press `ESC` twice. | Close game. |
+| `M`       | (Un)Grab the mouse.  |
+| `W/A/S/D` | Move forward/left/backward/right. |
+| `L-SHIFT` | Move faster. |
+| `L-CTRL`  | Move down.   |
+| `SPACE`   | Move up.     |
+| `C`                  | Change camera movement mode. |
+| `Mouse Movement`     | Look around/aim. |
+| `Left Mouse Button`  | Destroy blocks. |
+| `Right Mouse Button` | Place blocks. |
+
+## Console Commands
+
+The game can read and process commands typed into the standard console.
+
+| Command | Action |
+|---------|--------|
+| `stop` | Immediately quits the game. Same as pressing ESC twice. |
+| `set-tps <number>` | Change the rate of ticks-per-second to an arbitrary value. |
+| `loc <path>` | Change the backbone's current path. |
 
 ## Contributions
 
