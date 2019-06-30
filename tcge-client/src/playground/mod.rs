@@ -222,7 +222,7 @@ impl backbone::Handler for Playground {
 					-1.0, 1.0
 				));
 				
-				self.crosshair_2d.draw(&projection, render_event.width, render_event.height, 16.0);
+				self.crosshair_2d.draw(&projection, render_event.width, render_event.height, 4.0);
 				
 				text_renderer.transform = projection;
 				text_renderer.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0);
