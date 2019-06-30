@@ -101,4 +101,14 @@ impl Chunk {
 			self.set_block(I,I,i,fill);
 		}
 	}
+	
+	pub fn fill_with_axis_markers(&mut self, fill: BlockState) {
+		const I: BlockDim = CHUNK_SIZE_I - 1;
+		for i in 0..=I {
+			self.set_block(i,0,0,fill);
+			self.set_block(0,i,0,fill);
+			self.set_block(0,0,i,fill);
+		}
+		
+	}
 }

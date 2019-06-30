@@ -146,7 +146,7 @@ impl ChunkStorage {
 		success
 	}
 	
-	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> Option<(BlockCoord, BlockCoord, BlockState)> {
+	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> BlockRaycastResponse {
 		loop {
 			let (lx, ly, lz) = raycast.previous();
 			
@@ -179,3 +179,5 @@ impl ChunkStorage {
 		(self.chunks.len() as u64) * (CHUNK_VOLUME as u64)
 	}
 }
+
+pub type BlockRaycastResponse = Option<(BlockCoord, BlockCoord, BlockState)>;

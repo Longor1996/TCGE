@@ -87,11 +87,15 @@ impl Freecam {
 	}
 	
 	/// Updates the camera rotation by adding the given pitch/yaw euler-deltas.
-	pub fn update_rotation(&mut self, yaw: f32, pitch: f32) {
+	pub fn update_rotation(&mut self, yaw: f32, pitch: f32) -> bool {
 		self.rotation_last.clone_from(&self.rotation);
 		
+		if yaw == 0.0 || pitch == 0.0 {
+			return false;
+		}
+		
 		if !self.active {
-			return;
+			return false;
 		}
 		
 		let pitch = if self.invert_mouse { -pitch } else { pitch };
@@ -101,6 +105,7 @@ impl Freecam {
 		
 		self.rotation.y += yaw * self.mouse_sensivity;
 		self.rotation.y = wrap(self.rotation.y, 360.0);
+		true
 	}
 	
 	/// Updates the camera position by querying key-states and changing the velocity accordingly.
