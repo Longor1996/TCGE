@@ -30,8 +30,8 @@ impl SkyRenderer {
 			self.gl.Disable(gl::CULL_FACE);
 		}
 		
-		let camera_proj = camera.projection(interpolation, size);
-		let camera_view = camera.transform(interpolation, false);
+		let camera_proj = camera.get_gl_projection_matrix(size, interpolation);
+		let camera_view = camera.get_gl_view_matrix(false, interpolation);
 		let transform = camera_proj * camera_view;
 		
 		let position = camera.get_position(interpolation);

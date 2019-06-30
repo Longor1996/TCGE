@@ -1,8 +1,10 @@
 use glfw::{Key, Action};
 use cgmath::Matrix4;
 use cgmath::Vector3;
+use cgmath::Quaternion;
 use cgmath::Transform;
 use cgmath::InnerSpace;
+use crate::render::camera::Camera;
 
 pub struct Freecam {
 	pub active: bool,
@@ -57,13 +59,13 @@ impl Freecam {
 	
 	/// Returns the predicted rotation of the camera for a given interpolation factor.
 	/// Pass in `0` to get the current rotation as updated in the last tick.
-	pub fn get_rotation(&self, _interpolation: f32) -> cgmath::Vector2<f32> {
+	pub fn get_rotation_euler(&self, _interpolation: f32) -> cgmath::Vector2<f32> {
 		// TODO: movement prediction
 		self.rotation // + ((self.rotation_last - self.rotation) * interpolation)
 	}
 	
 	pub fn get_look_dir(&self, interpolation: f32) -> cgmath::Vector3<f32> {
-		let rotation = self.get_rotation(interpolation);
+		let rotation = self.get_rotation_euler(interpolation);
 		let pitch = cgmath::Deg(rotation.x);
 		let yaw = cgmath::Deg(rotation.y);
 		
@@ -84,57 +86,6 @@ impl Freecam {
 		let dir = (dir.x, dir.y, dir.z);
 		
 		blocks::BlockRaycast::new_from_src_dir_len(src, dir, len)
-	}
-	
-	/// Given a viewport-size and an interpolation factor, compute the Projection-Matrix for this camera.
-	pub fn projection(&self, _interpolation: f32, size: (i32, i32)) -> cgmath::Matrix4<f32> {
-		let (width, height) = size;
-		
-		// Apply velocity to the FoV for speedy-effect
-		let field_of_view = if self.fov_vel_effect {
-			self.field_of_view + self.velocity.magnitude() * 23.42
-		} else {
-			self.field_of_view
-		};
-		
-		let fov = cgmath::Rad::from(cgmath::Deg(field_of_view));
-		
-		// --- First compute the projection matrix...
-		let perspective = cgmath::PerspectiveFov {
-			fovy: fov,
-			aspect: width as f32 / height as f32,
-			near: self.min_depth,
-			far: self.max_depth,
-		};
-		
-		let perspective = Matrix4::from(perspective);
-		perspective
-	}
-	
-	/// Given an interpolation factor, compute the View-Matrix for this camera.
-	///
-	/// If `translation` is `false`, the camera position is ignored in the computation.
-	pub fn transform(&self, interpolation: f32, translation: bool) -> cgmath::Matrix4<f32> {
-		// --- Now compute the rotation matrix...
-		let rotation = self.get_rotation(interpolation);
-		let pitch = cgmath::Deg(rotation.x);
-		let yaw = cgmath::Deg(rotation.y);
-		
-		let mut camera = Matrix4::one();
-		camera = camera * Matrix4::from_angle_x(pitch);
-		camera = camera * Matrix4::from_angle_y(yaw);
-		
-		// This line 'synchronizes' the coordinate systems of OpenGL and basic
-		// trigonometry, such that sin(theta) means the same in both systems.
-		camera = camera * Matrix4::from_nonuniform_scale(1.0, 1.0, -1.0);
-		
-		if translation {
-			// And optionally compute and multiply with the translation matrix...
-			camera = camera * Matrix4::from_translation(-self.get_position(interpolation));
-		}
-		
-		// return view matrix
-		camera
 	}
 	
 	/// Updates the camera rotation by adding the given pitch/yaw euler-deltas.
@@ -220,6 +171,46 @@ impl Freecam {
 	}
 }
 
+// This impl-block has to deal with OpenGL shenanigans. Do NOT use for anything but rendering.
+impl crate::render::camera::Camera for Freecam {
+	fn get_gl_position(&self, interpolation: f32) -> Vector3<f32> {
+		self.get_position(interpolation)
+	}
+	
+	fn get_gl_rotation_matrix(&self, _interpolation: f32) -> Matrix4<f32> {
+		let pitch = cgmath::Deg(self.rotation.x);
+		let yaw   = cgmath::Deg(self.rotation.y);
+		let nil = cgmath::Deg(0.0);
+		
+		let yaw = cgmath::Quaternion::from(cgmath::Euler {
+			x: nil, y: yaw, z: nil,
+		});
+		
+		let pitch = cgmath::Quaternion::from(cgmath::Euler {
+			x: pitch, y: nil, z: nil,
+		});
+		
+		(pitch * yaw).into()
+	}
+	
+	fn get_gl_projection_matrix(&self, viewport: (i32, i32), _interpolation: f32) -> Matrix4<f32> {
+		let (width, height) = viewport;
+		
+		// Apply velocity to the FoV for speedy-effect
+		let field_of_view = if self.fov_vel_effect {
+			self.field_of_view + self.velocity.magnitude() * 23.42
+		} else {
+			self.field_of_view
+		};
+		
+		cgmath::PerspectiveFov {
+			fovy: cgmath::Deg(field_of_view).into(),
+			aspect: width as f32 / height as f32,
+			near: self.min_depth,
+			far: self.max_depth,
+		}.into()
+	}
+}
 
 impl std::fmt::Display for Freecam {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {

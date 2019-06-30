@@ -176,10 +176,11 @@ impl backbone::Handler for Playground {
 		}
 		
 		if let Some(render_event) = event.downcast::<RenderEvent>() {
+			use crate::render::*;
 			
 			if let backbone::Phase::Action = phase {
-				let projection = self.camera.projection(render_event.interpolation, (render_event.width, render_event.height));
-				let camera_mat = self.camera.transform(render_event.interpolation, true);
+				let projection = self.camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
+				let camera_mat = self.camera.get_gl_view_matrix(true, render_event.interpolation);
 				let transform = projection * camera_mat;
 				
 				self.sky.render(

@@ -26,6 +26,9 @@ pub use vertex_array::VertexArray;
 pub use vertex_array::VertexArrayAttrib;
 pub use vertex_array::VertexArrayBuilder;
 
+pub mod camera;
+pub use camera::Camera;
+
 // --- 'Special' submodules...
 pub mod text;
 pub mod geometry;
