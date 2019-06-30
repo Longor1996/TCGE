@@ -123,6 +123,30 @@ pub fn geometry_plane(gl: &gl::Gl, s: f32) -> VertexArray {
 	builder.build(gl)
 }
 
+#[allow(dead_code)]
+pub fn geometry_plane_subdivided(gl: &gl::Gl, s: f32, d: i32) -> VertexArray {
+	let mut builder = SimpleMeshBuilder::new();
+	
+	let sd = s / d as f32;
+	let sdh = sd / 2.0;
+	
+	for z in -d..d {
+		for x in -d..d {
+			let cz = z as f32 * sd;
+			let cx = x as f32 * sd;
+			
+			builder.push_quads(&[
+				cx-sdh, 0.0, cz+sdh,
+				cx+sdh, 0.0, cz+sdh,
+				cx+sdh, 0.0, cz-sdh,
+				cx-sdh, 0.0, cz-sdh
+			]);
+		}
+	}
+	
+	builder.build(gl)
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 #[allow(dead_code)]

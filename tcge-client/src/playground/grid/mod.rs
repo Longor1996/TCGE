@@ -18,7 +18,7 @@ pub struct GridRenderer {
 impl GridRenderer {
 	pub fn new(gl: &gl::Gl, res: &resources::Resources) -> Result<GridRenderer, GridMaterialError> {
 		let shader = GridMaterial::new(gl, res)?;
-		let mesh = geometry::geometry_plane(gl, 2048.0);
+		let mesh = geometry::geometry_plane_subdivided(gl, 2.0f32.powf(20.0), 64);
 		
 		// mesh.set_gl_label("PoT Debug Grid");
 		
@@ -48,6 +48,7 @@ impl GridRenderer {
 		});
 		
 		if position.y < 0.0 {
+			// Flip the grid upside-down, by turning it over left.
 			grid_transform = grid_transform * Matrix4::from_nonuniform_scale(-1.0, 1.0, 1.0);
 		}
 		
