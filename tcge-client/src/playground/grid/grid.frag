@@ -20,13 +20,19 @@ vec3 hsv2rgb(vec3 c) {
 const float grid_level_0 = 1.0 / 1.0;
 const float grid_level_1 = 1.0 / 16.0;
 const float grid_level_2 = 1.0 / 256.0;
+
+const float glc0 = 1.0 / 6;
+const float glc1 = 1.0 / 5;
+const float glc2 = 1.0 / 4;
+
 void main() {
-    float A = grid_xz(position.xz * grid_level_2);
-	float B = grid_xz(position.xz * grid_level_1);
-	float C = grid_xz(position.xz * grid_level_0);
-	float s = max(A,max(B,C));
-
-	vec3 hsv = vec3(1.0 - (C*0.5 + B*0.35 + A*0.15), 1.0, 1.0);
-
+	float glp2 = grid_xz(position.xz * grid_level_2);
+	float glp1 = grid_xz(position.xz * grid_level_1);
+	float glp0 = grid_xz(position.xz * grid_level_0);
+	
+	float s = max(glp2, max(glp1, glp0));
+	
+	vec3 hsv = vec3(1.0, 0.0, (glp0*glc0 + glp1*glc1 + glp2*glc2));
+	
 	Color = vec4(hsv2rgb(hsv), s);
 }
