@@ -1,10 +1,8 @@
 use glfw::{Key, Action};
 use cgmath::Matrix4;
 use cgmath::Vector3;
-use cgmath::Quaternion;
 use cgmath::Transform;
 use cgmath::InnerSpace;
-use crate::render::camera::Camera;
 
 pub struct Freecam {
 	pub active: bool,

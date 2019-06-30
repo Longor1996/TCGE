@@ -1,3 +1,5 @@
+use cgmath::Matrix4;
+use cgmath::Vector3;
 use common::resources::*;
 use crate::render::*;
 
@@ -24,23 +26,18 @@ impl SkyRenderer {
 		})
 	}
 	
-	pub fn render(&mut self, camera: &crate::playground::freecam::Freecam, size: (i32, i32), _now: f64, interpolation: f32, _delta: f32) {
+	pub fn render(&mut self, proj: &Matrix4<f32>, view: &Matrix4<f32>, pos: &Vector3<f32>) {
 		unsafe {
 			self.gl.Disable(gl::DEPTH_TEST);
 			self.gl.Disable(gl::CULL_FACE);
 		}
 		
-		let camera_proj = camera.get_gl_projection_matrix(size, interpolation);
-		let camera_view = camera.get_gl_view_matrix(false, interpolation);
-		let transform = camera_proj * camera_view;
-		
-		let position = camera.get_position(interpolation);
 		let color = [0.3, 0.6, 1.0, 1.0];
 		
 		self.material.shader.set_used();
-		self.material.shader.set_uniform_matrix4(self.material.uniform_matrix, &transform);
-		self.material.shader.set_uniform_vector3(self.material.uniform_camera, &position);
+		self.material.shader.set_uniform_matrix4(self.material.uniform_matrix, &(proj * view));
 		self.material.shader.set_uniform_vector4_raw(self.material.uniform_color, &color);
+		self.material.shader.set_uniform_vector3(self.material.uniform_camera, &pos);
 		
 		self.skybox.draw_arrays(&self.gl);
 		

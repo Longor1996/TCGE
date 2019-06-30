@@ -176,57 +176,16 @@ impl backbone::Handler for Playground {
 		}
 		
 		if let Some(render_event) = event.downcast::<RenderEvent>() {
-			use crate::render::*;
 			
 			if let backbone::Phase::Action = phase {
-				let projection = self.camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
-				let camera_mat = self.camera.get_gl_view_matrix(true, render_event.interpolation);
-				let transform = projection * camera_mat;
-				
-				self.sky.render(
-					&self.camera,
-					(render_event.width, render_event.height),
-					render_event.time,
-					render_event.interpolation,
-					render_event.delta
-				);
-				
-				self.grid.render(
-					&transform,
-					&self.camera.get_position(render_event.interpolation),
-				);
-				
-				unsafe {
-					render_event.gl.Enable(gl::DEPTH_TEST);
-				}
-				
-				self.chdraw.render(&self.chunks, &transform);
-				
-				if let Some(target) = &self.camera.target {
-					self.crosshair_3d.draw(&transform, target)
-				}
+				self.render_scene(render_event);
 			}
 			
 			if let backbone::Phase::Bubbling = phase {
 				let text_renderer = context
 					.component_get_mut::<render::text::TextRendererComp>().ok().unwrap();
 				
-				unsafe {
-					render_event.gl.Disable(gl::DEPTH_TEST);
-					render_event.gl.Enable(gl::BLEND);
-					render_event.gl.BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
-				}
-				
-				let projection = cgmath::Matrix4::from(cgmath::ortho(
-					0.0, render_event.width as f32,
-					render_event.height as f32, 0.0,
-					-1.0, 1.0
-				));
-				
-				self.crosshair_2d.draw(&projection, render_event.width, render_event.height, 4.0);
-				
-				text_renderer.transform = projection;
-				text_renderer.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0);
+				self.render_hud(render_event, text_renderer);
 			}
 			
 			return
@@ -234,4 +193,59 @@ impl backbone::Handler for Playground {
 		
 		debug!("Playground received {} in {}-phase.", event.event.get_type_name(), event.get_phase());
 	}
+}
+
+impl Playground {
+	
+	pub fn render_scene(&mut self, revt: &RenderEvent) {
+		use crate::render::*;
+		
+		let proj_matrix = self.camera.get_gl_projection_matrix((revt.width, revt.height), revt.interpolation);
+		let skyw_matrix = self.camera.get_gl_view_matrix(false, revt.interpolation);
+		let view_matrix = self.camera.get_gl_view_matrix(true, revt.interpolation);
+		let transform = proj_matrix * view_matrix;
+		
+		self.sky.render(
+			&proj_matrix,
+			&skyw_matrix,
+			&self.camera.get_position(revt.interpolation)
+		);
+		
+		self.grid.render(
+			&transform,
+			&self.camera.get_position(revt.interpolation),
+		);
+		
+		unsafe {
+			revt.gl.Enable(gl::DEPTH_TEST);
+		}
+		
+		self.chdraw.render(&self.chunks, &transform);
+		
+		if let Some(target) = &self.camera.target {
+			self.crosshair_3d.draw(&transform, target)
+		}
+	}
+	
+	pub fn render_hud(&mut self, revt: &RenderEvent, text: &mut render::text::TextRendererComp) {
+		
+		
+		unsafe {
+			revt.gl.Disable(gl::DEPTH_TEST);
+			revt.gl.Enable(gl::BLEND);
+			revt.gl.BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
+		}
+		
+		let projection = cgmath::Matrix4::from(cgmath::ortho(
+			0.0, revt.width as f32,
+			revt.height as f32, 0.0,
+			-1.0, 1.0
+		));
+		
+		self.crosshair_2d.draw(&projection, revt.width, revt.height, 4.0);
+		
+		text.transform = projection;
+		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0);
+	}
+	
 }
