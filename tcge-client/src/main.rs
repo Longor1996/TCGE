@@ -214,6 +214,14 @@ fn main_loop(
 			
 			gameloop::Frame(time, interpolation) => {
 				let window_size = glfw_context.window.get_framebuffer_size();
+				
+				if window_size.0 == 0 || window_size.1 == 0 {
+					// Swap window, then abort immediately.
+					use glfw::Context;
+					glfw_context.window.swap_buffers();
+					continue
+				}
+				
 				backbone.fire_event(&mut RenderEvent {
 					gl: glfw_context.gl.clone(),
 					time,
