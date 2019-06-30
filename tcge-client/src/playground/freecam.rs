@@ -41,7 +41,7 @@ impl Freecam {
 			max_depth: 4096.0,
 			field_of_view: 90.0,
 			fov_vel_effect: false,
-			mouse_sensivity: 0.25,
+			mouse_sensivity: 0.0625,
 			invert_mouse: false,
 			move_speed: 0.5,
 			crane: true
