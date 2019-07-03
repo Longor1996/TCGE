@@ -90,10 +90,6 @@ impl Freecam {
 	pub fn update_rotation(&mut self, yaw: f32, pitch: f32) -> bool {
 		self.rotation_last.clone_from(&self.rotation);
 		
-		if yaw == 0.0 || pitch == 0.0 {
-			return false;
-		}
-		
 		if !self.active {
 			return false;
 		}
