@@ -7,6 +7,8 @@ pub mod commandline;
 
 pub mod gameloop;
 
+pub mod profiler;
+
 pub mod resources;
 pub use resources::Resources;
 pub use resources::ResourceLocation;
