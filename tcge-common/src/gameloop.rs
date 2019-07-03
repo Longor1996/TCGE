@@ -121,11 +121,15 @@ impl State {
 						last_tps
 					)
 				} else {
-					LoopState::Pre
+					LoopState::Post
 				}
 			},
 			
 			LoopState::Timer(_, _) => {
+				LoopState::Post
+			},
+			
+			LoopState::Post => {
 				LoopState::Pre
 			},
 			
@@ -183,14 +187,17 @@ pub enum LoopState {
 	/// Timing information; returned every once a second.
 	Timer(f64, f64),
 	
-	// There is no state for the end of a frame.
+	// The end of a frame.
+	Post,
 	
 	/// Represents a request to stop the gameloop.
 	Stop,
 }
 
 // These are an important part of the public interface.
+pub use LoopState::Pre;
 pub use LoopState::Tick;
 pub use LoopState::Frame;
 pub use LoopState::Timer;
+pub use LoopState::Post;
 pub use LoopState::Stop;
