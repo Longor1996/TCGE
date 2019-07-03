@@ -21,7 +21,7 @@ impl StaticBlockBakery {
 	}
 	
 	fn bake_block(_res: &resources::Resources, block: &Block) -> Result<Box<BakedBlock>, ()> {
-		let mut sides: [smallvec::SmallVec<[[BakedBlockMeshVertex;4];6]>; 8] = [
+		let mut sides: [smallvec::SmallVec<[BakedBlockMeshFace;6]>; 8] = [
 			smallvec![],
 			smallvec![],
 			smallvec![],
@@ -42,54 +42,54 @@ impl StaticBlockBakery {
 		const S: f32 = 1.0;
 		let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
 		
-		sides[Face::Ypos.id() as usize].push([
+		sides[Face::Ypos.id() as usize].push((
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
 			(N, S, N, uv.umin, uv.vmax).into(),
-		]);
+		).into());
 		
-		sides[Face::Yneg.id() as usize].push([
+		sides[Face::Yneg.id() as usize].push((
 			(N, N, N, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
-		]);
+		).into());
 		
-		sides[Face::Zneg.id() as usize].push([
+		sides[Face::Zneg.id() as usize].push((
 			(N, S, N, uv.umin, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmax).into(),
 			(N, N, N, uv.umin, uv.vmax).into(),
-		]);
+		).into());
 		
-		sides[Face::Zpos.id() as usize].push([
+		sides[Face::Zpos.id() as usize].push((
 			(N, N, S, uv.umin, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmax).into(),
 			(N, S, S, uv.umin, uv.vmax).into(),
-		]);
+		).into());
 		
-		sides[Face::Xneg.id() as usize].push([
+		sides[Face::Xneg.id() as usize].push((
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(N, S, N, uv.umax, uv.vmin).into(),
 			(N, N, N, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
-		]);
+		).into());
 		
-		sides[Face::Xpos.id() as usize].push([
+		sides[Face::Xpos.id() as usize].push((
 			(S, N, S, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
 			(S, S, S, uv.umin, uv.vmax).into(),
-		]);
+		).into());
 		
 		Ok(Box::new(BasicBakedBlock {
 			sides
 		}))
 	}
 	
-	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&[BakedBlockMeshVertex;4])) {
+	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&BakedBlockMeshFace)) {
 		let baked_block = match self.baked_blocks.get(&block.id) {
 			Some(bb) => bb,
 			None => return
@@ -130,18 +130,18 @@ trait BakedBlock {
 		&self,
 		context: &BakeryContext,
 		block: &BlockState,
-		out: &mut FnMut(&[BakedBlockMeshVertex;4])
+		out: &mut FnMut(&BakedBlockMeshFace)
 	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct BasicBakedBlock {
-	sides: [smallvec::SmallVec<[[BakedBlockMeshVertex;4];6]>;8],
+	sides: [smallvec::SmallVec<[BakedBlockMeshFace;6]>;8],
 }
 
 impl BasicBakedBlock {
-	fn transfer(&self, context: &BakeryContext, face: Face, out: &mut FnMut(&[BakedBlockMeshVertex;4])) {
+	fn transfer(&self, context: &BakeryContext, face: Face, out: &mut FnMut(&BakedBlockMeshFace)) {
 		let face_id = face.id() as usize;
 		
 		if context.occluded[face_id] {
@@ -159,7 +159,7 @@ impl BakedBlock for BasicBakedBlock {
 		&self,
 		context: &BakeryContext,
 		_block: &BlockState,
-		out: &mut FnMut(&[BakedBlockMeshVertex;4])
+		out: &mut FnMut(&BakedBlockMeshFace)
 	) {
 		self.transfer(context, Face::Xneg, out);
 		self.transfer(context, Face::Yneg, out);
@@ -197,6 +197,26 @@ impl PartialEq for Face {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+pub struct BakedBlockMeshFace {
+	pub a: BakedBlockMeshVertex,
+	pub b: BakedBlockMeshVertex,
+	pub c: BakedBlockMeshVertex,
+	pub d: BakedBlockMeshVertex
+}
+
+impl From<(BakedBlockMeshVertex, BakedBlockMeshVertex, BakedBlockMeshVertex, BakedBlockMeshVertex)> for BakedBlockMeshFace {
+	fn from(vertices: (BakedBlockMeshVertex, BakedBlockMeshVertex, BakedBlockMeshVertex, BakedBlockMeshVertex)) -> Self {
+		Self {
+			a: vertices.0,
+			b: vertices.1,
+			c: vertices.2,
+			d: vertices.3,
+		}
+	}
+}
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]

@@ -194,10 +194,10 @@ pub fn mesh_chunk(
 				);
 				
 				static_bakery.render_block(&context, &block, &mut |face| {
-					vertices.push(face[0].into());
-					vertices.push(face[1].into());
-					vertices.push(face[2].into());
-					vertices.push(face[3].into());
+					vertices.push(face.a.into());
+					vertices.push(face.b.into());
+					vertices.push(face.c.into());
+					vertices.push(face.d.into());
 				});
 				
 				let cbx = cbx as f32;
