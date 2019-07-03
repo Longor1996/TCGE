@@ -3,6 +3,7 @@
 extern crate simplelog;
 extern crate rustc_hash;
 extern crate cgmath;
+extern crate half;
 
 extern crate glfw;
 extern crate tcge_common as common;

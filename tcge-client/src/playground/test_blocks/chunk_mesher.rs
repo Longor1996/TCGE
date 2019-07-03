@@ -1,5 +1,6 @@
 use super::*;
 use crate::render;
+use half::f16;
 
 /// The graphical state of a chunk.
 pub enum ChunkMeshState {
@@ -58,41 +59,34 @@ impl Drop for ChunkMesh {
 #[repr(C, packed)]
 struct ChunkMeshVertex {
 	// Geometry
-	pub x: f32,
-	pub y: f32,
-	pub z: f32,
+	pub x: half::f16,
+	pub y: half::f16,
+	pub z: half::f16,
 	
 	// Texture
-	pub u: f32,
-	pub v: f32,
+	pub u: half::f16,
+	pub v: half::f16,
 	
 	// AO
-	pub ao: f32,
+	pub ao: half::f16,
 }
 
 impl ChunkMeshVertex {
-	pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32, ao: f32) -> Self {
+	pub fn new(x: f16, y: f16, z: f16, u: f16, v: f16, ao: f16) -> Self {
 		Self {
 			x, y, z, u, v, ao
 		}
 	}
-}
-
-impl From<(f32, f32, f32, f32, f32)> for ChunkMeshVertex {
-	fn from(other: (f32, f32, f32, f32, f32)) -> Self {
-		Self::new(other.0, other.1, other.2, other.3, other.4, 0.0)
-	}
-}
-
-impl From<BakedBlockMeshVertex> for ChunkMeshVertex {
-	fn from(other: BakedBlockMeshVertex) -> Self {
-		Self::new(other.x, other.y, other.z, other.u, other.v, 0.0)
-	}
-}
-
-impl From<&BakedBlockMeshVertex> for ChunkMeshVertex {
-	fn from(other: &BakedBlockMeshVertex) -> Self {
-		Self::new(other.x, other.y, other.z, other.u, other.v, 0.0)
+	
+	pub fn new_from(other: &BakedBlockMeshVertex, ao: f32, offset: &(f32, f32, f32)) -> Self{
+		Self {
+			x: f16::from_f32(other.x + offset.0),
+			y: f16::from_f32(other.y + offset.1),
+			z: f16::from_f32(other.z + offset.2),
+			u: f16::from_f32(other.u),
+			v: f16::from_f32(other.v),
+			ao: f16::from_f32(ao)
+		}
 	}
 }
 
@@ -181,7 +175,7 @@ pub fn mesh_chunk(
 				let cbz = z + cz;
 				block_pos.set(cbx, cby, cbz);
 				
-				let cbp = vertices.len();
+				let offset = (cbx as f32, cby as f32, cbz as f32);
 				
 				context.set_occlusion(
 					get_block(&block_pos.right   (1)).unwrap_or(air) != air,
@@ -194,22 +188,12 @@ pub fn mesh_chunk(
 				);
 				
 				static_bakery.render_block(&context, &block, &mut |face| {
-					vertices.push(face.a.into());
-					vertices.push(face.b.into());
-					vertices.push(face.c.into());
-					vertices.push(face.d.into());
+					vertices.push(ChunkMeshVertex::new_from(&face.a, 0.0, &offset));
+					vertices.push(ChunkMeshVertex::new_from(&face.b, 0.0, &offset));
+					vertices.push(ChunkMeshVertex::new_from(&face.c, 0.0, &offset));
+					vertices.push(ChunkMeshVertex::new_from(&face.d, 0.0, &offset));
 				});
 				
-				let cbx = cbx as f32;
-				let cby = cby as f32;
-				let cbz = cbz as f32;
-				for vertex in &mut vertices[cbp..] {
-					vertex.ao = 0.0;
-					
-					vertex.x += cbx;
-					vertex.y += cby;
-					vertex.z += cbz;
-				}
 			}
 		}
 	}
@@ -242,34 +226,36 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 		// Bind the index buffer
 		gl.BindBuffer(qindex.target, qindex.id);
 		
+		let stride = (6 * std::mem::size_of::<f16>()) as gl::types::GLsizei;
+		
 		gl.EnableVertexAttribArray(0);
 		gl.VertexAttribPointer(
 			0, // attribute location
 			3, // sub-element count
-			gl::FLOAT, // sub-element type
+			gl::HALF_FLOAT, // sub-element type
 			gl::FALSE, // sub-element normalization
-			(6 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
-			(0 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+			stride,
+			(0 * std::mem::size_of::<f16>()) as *const gl::types::GLvoid
 		);
 		
 		gl.EnableVertexAttribArray(1);
 		gl.VertexAttribPointer(
 			1, // attribute location
 			2, // sub-element count
-			gl::FLOAT, // sub-element type
+			gl::HALF_FLOAT, // sub-element type
 			gl::FALSE, // sub-element normalization
-			(6 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
-			(3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+			stride,
+			(3 * std::mem::size_of::<f16>()) as *const gl::types::GLvoid
 		);
 		
 		gl.EnableVertexAttribArray(2);
 		gl.VertexAttribPointer(
 			2, // attribute location
 			1, // sub-element count
-			gl::FLOAT, // sub-element type
+			gl::HALF_FLOAT, // sub-element type
 			gl::FALSE, // sub-element normalization
-			(6 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
-			(5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+			stride,
+			(5 * std::mem::size_of::<f16>()) as *const gl::types::GLvoid
 		);
 		
 		gl.BindVertexArray(0);
