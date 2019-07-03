@@ -246,6 +246,35 @@ impl Playground {
 		
 		text.transform = projection;
 		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0);
+		
+		let profiler = common::profiler::profiler();
+		let proftree = profiler.get_passive();
+		let mut y_offset = 24.0;
+		let mut f_buffer = String::with_capacity(250);
+		Self::draw_profiler_node_text(text, proftree, 0, 0, &mut f_buffer, &mut y_offset);
+	}
+	
+	pub fn draw_profiler_node_text(text: &mut render::text::TextRendererComp, proftree: &common::profiler::ProfilerTree, node_id: usize, depth: usize, f_buffer: &mut String, y_offset: &mut f32) {
+		
+		let node = &proftree.nodes[node_id];
+		
+		if node.total_time < 1_000_000 {
+			return;
+		}
+		
+		f_buffer.clear();
+		use std::fmt::Write;
+		write!(f_buffer, "{}: {}", node.name, node.get_time_as_nanosec());
+		
+		text.draw_text(f_buffer, 16.0, 1.0 + (depth as f32 * 24.0), *y_offset);
+		*y_offset += 16.0;
+		
+		for child in node.childs.iter() {
+			if proftree.nodes[*child].calls > 0 {
+				Self::draw_profiler_node_text(text, proftree, *child, depth + 1, f_buffer, y_offset);
+			}
+		}
+		
 	}
 	
 }

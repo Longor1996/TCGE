@@ -156,14 +156,18 @@ fn main_loop(
 				},
 				
 				glfw::WindowEvent::Key(key, scancode, action, modifiers) => {
-					backbone.fire_event(&mut KeyEvent {
-						key, scancode, action, modifiers
+					common::profiler::scope("key", || {
+						backbone.fire_event(&mut KeyEvent {
+							key, scancode, action, modifiers
+						});
 					});
 				},
 				
 				glfw::WindowEvent::MouseButton(button, action, modifiers) => {
-					backbone.fire_event(&mut MouseEvent {
-						button, action, modifiers
+					common::profiler::scope("mouse", || {
+						backbone.fire_event(&mut MouseEvent {
+							button, action, modifiers
+						});
 					});
 				},
 				
@@ -173,8 +177,10 @@ fn main_loop(
 					let dy = y - cursor.1;
 					
 					// fire event
-					backbone.fire_event(&mut MouseMoveEvent {
-						x, y, dx, dy
+					common::profiler::scope("mouse-move", || {
+						backbone.fire_event(&mut MouseMoveEvent {
+							x, y, dx, dy
+						});
 					});
 					
 					// update
@@ -187,8 +193,10 @@ fn main_loop(
 						glfw_context.gl.Viewport(0, 0, width, height);
 					}
 					
-					backbone.fire_event(&mut ResizeEvent {
-						width, height
+					common::profiler::scope("resize", || {
+						backbone.fire_event(&mut ResizeEvent {
+							width, height
+						});
 					});
 				},
 				
@@ -206,9 +214,15 @@ fn main_loop(
 		}
 		
 		match loop_state {
+			gameloop::Pre => {
+				common::profiler::start_frame();
+			},
+			
 			gameloop::Tick(tps, time, delta) => {
-				backbone.fire_event(&mut TickEvent {
-					tps, time, delta
+				common::profiler::scope("tick", || {
+					backbone.fire_event(&mut TickEvent {
+						tps, time, delta
+					});
 				});
 			},
 			
@@ -222,13 +236,15 @@ fn main_loop(
 					continue
 				}
 				
-				backbone.fire_event(&mut RenderEvent {
-					gl: glfw_context.gl.clone(),
-					time,
-					width:  window_size.0,
-					height: window_size.1,
-					interpolation: interpolation as f32,
-					delta: 1.0 / gameloop.get_ticks_per_second() as f32,
+				common::profiler::scope("render", || {
+					backbone.fire_event(&mut RenderEvent {
+						gl: glfw_context.gl.clone(),
+						time,
+						width:  window_size.0,
+						height: window_size.1,
+						interpolation: interpolation as f32,
+						delta: 1.0 / gameloop.get_ticks_per_second() as f32,
+					});
 				});
 			},
 			
@@ -243,6 +259,10 @@ fn main_loop(
 					backbone.location_get_str()
 				).unwrap();
 				glfw_context.window.set_title(glfw_context.title_dyn.as_str());
+			},
+			
+			gameloop::Post => {
+				common::profiler::end_frame();
 			},
 			
 			gameloop::Stop => {
