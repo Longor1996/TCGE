@@ -119,7 +119,9 @@ pub fn mesh_chunk(
 	chunk: &Chunk,
 	neighbours: &[Option<&Chunk>; 27]
 ) -> ChunkMeshState {
-	let start = current_time_nanos();
+	let start = std::time::Instant::now();
+	
+	let premesh = std::time::Instant::now();
 	
 	// --- Reset state of the mesher, clearing the buffers.
 	mesher.reset();
@@ -158,9 +160,17 @@ pub fn mesh_chunk(
 	let mut block_pos = BlockCoord::new(0, 0, 0);
 	let mut context = BakeryContext::new();
 	
+	let premesh = std::time::Instant::now().duration_since(premesh).as_nanos();
+	let mut starts: (std::time::Instant, std::time::Instant) = (start, start);
+	let mut length: (u128, u128) = (0, 0);
+	
+	let mut non_empty = 0;
+	
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
 			for x in 0..CHUNK_SIZE {
+				starts.0 = std::time::Instant::now();
+				
 				let x = x as BlockDim;
 				let y = y as BlockDim;
 				let z = z as BlockDim;
@@ -169,6 +179,8 @@ pub fn mesh_chunk(
 				if block == air {
 					continue;
 				}
+				
+				non_empty += 1;
 				
 				let cbx = x + cx;
 				let cby = y + cy;
@@ -187,21 +199,25 @@ pub fn mesh_chunk(
 					true
 				);
 				
+				length.0 += std::time::Instant::now().duration_since(starts.0).as_nanos();
+				
+				starts.1 = std::time::Instant::now();
 				static_bakery.render_block(&context, &block, &mut |face| {
 					vertices.push(ChunkMeshVertex::new_from(&face.a, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.b, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.c, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.d, 0.0, &offset));
 				});
-				
+				length.1 += std::time::Instant::now().duration_since(starts.1).as_nanos();
 			}
 		}
 	}
 	
-	let end = current_time_nanos();
-	let duration = end - start;
+	let end = std::time::Instant::now();
+	
+	let duration = end.duration_since(start).as_nanos();
 	if duration > 100 {
-		debug!("Took {}ns to mesh chunk {}.", duration, chunk.pos);
+		debug!("Took {}ns to mesh chunk {}; subprocess: {} pre, {} occ, {} cpy; non-empty: {}", duration, chunk.pos, premesh, length.0, length.1, non_empty);
 	}
 	
 	return upload(gl, chunk, &vertices, &qindex);
