@@ -21,7 +21,7 @@ impl StaticBlockBakery {
 	}
 	
 	fn bake_block(_res: &resources::Resources, block: &Block) -> Result<Box<BakedBlock>, ()> {
-		let mut sides: [smallvec::SmallVec<[BakedBlockMeshVertex;6]>; 8] = [
+		let mut sides: [smallvec::SmallVec<[[BakedBlockMeshVertex;4];6]>; 8] = [
 			smallvec![],
 			smallvec![],
 			smallvec![],
@@ -42,42 +42,42 @@ impl StaticBlockBakery {
 		const S: f32 = 1.0;
 		let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
 		
-		sides[Face::Ypos.id() as usize].extend_from_slice(&[
+		sides[Face::Ypos.id() as usize].push([
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
 			(N, S, N, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides[Face::Yneg.id() as usize].extend_from_slice(&[
+		sides[Face::Yneg.id() as usize].push([
 			(N, N, N, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides[Face::Zneg.id() as usize].extend_from_slice(&[
+		sides[Face::Zneg.id() as usize].push([
 			(N, S, N, uv.umin, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmax).into(),
 			(N, N, N, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides[Face::Zpos.id() as usize].extend_from_slice(&[
+		sides[Face::Zpos.id() as usize].push([
 			(N, N, S, uv.umin, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmax).into(),
 			(N, S, S, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides[Face::Xneg.id() as usize].extend_from_slice(&[
+		sides[Face::Xneg.id() as usize].push([
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(N, S, N, uv.umax, uv.vmin).into(),
 			(N, N, N, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
 		]);
 		
-		sides[Face::Xpos.id() as usize].extend_from_slice(&[
+		sides[Face::Xpos.id() as usize].push([
 			(S, N, S, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
@@ -89,7 +89,7 @@ impl StaticBlockBakery {
 		}))
 	}
 	
-	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut Vec<BakedBlockMeshVertex>) {
+	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&[BakedBlockMeshVertex;4])) {
 		let baked_block = match self.baked_blocks.get(&block.id) {
 			Some(bb) => bb,
 			None => return
@@ -130,25 +130,27 @@ trait BakedBlock {
 		&self,
 		context: &BakeryContext,
 		block: &BlockState,
-		out: &mut Vec<BakedBlockMeshVertex>
+		out: &mut FnMut(&[BakedBlockMeshVertex;4])
 	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct BasicBakedBlock {
-	sides: [smallvec::SmallVec<[BakedBlockMeshVertex;6]>;8],
+	sides: [smallvec::SmallVec<[[BakedBlockMeshVertex;4];6]>;8],
 }
 
 impl BasicBakedBlock {
-	fn transfer(&self, context: &BakeryContext, face: Face, out: &mut Vec<BakedBlockMeshVertex>) {
+	fn transfer(&self, context: &BakeryContext, face: Face, out: &mut FnMut(&[BakedBlockMeshVertex;4])) {
 		let face_id = face.id() as usize;
 		
 		if context.occluded[face_id] {
 			return;
 		}
 		
-		out.extend_from_slice(self.sides[face_id].as_slice())
+		for vertex in self.sides[face_id].iter() {
+			out(&vertex);
+		}
 	}
 }
 
@@ -157,7 +159,7 @@ impl BakedBlock for BasicBakedBlock {
 		&self,
 		context: &BakeryContext,
 		_block: &BlockState,
-		out: &mut Vec<BakedBlockMeshVertex>
+		out: &mut FnMut(&[BakedBlockMeshVertex;4])
 	) {
 		self.transfer(context, Face::Xneg, out);
 		self.transfer(context, Face::Yneg, out);

@@ -65,25 +65,34 @@ struct ChunkMeshVertex {
 	// Texture
 	pub u: f32,
 	pub v: f32,
+	
+	// AO
+	pub ao: f32,
 }
 
 impl ChunkMeshVertex {
-	pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32) -> Self {
+	pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32, ao: f32) -> Self {
 		Self {
-			x, y, z, u, v
+			x, y, z, u, v, ao
 		}
 	}
 }
 
 impl From<(f32, f32, f32, f32, f32)> for ChunkMeshVertex {
 	fn from(other: (f32, f32, f32, f32, f32)) -> Self {
-		Self::new(other.0, other.1, other.2, other.3, other.4)
+		Self::new(other.0, other.1, other.2, other.3, other.4, 0.0)
 	}
 }
 
 impl From<BakedBlockMeshVertex> for ChunkMeshVertex {
 	fn from(other: BakedBlockMeshVertex) -> Self {
-		Self::new(other.x, other.y, other.z, other.u, other.v)
+		Self::new(other.x, other.y, other.z, other.u, other.v, 0.0)
+	}
+}
+
+impl From<&BakedBlockMeshVertex> for ChunkMeshVertex {
+	fn from(other: &BakedBlockMeshVertex) -> Self {
+		Self::new(other.x, other.y, other.z, other.u, other.v, 0.0)
 	}
 }
 
@@ -121,7 +130,6 @@ pub fn mesh_chunk(
 	// --- Reset state of the mesher, clearing the buffers.
 	mesher.reset();
 	let vertices = &mut mesher.vertices;
-	let mut quad_buf = &mut mesher.quad_buf;
 	
 	let air = blocks
 		.get_block_by_name_unchecked("air")
@@ -185,23 +193,19 @@ pub fn mesh_chunk(
 					true
 				);
 				
-				quad_buf.clear();
-				static_bakery.render_block(&context, &block, &mut quad_buf);
-				
-				for quad in quad_buf.chunks_exact(4) {
-					vertices.reserve(4);
-					vertices.push(quad[0].into()); // a
-					vertices.push(quad[1].into()); // b
-					// vertices.push(quad[3].into()); // d
-					// vertices.push(quad[1].into()); // b
-					vertices.push(quad[2].into()); // c
-					vertices.push(quad[3].into()); // d
-				}
+				static_bakery.render_block(&context, &block, &mut |face| {
+					vertices.push(face[0].into());
+					vertices.push(face[1].into());
+					vertices.push(face[2].into());
+					vertices.push(face[3].into());
+				});
 				
 				let cbx = cbx as f32;
 				let cby = cby as f32;
 				let cbz = cbz as f32;
 				for vertex in &mut vertices[cbp..] {
+					vertex.ao = 0.0;
+					
 					vertex.x += cbx;
 					vertex.y += cby;
 					vertex.z += cbz;
@@ -244,7 +248,7 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 			3, // sub-element count
 			gl::FLOAT, // sub-element type
 			gl::FALSE, // sub-element normalization
-			(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+			(6 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
 			(0 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 		);
 		
@@ -254,8 +258,18 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 			2, // sub-element count
 			gl::FLOAT, // sub-element type
 			gl::FALSE, // sub-element normalization
-			(5 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+			(6 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
 			(3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+		);
+		
+		gl.EnableVertexAttribArray(2);
+		gl.VertexAttribPointer(
+			2, // attribute location
+			1, // sub-element count
+			gl::FLOAT, // sub-element type
+			gl::FALSE, // sub-element normalization
+			(6 * std::mem::size_of::<f32>()) as gl::types::GLsizei,
+			(5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
 		);
 		
 		gl.BindVertexArray(0);
@@ -279,4 +293,15 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 		vbo,
 		vertex_count as i32
 	))
+}
+
+fn lerp_trilinear(x: f32, y: f32, z: f32, corners: &[f32; 8]) -> f32 {
+	(1.0 - x) * (1.0 - y) * (1.0 - z) * corners[0] +
+		x * (1.0 - y) * (1.0 - z) * corners[1] +
+		(1.0 - x) * y * (1.0 - z) * corners[2] +
+		x * y * (1.0 - z) * corners[3] +
+		(1.0 - x) * (1.0 - y) * z * corners[4] +
+		x * (1.0 - y) * z * corners[5] +
+		(1.0 - x) * y * z * corners[6] +
+		x * y * z * corners[7]
 }
