@@ -1,6 +1,8 @@
 #[macro_use] extern crate log;
 extern crate walkdir;
 
+pub mod doublebuffer;
+
 pub mod commandline;
 
 pub mod gameloop;
