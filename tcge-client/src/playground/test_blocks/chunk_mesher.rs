@@ -119,9 +119,9 @@ pub fn mesh_chunk(
 	chunk: &Chunk,
 	neighbours: &[Option<&Chunk>; 27]
 ) -> ChunkMeshState {
-	let start = std::time::Instant::now();
+	let start = common::current_time_nanos_precise();
 	
-	let premesh = std::time::Instant::now();
+	let premesh = start;
 	
 	// --- Reset state of the mesher, clearing the buffers.
 	mesher.reset();
@@ -160,16 +160,16 @@ pub fn mesh_chunk(
 	let mut block_pos = BlockCoord::new(0, 0, 0);
 	let mut context = BakeryContext::new();
 	
-	let premesh = std::time::Instant::now().duration_since(premesh).as_nanos();
-	let mut starts: (std::time::Instant, std::time::Instant) = (start, start);
-	let mut length: (u128, u128) = (0, 0);
+	let premesh = common::current_time_nanos_precise() - premesh;
+	let mut starts = (start, start);
+	let mut length = (0, 0);
 	
 	let mut non_empty = 0;
 	
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
 			for x in 0..CHUNK_SIZE {
-				starts.0 = std::time::Instant::now();
+				starts.0 = common::current_time_nanos_precise();
 				
 				let x = x as BlockDim;
 				let y = y as BlockDim;
@@ -177,6 +177,7 @@ pub fn mesh_chunk(
 				let block = unsafe {chunk.get_block_unchecked(x, y, z)};
 				
 				if block == air {
+					length.0 += common::current_time_nanos_precise() - starts.0;
 					continue;
 				}
 				
@@ -186,8 +187,6 @@ pub fn mesh_chunk(
 				let cby = y + cy;
 				let cbz = z + cz;
 				block_pos.set(cbx, cby, cbz);
-				
-				let offset = (cbx as f32, cby as f32, cbz as f32);
 				
 				context.set_occlusion(
 					get_block(&block_pos.right   (1)).unwrap_or(air) != air,
@@ -199,25 +198,32 @@ pub fn mesh_chunk(
 					true
 				);
 				
-				length.0 += std::time::Instant::now().duration_since(starts.0).as_nanos();
+				length.0 += common::current_time_nanos_precise() - starts.0;
 				
-				starts.1 = std::time::Instant::now();
+				starts.1 = common::current_time_nanos_precise();
+				let offset = (cbx as f32, cby as f32, cbz as f32);
+				
 				static_bakery.render_block(&context, &block, &mut |face| {
 					vertices.push(ChunkMeshVertex::new_from(&face.a, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.b, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.c, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.d, 0.0, &offset));
 				});
-				length.1 += std::time::Instant::now().duration_since(starts.1).as_nanos();
+				length.1 += common::current_time_nanos_precise() - starts.1;
 			}
 		}
 	}
 	
-	let end = std::time::Instant::now();
-	
-	let duration = end.duration_since(start).as_nanos();
-	if duration > 100 {
-		debug!("Took {}ns to mesh chunk {}; subprocess: {} pre, {} occ, {} cpy; non-empty: {}", duration, chunk.pos, premesh, length.0, length.1, non_empty);
+	let duration = (common::current_time_nanos_precise() - start) as f64;
+	if duration > 100.0 {
+		trace!("Took {:.0}ns ({:.0}% pre, {:.0}% occ, {:.0}% cpy) to mesh chunk {} ({} solids)",
+			duration,
+			premesh as f64 / duration * 100.0,
+			length.0 as f64 / duration * 100.0,
+			length.1 as f64 / duration * 100.0,
+			chunk.pos,
+			non_empty
+		);
 	}
 	
 	return upload(gl, chunk, &vertices, &qindex);
