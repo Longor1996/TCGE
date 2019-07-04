@@ -199,7 +199,6 @@ impl PartialEq for Face {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
 pub struct BakedBlockMeshFace {
 	pub a: BakedBlockMeshVertex,
 	pub b: BakedBlockMeshVertex,
@@ -219,7 +218,6 @@ impl From<(BakedBlockMeshVertex, BakedBlockMeshVertex, BakedBlockMeshVertex, Bak
 }
 
 #[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
 pub struct BakedBlockMeshVertex {
 	// Geometry
 	pub x: f32,
