@@ -1,5 +1,7 @@
 use super::*;
 
+pub type ChunkWithEdge = Box<[[[BlockState; CHUNK_SIZE + 2]; CHUNK_SIZE + 2]; CHUNK_SIZE + 2]>;
+
 pub struct Chunk {
 	pub pos: ChunkCoord,
 	pub blocks: BlocksRef,
@@ -9,13 +11,9 @@ pub struct Chunk {
 
 impl Chunk {
 	
-	pub fn new(blocks: &BlocksRef, pos: ChunkCoord) -> Self {
+	pub fn new(blocks: &BlocksRef, pos: ChunkCoord, state: BlockState) -> Self {
 		let blocks = blocks.clone();
-		let air = blocks
-			.get_block_by_name_unchecked("air")
-			.get_default_state();
-		
-		let data = Box::new([air; CHUNK_VOLUME]);
+		let data = Box::new([state; CHUNK_VOLUME]);
 		
 		Self {
 			pos,
@@ -25,6 +23,7 @@ impl Chunk {
 		}
 	}
 	
+	#[inline]
 	pub fn clamp_chunk_coord(value: BlockDim) -> Option<BlockDim> {
 		if value < 0 {
 			return None
@@ -36,26 +35,32 @@ impl Chunk {
 		
 		Some(value as BlockDim)
 	}
+	
+	#[inline]
+	pub fn coord_to_index(x: BlockDim, y: BlockDim, z: BlockDim) -> usize {
+		// 'God Tier' indexing function from hell.
+		((((y << CHUNK_SIZE_BITS) | z) << CHUNK_SIZE_BITS) | x) as usize
+	}
 }
 
 impl Chunk {
+	#[inline]
 	pub fn get_block(&self, x: BlockDim, y: BlockDim, z: BlockDim) -> Option<BlockState> {
 		let x = Chunk::clamp_chunk_coord(x)?;
 		let y = Chunk::clamp_chunk_coord(y)?;
 		let z = Chunk::clamp_chunk_coord(z)?;
-		
-		let index = y*CHUNK_SLICE_I + z*CHUNK_SIZE_I + x;
 		unsafe {
-			Some(*self.data.get_unchecked(index as usize))
+			Some(*self.data.get_unchecked(Self::coord_to_index(x, y, z)))
 		}
 	}
 	
+	/// This function returns the block at the given local coordinate, without doing *any* boundary checks.
+	///
+	/// If the passed-in coordinates are not in the range 0..CHUNK_SIZE, expect invalid data and segmentation faults.
+	#[inline]
 	pub unsafe fn get_block_unchecked(&self, x: BlockDim, y: BlockDim, z: BlockDim) -> BlockState {
-		let x = (x) & CHUNK_SIZE_MASK_I;
-		let y = (y) & CHUNK_SIZE_MASK_I;
-		let z = (z) & CHUNK_SIZE_MASK_I;
-		let index = y*CHUNK_SLICE_I + z*CHUNK_SIZE_I + x;
-		*self.data.get_unchecked(index as usize)
+		// This function performs ZERO boundary checks!!!
+		*self.data.get_unchecked(Self::coord_to_index(x, y, z))
 	}
 	
 	pub fn set_block(&mut self, x: BlockDim, y: BlockDim, z: BlockDim, state: BlockState) -> Option<()> {

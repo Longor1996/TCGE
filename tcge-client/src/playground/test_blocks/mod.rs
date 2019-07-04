@@ -27,6 +27,7 @@ use rustc_hash::FxHashMap;
 
 pub mod chunk;
 pub use chunk::Chunk;
+pub use chunk::ChunkWithEdge;
 
 pub mod chunk_storage;
 pub use chunk_storage::*;

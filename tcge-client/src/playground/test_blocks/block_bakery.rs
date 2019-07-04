@@ -89,13 +89,12 @@ impl StaticBlockBakery {
 		}))
 	}
 	
+	#[inline]
 	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&BakedBlockMeshFace)) {
-		let baked_block = match self.baked_blocks.get(&block.id) {
-			Some(bb) => bb,
+		match self.baked_blocks.get(&block.id) {
+			Some(bb) => bb.build(context, block, out),
 			None => return
 		};
-		
-		baked_block.build(context, block, out)
 	}
 }
 
@@ -112,6 +111,7 @@ impl BakeryContext {
 		}
 	}
 	
+	#[inline]
 	pub fn set_occlusion(&mut self, x_pos: bool, y_pos: bool, z_pos: bool, x_neg: bool, y_neg: bool, z_neg: bool, omni: bool) {
 		self.occluded[1] = x_pos;
 		self.occluded[2] = x_neg;

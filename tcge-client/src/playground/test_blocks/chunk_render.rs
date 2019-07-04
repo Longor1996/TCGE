@@ -80,7 +80,9 @@ impl ChunkRenderManager {
 				
 				if chunk.last_update > *time && max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
-					let neighbours = chunks.get_chunks_around(cpos);
+					
+					let block_data = chunks.get_chunk_with_edges(cpos).unwrap();
+					
 					*time = chunk.last_update;
 					
 					let ptree = common::profiler::profiler().get_current();
@@ -93,7 +95,7 @@ impl ChunkRenderManager {
 						self.blocks.clone(),
 						&self.bakery,
 						&chunk,
-						&neighbours
+						&block_data
 					);
 					ptree.leave();
 					
@@ -106,12 +108,12 @@ impl ChunkRenderManager {
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
-					let neighbours = chunks.get_chunks_around(cpos);
 					
+					let block_data = chunks.get_chunk_with_edges(cpos).unwrap();
 					
 					let ptree = common::profiler::profiler().get_current();
 					ptree.enter_noguard("mesh-chunk");
-					let mesh = mesh_chunk(&self.gl, &self.qindex, &mut self.mesher, self.blocks.clone(), &self.bakery, &chunk, &neighbours);
+					let mesh = mesh_chunk(&self.gl, &self.qindex, &mut self.mesher, self.blocks.clone(), &self.bakery, &chunk, &block_data);
 					ptree.leave();
 					
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));

@@ -117,7 +117,7 @@ pub fn mesh_chunk(
 	blocks: BlocksRef,
 	static_bakery: &StaticBlockBakery,
 	chunk: &Chunk,
-	neighbours: &[Option<&Chunk>; 27]
+	block_data: &ChunkWithEdge
 ) -> ChunkMeshState {
 	let start = common::current_time_nanos_precise();
 	
@@ -131,33 +131,23 @@ pub fn mesh_chunk(
 		.get_block_by_name_unchecked("air")
 		.get_default_state();
 	
-	let (cx, cy, cz) = chunk.pos.to_block_coord();
+	let (cx, cy, cz) = chunk.pos.to_block_coord_tuple();
 	
 	// --- Local function for fetching blocks quickly...
 	let get_block = |
-		offset: &BlockCoord,
+		local_x: BlockDim,
+		local_y: BlockDim,
+		local_z: BlockDim,
 	| {
-		if chunk.pos.contains_block(offset) {
-			return Some(unsafe {
-				chunk.get_block_unchecked(offset.x, offset.y, offset.z)
-			})
-		}
-		
-		let o_cpos = ChunkCoord::new_from_block(offset);
-		for o_chunk in neighbours.iter() {
-			if let Some(o_chunk) = o_chunk {
-				if o_chunk.pos == o_cpos {
-					return Some(unsafe {
-						o_chunk.get_block_unchecked(offset.x, offset.y, offset.z)
-					})
-				}
-			}
-		}
-		
-		None
+		// Local minima is 0, maxima is +17: The standard range of 0..CHUNK_SIZE+2
+		(unsafe {
+			block_data
+				.get_unchecked((local_y+1) as usize)
+				.get_unchecked((local_z+1) as usize)
+				.get_unchecked((local_x+1) as usize).clone()
+		})
 	};
 	
-	let mut block_pos = BlockCoord::new(0, 0, 0);
 	let mut context = BakeryContext::new();
 	
 	let premesh = common::current_time_nanos_precise() - premesh;
@@ -169,38 +159,37 @@ pub fn mesh_chunk(
 	for y in 0..CHUNK_SIZE {
 		for z in 0..CHUNK_SIZE {
 			for x in 0..CHUNK_SIZE {
-				starts.0 = common::current_time_nanos_precise();
+				// starts.0 = common::current_time_nanos_precise();
 				
 				let x = x as BlockDim;
 				let y = y as BlockDim;
 				let z = z as BlockDim;
-				let block = unsafe {chunk.get_block_unchecked(x, y, z)};
+				
+				let block = get_block(x, y, z);
 				
 				if block == air {
-					length.0 += common::current_time_nanos_precise() - starts.0;
+					// length.0 += common::current_time_nanos_precise() - starts.0;
 					continue;
 				}
 				
 				non_empty += 1;
 				
-				let cbx = x + cx;
-				let cby = y + cy;
-				let cbz = z + cz;
-				block_pos.set(cbx, cby, cbz);
-				
 				context.set_occlusion(
-					get_block(&block_pos.right   (1)).unwrap_or(air) != air,
-					get_block(&block_pos.up      (1)).unwrap_or(air) != air,
-					get_block(&block_pos.backward(1)).unwrap_or(air) != air,
-					get_block(&block_pos.left    (1)).unwrap_or(air) != air,
-					get_block(&block_pos.down    (1)).unwrap_or(air) != air,
-					get_block(&block_pos.forward (1)).unwrap_or(air) != air,
+					get_block(x+1, y, z) != air,
+					get_block(x, y+1, z) != air,
+					get_block(x, y, z+1) != air,
+					get_block(x-1, y, z) != air,
+					get_block(x, y-1, z) != air,
+					get_block(x, y, z-1) != air,
 					true
 				);
 				
-				length.0 += common::current_time_nanos_precise() - starts.0;
+				// length.0 += common::current_time_nanos_precise() - starts.0;
 				
-				starts.1 = common::current_time_nanos_precise();
+				// starts.1 = common::current_time_nanos_precise();
+				let cbx = x + cx;
+				let cby = y + cy;
+				let cbz = z + cz;
 				let offset = (cbx as f32, cby as f32, cbz as f32);
 				
 				static_bakery.render_block(&context, &block, &mut |face| {
@@ -209,7 +198,7 @@ pub fn mesh_chunk(
 					vertices.push(ChunkMeshVertex::new_from(&face.c, 0.0, &offset));
 					vertices.push(ChunkMeshVertex::new_from(&face.d, 0.0, &offset));
 				});
-				length.1 += common::current_time_nanos_precise() - starts.1;
+				// length.1 += common::current_time_nanos_precise() - starts.1;
 			}
 		}
 	}

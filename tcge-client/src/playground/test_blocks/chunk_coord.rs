@@ -50,14 +50,18 @@ impl ChunkCoord {
 	}
 	
 	pub fn contains_block(&self, block: &BlockCoord) -> bool {
-		let (cx, cy, cz) = self.to_block_coord();
+		let (cx, cy, cz) = self.to_block_coord_tuple();
 		block.x >= cx && block.x < cx+CHUNK_SIZE_I
 			&& block.y >= cy && block.y < cy+CHUNK_SIZE_I
 			&& block.z >= cz && block.z < cz+CHUNK_SIZE_I
 	}
 	
-	pub fn to_block_coord(&self) -> (ChunkDim, ChunkDim, ChunkDim) {
+	pub fn to_block_coord_tuple(&self) -> (ChunkDim, ChunkDim, ChunkDim) {
 		(self.x * CHUNK_SIZE_I, self.y * CHUNK_SIZE_I, self.z * CHUNK_SIZE_I)
+	}
+	
+	pub fn to_block_coord(&self) -> BlockCoord {
+		BlockCoord::new(self.x * CHUNK_SIZE_I, self.y * CHUNK_SIZE_I, self.z * CHUNK_SIZE_I)
 	}
 }
 
