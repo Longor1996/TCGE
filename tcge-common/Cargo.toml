@@ -7,4 +7,5 @@ edition = "2018"
 [dependencies]
 log = "~0.4.6"
 zip = {version = "0.5.2", default-features = false, features = ["deflate"]}
+time = {version = "0.1.42", default-features = false}
 walkdir = "2.2.8"

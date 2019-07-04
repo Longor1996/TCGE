@@ -1,5 +1,6 @@
 #[macro_use] extern crate log;
 extern crate walkdir;
+extern crate time;
 
 pub mod doublebuffer;
 
@@ -19,4 +20,8 @@ pub fn current_time_nanos() -> u128 {
 	let since_the_epoch = start.duration_since(UNIX_EPOCH)
 		.expect("Time went backwards");
 	return since_the_epoch.as_nanos();
+}
+
+pub fn current_time_nanos_precise() -> u64 {
+	time::precise_time_ns()
 }

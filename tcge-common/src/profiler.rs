@@ -1,6 +1,5 @@
 use super::doublebuffer::DblBuf;
 use std::cell::{UnsafeCell};
-use std::time::Instant;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -170,8 +169,8 @@ pub struct ProfilerNode {
 	
 	// Stats
 	pub calls: u32,
-	pub start_time: std::time::Instant,
-	pub total_time: u128,
+	pub start_time: u64,
+	pub total_time: u64,
 }
 
 impl ProfilerNode {
@@ -181,26 +180,24 @@ impl ProfilerNode {
 			parent,
 			childs: vec![],
 			calls: 0,
-			start_time: Instant::now(),
+			start_time: crate::current_time_nanos_precise(),
 			total_time: 0,
 		}
 	}
 	
 	pub fn reset(&mut self) {
 		self.calls = 0;
-		self.start_time = Instant::now();
+		self.start_time = crate::current_time_nanos_precise();
 		self.total_time = 0;
 	}
 	
 	pub fn enter(&mut self) {
 		self.calls += 1;
-		self.start_time = Instant::now();
+		self.start_time = crate::current_time_nanos_precise();
 	}
 	
 	pub fn leave(&mut self) {
-		self.total_time += Instant::now()
-			.duration_since(self.start_time)
-			.as_nanos();
+		self.total_time += crate::current_time_nanos_precise() - self.start_time;
 	}
 	
 	pub fn get_time_as_nanosec(&self) -> Nanosec {
@@ -227,7 +224,7 @@ impl <'a> Drop for ProfilerGuard<'a> {
 }
 
 pub struct Nanosec {
-	inner: u128
+	inner: u64
 }
 
 impl std::fmt::Display for Nanosec {
