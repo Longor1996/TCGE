@@ -10,8 +10,8 @@ use blocks::Block;
 use blocks::BlockId;
 use blocks::BlockState;
 
-pub const CHUNK_SIZE: usize = 16;
-pub const CHUNK_SIZE_BITS: isize = 4;
+pub const CHUNK_SIZE_BITS: isize = 5;
+pub const CHUNK_SIZE: usize = 1 << CHUNK_SIZE_BITS;
 pub const CHUNK_SIZE_MASK: usize = CHUNK_SIZE-1;
 pub const CHUNK_SLICE: usize = CHUNK_SIZE * CHUNK_SIZE;
 pub const CHUNK_VOLUME: usize = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
