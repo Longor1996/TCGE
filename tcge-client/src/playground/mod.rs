@@ -1,6 +1,6 @@
 //! Module for prototyping things.
 
-use crate::glfw_context::GlfwContext;
+use crate::glfw_context::{GlfwContext, GlInfo};
 use crate::{backbone, RenderEvent, TickEvent, KeyEvent, MouseEvent, MouseMoveEvent};
 use crate::common::resources;
 use crate::blocks;
@@ -176,6 +176,8 @@ impl backbone::Handler for Playground {
 		}
 		
 		if let Some(render_event) = event.downcast::<RenderEvent>() {
+			let glfw_context = context
+				.component_get::<GlfwContext>().ok().unwrap();
 			
 			if let backbone::Phase::Action = phase {
 				self.render_scene(render_event);
@@ -185,7 +187,7 @@ impl backbone::Handler for Playground {
 				let text_renderer = context
 					.component_get_mut::<render::text::TextRendererComp>().ok().unwrap();
 				
-				self.render_hud(render_event, text_renderer);
+				self.render_hud(render_event, text_renderer, &glfw_context.gl_info);
 			}
 			
 			return
@@ -227,8 +229,7 @@ impl Playground {
 		}
 	}
 	
-	pub fn render_hud(&mut self, revt: &RenderEvent, text: &mut render::text::TextRendererComp) {
-		
+	pub fn render_hud(&mut self, revt: &RenderEvent, text: &mut render::text::TextRendererComp, gl_info: &GlInfo) {
 		
 		unsafe {
 			revt.gl.Disable(gl::DEPTH_TEST);
@@ -245,11 +246,12 @@ impl Playground {
 		self.crosshair_2d.draw(&projection, revt.width, revt.height, 4.0);
 		
 		text.transform = projection;
-		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0);
+		text.draw_text(&format!("GPU: {}", gl_info.renderer), 16.0, 1.0, 2.0);
+		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0 + 16.0);
 		
 		let profiler = common::profiler::profiler();
 		let proftree = profiler.get_passive();
-		let mut y_offset = 24.0;
+		let mut y_offset = 2.0 + 16.0 + 16.0 + 2.0;
 		let mut f_buffer = String::with_capacity(250);
 		Self::draw_profiler_node_text(text, proftree, 0, 0, &mut f_buffer, &mut y_offset);
 	}

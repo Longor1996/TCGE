@@ -4,7 +4,8 @@ pub struct GlfwContext {
 	pub glfw:   glfw::Glfw,
 	pub window: glfw::Window,
 	pub events: std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
-	pub gl:     gl::Gl
+	pub gl:     gl::Gl,
+	pub gl_info: GlInfo,
 }
 
 
@@ -70,6 +71,26 @@ impl GlfwContext {
 			window.get_proc_address(symbol) as *const _
 		);
 		
+		let gl_info = unsafe {
+			let version  = gl.GetString(gl::VERSION)  as *const i8;
+			let vendor   = gl.GetString(gl::VENDOR)   as *const i8;
+			let renderer = gl.GetString(gl::RENDERER) as *const i8;
+			
+			let version  = std::ffi::CStr::from_ptr(version).to_str().unwrap().to_string();
+			let vendor   = std::ffi::CStr::from_ptr(vendor).to_str().unwrap().to_string();
+			let renderer = std::ffi::CStr::from_ptr(renderer).to_str().unwrap().to_string();
+			
+			GlInfo {
+				version,
+				vendor,
+				renderer
+			}
+		};
+		
+		info!("GL Version:  {}", gl_info.version);
+		info!("GL Vendor:   {}", gl_info.vendor);
+		info!("GL Renderer: {}", gl_info.renderer);
+		
 		// Enable debugging!
 		gl.debug(on_gl_error, gl::DEBUG_SEVERITY_LOW);
 		
@@ -89,7 +110,8 @@ impl GlfwContext {
 			glfw,
 			window,
 			events,
-			gl
+			gl,
+			gl_info,
 		}
 	}
 	
@@ -229,4 +251,15 @@ impl backbone::Event for MouseMoveEvent {
 	fn get_type_name(&self) -> &'static str {
 		"MouseMoveEvent"
 	}
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+pub struct GlInfo {
+	pub version: String,
+	pub vendor: String,
+	pub renderer: String,
 }
