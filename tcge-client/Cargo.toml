@@ -28,3 +28,6 @@ simplelog = "0.6.0"
 half = {version = "1.3.0", default-features = false, features = ["std"]}
 glfw = {version = "0.29.0", default-features = false, features = ["glfw-sys"]}
 image = {version = "0.21.1", default-features = false, features = ["gif_codec", "png_codec", "ico"]}
+
+[profile.dev]
+opt-level = 1
