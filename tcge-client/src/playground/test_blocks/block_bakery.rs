@@ -42,42 +42,42 @@ impl StaticBlockBakery {
 		const S: f32 = 1.0;
 		let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
 		
-		sides[Face::Ypos.id() as usize].push((
+		sides[Face::Ypos.uid()].push((
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
 			(N, S, N, uv.umin, uv.vmax).into(),
 		).into());
 		
-		sides[Face::Yneg.id() as usize].push((
+		sides[Face::Yneg.uid()].push((
 			(N, N, N, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
 		).into());
 		
-		sides[Face::Zneg.id() as usize].push((
+		sides[Face::Zneg.uid()].push((
 			(N, S, N, uv.umin, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmax).into(),
 			(N, N, N, uv.umin, uv.vmax).into(),
 		).into());
 		
-		sides[Face::Zpos.id() as usize].push((
+		sides[Face::Zpos.uid()].push((
 			(N, N, S, uv.umin, uv.vmin).into(),
 			(S, N, S, uv.umax, uv.vmin).into(),
 			(S, S, S, uv.umax, uv.vmax).into(),
 			(N, S, S, uv.umin, uv.vmax).into(),
 		).into());
 		
-		sides[Face::Xneg.id() as usize].push((
+		sides[Face::Xneg.uid()].push((
 			(N, S, S, uv.umin, uv.vmin).into(),
 			(N, S, N, uv.umax, uv.vmin).into(),
 			(N, N, N, uv.umax, uv.vmax).into(),
 			(N, N, S, uv.umin, uv.vmax).into(),
 		).into());
 		
-		sides[Face::Xpos.id() as usize].push((
+		sides[Face::Xpos.uid()].push((
 			(S, N, S, uv.umin, uv.vmin).into(),
 			(S, N, N, uv.umax, uv.vmin).into(),
 			(S, S, N, uv.umax, uv.vmax).into(),
@@ -186,6 +186,10 @@ pub enum Face {
 impl Face {
 	fn id(&self) -> u8 {
 		unsafe { ::std::mem::transmute(*self) }
+	}
+	
+	fn uid(&self) -> usize {
+		self.id() as usize
 	}
 }
 

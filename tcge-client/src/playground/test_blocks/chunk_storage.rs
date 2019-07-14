@@ -258,12 +258,11 @@ impl ChunkStorage {
 	pub fn set_block(&mut self, pos: &BlockCoord, state: BlockState) -> bool {
 		let cpos = ChunkCoord::new_from_block(pos);
 		let csm = CHUNK_SIZE_MASK_I;
+		let cx = pos.x & csm;
+		let cy = pos.y & csm;
+		let cz = pos.z & csm;
 		
 		let success = if let Some(chunk) = self.get_chunk_mut(&cpos) {
-			let cx = pos.x & csm;
-			let cy = pos.y & csm;
-			let cz = pos.z & csm;
-			
 			match chunk.set_block(cx, cy, cz, state) {
 				Some(_) => true,
 				None    => false
@@ -272,7 +271,7 @@ impl ChunkStorage {
 			false
 		};
 		
-		if success {
+		if success && (cx == 0 || cy == 0 || cz == 0 || cx == CHUNK_SIZE_I-1 || cy == CHUNK_SIZE_I-1 || cz == CHUNK_SIZE_I-1){
 			let now = current_time_nanos();
 			self.get_chunk_mut(&cpos.add(-1,0,0)).map(|c| {c.last_update = now});
 			self.get_chunk_mut(&cpos.add(1,0,0)).map(|c| {c.last_update = now});

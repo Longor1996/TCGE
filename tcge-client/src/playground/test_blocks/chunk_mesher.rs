@@ -72,12 +72,6 @@ struct ChunkMeshVertex {
 }
 
 impl ChunkMeshVertex {
-	pub fn new(x: f16, y: f16, z: f16, u: f16, v: f16, ao: f16) -> Self {
-		Self {
-			x, y, z, u, v, ao
-		}
-	}
-	
 	pub fn new_from(other: &BakedBlockMeshVertex, ao: f32, offset: &(f32, f32, f32)) -> Self{
 		Self {
 			x: f16::from_f32(other.x + offset.0),
@@ -151,7 +145,7 @@ pub fn mesh_chunk(
 	let mut context = BakeryContext::new();
 	
 	let premesh = common::current_time_nanos_precise() - premesh;
-	let mut starts = (start, start);
+	// let mut starts = (start, start);
 	let mut length = (0, 0);
 	
 	let mut non_empty = 0;
@@ -294,11 +288,11 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 
 fn lerp_trilinear(x: f32, y: f32, z: f32, corners: &[f32; 8]) -> f32 {
 	(1.0 - x) * (1.0 - y) * (1.0 - z) * corners[0] +
-		x * (1.0 - y) * (1.0 - z) * corners[1] +
-		(1.0 - x) * y * (1.0 - z) * corners[2] +
-		x * y * (1.0 - z) * corners[3] +
-		(1.0 - x) * (1.0 - y) * z * corners[4] +
-		x * (1.0 - y) * z * corners[5] +
-		(1.0 - x) * y * z * corners[6] +
-		x * y * z * corners[7]
+			x * (1.0 - y) * (1.0 - z) * corners[1] +
+	(1.0 - x) * y * (1.0 - z) * corners[2] +
+			x * y * (1.0 - z) * corners[3] +
+	(1.0 - x) * (1.0 - y) * z * corners[4] +
+			x * (1.0 - y) * z * corners[5] +
+	(1.0 - x) * y * z * corners[6] +
+			x * y * z * corners[7]
 }

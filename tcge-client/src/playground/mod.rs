@@ -264,7 +264,8 @@ impl Playground {
 		
 		f_buffer.clear();
 		use std::fmt::Write;
-		write!(f_buffer, "{}: {}", node.name, node.get_time_as_nanosec());
+		write!(f_buffer, "{}: {}", node.name, node.get_time_as_nanosec())
+			.ok().expect("Failed to print profiler node.");
 		
 		text.draw_text(f_buffer, 16.0, 1.0 + (depth as f32 * 24.0), *y_offset);
 		*y_offset += 16.0;
