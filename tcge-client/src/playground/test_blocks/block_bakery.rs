@@ -42,46 +42,52 @@ impl StaticBlockBakery {
 		const S: f32 = 1.0;
 		let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
 		
+		let n = (0.0, 1.0, 0.0);
 		sides[Face::Ypos.uid()].push((
-			(N, S, S, uv.umin, uv.vmin).into(),
-			(S, S, S, uv.umax, uv.vmin).into(),
-			(S, S, N, uv.umax, uv.vmax).into(),
-			(N, S, N, uv.umin, uv.vmax).into(),
+			(N, S, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+			(S, S, S, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+			(S, S, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+			(N, S, N, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 		).into());
 		
+		let n = (0.0, -1.0, 0.0);
 		sides[Face::Yneg.uid()].push((
-			(N, N, N, uv.umin, uv.vmin).into(),
-			(S, N, N, uv.umax, uv.vmin).into(),
-			(S, N, S, uv.umax, uv.vmax).into(),
-			(N, N, S, uv.umin, uv.vmax).into(),
+			(N, N, N, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+			(S, N, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+			(S, N, S, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+			(N, N, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 		).into());
 		
+		let n = (0.0, 0.0, -1.0);
 		sides[Face::Zneg.uid()].push((
-			(N, S, N, uv.umin, uv.vmin).into(),
-			(S, S, N, uv.umax, uv.vmin).into(),
-			(S, N, N, uv.umax, uv.vmax).into(),
-			(N, N, N, uv.umin, uv.vmax).into(),
+			(N, S, N, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+			(S, S, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+			(S, N, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+			(N, N, N, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 		).into());
 		
+		let n = (0.0, 0.0, 1.0);
 		sides[Face::Zpos.uid()].push((
-			(N, N, S, uv.umin, uv.vmin).into(),
-			(S, N, S, uv.umax, uv.vmin).into(),
-			(S, S, S, uv.umax, uv.vmax).into(),
-			(N, S, S, uv.umin, uv.vmax).into(),
+			(N, N, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+			(S, N, S, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+			(S, S, S, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+			(N, S, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 		).into());
 		
+		let n = (-1.0, 0.0, 0.0);
 		sides[Face::Xneg.uid()].push((
-			(N, S, S, uv.umin, uv.vmin).into(),
-			(N, S, N, uv.umax, uv.vmin).into(),
-			(N, N, N, uv.umax, uv.vmax).into(),
-			(N, N, S, uv.umin, uv.vmax).into(),
+			(N, S, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+			(N, S, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+			(N, N, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+			(N, N, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 		).into());
 		
+		let n = (1.0, 0.0, 0.0);
 		sides[Face::Xpos.uid()].push((
-			(S, N, S, uv.umin, uv.vmin).into(),
-			(S, N, N, uv.umax, uv.vmin).into(),
-			(S, S, N, uv.umax, uv.vmax).into(),
-			(S, S, S, uv.umin, uv.vmax).into(),
+			(S, N, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+			(S, N, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+			(S, S, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+			(S, S, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 		).into());
 		
 		Ok(Box::new(BasicBakedBlock {
@@ -231,19 +237,24 @@ pub struct BakedBlockMeshVertex {
 	// Texture
 	pub u: f32,
 	pub v: f32,
+	
+	// Normal
+	pub nx: f32,
+	pub ny: f32,
+	pub nz: f32,
 }
 
 impl BakedBlockMeshVertex {
-	pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32) -> Self {
+	pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32, nx: f32, ny: f32, nz: f32) -> Self {
 		Self {
-			x, y, z, u, v
+			x, y, z, u, v, nx, ny, nz
 		}
 	}
 }
 
-impl From<(f32, f32, f32, f32, f32)> for BakedBlockMeshVertex {
-	fn from(other: (f32, f32, f32, f32, f32)) -> Self {
-		Self::new(other.0, other.1, other.2, other.3, other.4)
+impl From<(f32, f32, f32, f32, f32, f32, f32, f32)> for BakedBlockMeshVertex {
+	fn from(other: (f32, f32, f32, f32, f32, f32, f32, f32)) -> Self {
+		Self::new(other.0, other.1, other.2, other.3, other.4, other.5, other.6, other.7)
 	}
 }
 

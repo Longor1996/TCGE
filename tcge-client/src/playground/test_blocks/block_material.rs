@@ -15,6 +15,7 @@ pub struct BlocksMaterial {
 	pub atlas: TextureObject,
 	pub uniform_matrix: UniformLocation,
 	pub uniform_atlas: UniformLocation,
+	pub uniform_sun: UniformLocation,
 }
 
 impl BlocksMaterial {
@@ -53,10 +54,12 @@ impl BlocksMaterial {
 		// TODO: Fix error handling
 		let uniform_matrix = shader.get_uniform_location("transform").unwrap();
 		let uniform_atlas = shader.get_uniform_location("atlas").unwrap();
+		let uniform_sun = shader.get_uniform_location("sun").unwrap();
 		
 		Ok(Self {shader, atlas,
 			uniform_matrix,
 			uniform_atlas,
+			uniform_sun,
 		})
 	}
 }

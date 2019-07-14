@@ -67,8 +67,12 @@ impl ChunkRenderManager {
 	pub fn render(&mut self, chunks: &ChunkStorage, transform: &cgmath::Matrix4<f32>) {
 		self.gl.push_debug("Chunks");
 		
+		use cgmath::InnerSpace;
+		let sun = cgmath::Vector3::new(0.9, 1.0, 0.7).normalize();
+		
 		self.material.shader.set_used();
 		self.material.shader.set_uniform_matrix4(self.material.uniform_matrix, transform);
+		self.material.shader.set_uniform_vector3(self.material.uniform_sun, &sun);
 		self.material.shader.set_uniform_sampler(self.material.uniform_atlas, 0);
 		self.material.atlas.set_used();
 		

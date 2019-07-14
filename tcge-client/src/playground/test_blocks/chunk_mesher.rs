@@ -67,8 +67,13 @@ struct ChunkMeshVertex {
 	pub u: half::f16,
 	pub v: half::f16,
 	
+	// Normal
+	pub nx: i8,
+	pub ny: i8,
+	pub nz: i8,
+	
 	// AO
-	pub ao: half::f16,
+	pub ao: i8,
 }
 
 impl ChunkMeshVertex {
@@ -79,7 +84,10 @@ impl ChunkMeshVertex {
 			z: f16::from_f32(other.z + offset.2),
 			u: f16::from_f32(other.u),
 			v: f16::from_f32(other.v),
-			ao: f16::from_f32(ao)
+			nx: (other.nx * 127.0) as i8,
+			ny: (other.ny * 127.0) as i8,
+			nz: (other.nz * 127.0) as i8,
+			ao: (ao * 127.0) as i8
 		}
 	}
 }
@@ -231,7 +239,7 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 		// Bind the index buffer
 		gl.BindBuffer(qindex.target, qindex.id);
 		
-		let stride = (6 * std::mem::size_of::<f16>()) as gl::types::GLsizei;
+		let stride = (5 * std::mem::size_of::<f16>()) as gl::types::GLsizei + 3 + 1;
 		
 		gl.EnableVertexAttribArray(0);
 		gl.VertexAttribPointer(
@@ -256,11 +264,21 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 		gl.EnableVertexAttribArray(2);
 		gl.VertexAttribPointer(
 			2, // attribute location
-			1, // sub-element count
-			gl::HALF_FLOAT, // sub-element type
-			gl::FALSE, // sub-element normalization
+			3, // sub-element count
+			gl::BYTE, // sub-element type
+			gl::TRUE, // sub-element normalization
 			stride,
 			(5 * std::mem::size_of::<f16>()) as *const gl::types::GLvoid
+		);
+		
+		gl.EnableVertexAttribArray(3);
+		gl.VertexAttribPointer(
+			3, // attribute location
+			1, // sub-element count
+			gl::BYTE, // sub-element type
+			gl::TRUE, // sub-element normalization
+			stride,
+			((5 * std::mem::size_of::<f16>()) + 3) as *const gl::types::GLvoid
 		);
 		
 		gl.BindVertexArray(0);
