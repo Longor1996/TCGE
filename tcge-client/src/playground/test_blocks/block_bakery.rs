@@ -1,18 +1,19 @@
 use super::*;
 
 pub struct StaticBlockBakery {
-	baked_blocks: FxHashMap<BlockId, Box<BakedBlock>>,
+	baked_blocks: Vec<Box<BakedBlock>>,
 }
 
 impl StaticBlockBakery {
 	//
 	
 	pub fn new(res: &resources::Resources, blocks: &BlocksRef) -> Result<StaticBlockBakery, ()> {
-		let mut baked_blocks = FxHashMap::default();
+		
+		let mut baked_blocks = Vec::with_capacity(blocks.get_blocks().len());
 		
 		for (id, block) in blocks.get_blocks() {
 			let baked_block = Self::bake_block(res, &**block)?;
-			baked_blocks.insert(id.clone(), baked_block);
+			baked_blocks.insert(id.raw() as usize, baked_block);
 		}
 		
 		Ok(StaticBlockBakery {
@@ -21,6 +22,11 @@ impl StaticBlockBakery {
 	}
 	
 	fn bake_block(_res: &resources::Resources, block: &Block) -> Result<Box<BakedBlock>, ()> {
+		
+		if block.get_name() == "air" {
+			return Ok(Box::new(EmptyBakedBlock{}));
+		}
+		
 		let mut sides: [smallvec::SmallVec<[BakedBlockMeshFace;6]>; 8] = [
 			smallvec![],
 			smallvec![],
@@ -97,7 +103,7 @@ impl StaticBlockBakery {
 	
 	#[inline]
 	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&BakedBlockMeshFace)) {
-		match self.baked_blocks.get(&block.id) {
+		match self.baked_blocks.get(block.id.raw() as usize) {
 			Some(bb) => bb.build(context, block, out),
 			None => return
 		};
@@ -174,6 +180,17 @@ impl BakedBlock for BasicBakedBlock {
 		self.transfer(context, Face::Ypos, out);
 		self.transfer(context, Face::Zpos, out);
 		self.transfer(context, Face::Omni, out);
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct EmptyBakedBlock;
+
+impl BakedBlock for EmptyBakedBlock {
+	fn build(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&BakedBlockMeshFace)) {
+		// Don't do anything what-so-ever.
 	}
 }
 
