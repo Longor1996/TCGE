@@ -13,6 +13,9 @@ pub struct ChunkRenderManager {
 	// Dynamic
 	chunks: FxHashMap<ChunkCoord, (u128, ChunkMeshState)>,
 	mesher: MesherThreadState,
+	
+	// Per Frame
+	calls: Vec<(gl::types::GLuint, gl::types::GLsizei)>,
 }
 
 impl ChunkRenderManager {
@@ -39,7 +42,8 @@ impl ChunkRenderManager {
 			bakery,
 			qindex,
 			chunks: FxHashMap::default(),
-			mesher: MesherThreadState::new()
+			mesher: MesherThreadState::new(),
+			calls: vec![],
 		})
 	}
 	
@@ -76,7 +80,9 @@ impl ChunkRenderManager {
 		self.material.shader.set_uniform_sampler(self.material.uniform_atlas, 0);
 		self.material.atlas.set_used();
 		
-		let mut max_uploads_per_frame: usize = 7;
+		self.gl.push_debug("Chunk-Uploads");
+		
+		let mut max_uploads_per_frame: usize = 2;
 		for (cpos, chunk) in chunks.chunks.iter() {
 			
 			if self.chunks.contains_key(cpos) {
@@ -101,13 +107,13 @@ impl ChunkRenderManager {
 					);
 					
 					*mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.qindex);
+					
 					ptree.leave();
 				}
 				
 				if let ChunkMeshState::Meshed(mesh) = mesh {
-					mesh.draw();
+					self.calls.push(mesh.draw_later());
 				}
-				
 			} else {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
@@ -116,8 +122,21 @@ impl ChunkRenderManager {
 					
 					let ptree = common::profiler::profiler().get_current();
 					ptree.enter_noguard("mesh-chunk");
-					mesh_chunk(&mut self.mesher, self.blocks.clone(), &self.bakery, &chunk, &block_data);
+					
+					mesh_chunk(
+						&mut self.mesher,
+						self.blocks.clone(),
+						&self.bakery,
+						&chunk,
+						&block_data
+					);
+					
 					let mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.qindex);
+					
+					if let ChunkMeshState::Meshed(mesh) = &mesh {
+						self.calls.push(mesh.draw_later());
+					}
+					
 					ptree.leave();
 					
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
@@ -125,7 +144,14 @@ impl ChunkRenderManager {
 			}
 		}
 		
-		// TODO: Optimize with https://www.reddit.com/r/opengl/comments/3m9u36/how_to_render_using_glmultidrawarraysindirect/
+		self.gl.pop_debug();
+		
+		self.gl.clone().scope_debug("Chunk-Draws", &mut || {
+			// TODO: Optimize with https://www.reddit.com/r/opengl/comments/3m9u36/how_to_render_using_glmultidrawarraysindirect/
+			while let Some(chunk_mesh_raw) = self.calls.pop() {
+				draw_chunk(&self.gl, chunk_mesh_raw);
+			}
+		});
 		
 		self.gl.pop_debug();
 	}

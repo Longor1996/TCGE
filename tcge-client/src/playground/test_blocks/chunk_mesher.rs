@@ -11,13 +11,15 @@ pub enum ChunkMeshState {
 	Meshed(ChunkMesh),
 }
 
+pub type ChunkMeshRaw = (gl::types::GLuint, gl::types::GLsizei);
+
 /// The graphical representation of a chunk.
 /// Really just a bag of OpenGL Object-Handles.
 pub struct ChunkMesh {
 	gl: gl::Gl,
 	descriptor: gl::types::GLuint,
 	vertices: render::BufferObject,
-	count: i32,
+	count: gl::types::GLsizei,
 }
 
 impl ChunkMesh {
@@ -40,6 +42,23 @@ impl ChunkMesh {
 				0 as *const gl::types::GLvoid
 			);
 		}
+	}
+	
+	pub fn draw_later(&self) -> ChunkMeshRaw {
+		(self.descriptor, self.count)
+	}
+}
+
+pub fn draw_chunk(gl: &gl::Gl, chunk_mesh_raw: ChunkMeshRaw) {
+	unsafe {
+		let (descriptor, count) = chunk_mesh_raw;
+		gl.BindVertexArray(descriptor);
+		gl.DrawElements(
+			gl::TRIANGLES,
+			count,
+			gl::UNSIGNED_SHORT,
+			0 as *const gl::types::GLvoid
+		);
 	}
 }
 
