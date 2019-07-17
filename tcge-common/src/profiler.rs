@@ -227,12 +227,18 @@ pub struct Nanosec {
 	inner: u64
 }
 
+impl Nanosec {
+	pub fn new(inner: u64) -> Self {
+		Self { inner }
+	}
+}
+
 impl std::fmt::Display for Nanosec {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
 		if self.inner < 1_000 {
 			write!(f, "{}ns", self.inner)
 		} else if self.inner < 1_000_000 {
-			write!(f, "{:.1}us", self.inner as f64 / 1_000.)
+			write!(f, "{}us", self.inner as f64 / 1_000.)
 		} else if self.inner < 1_000_000_000 {
 			write!(f, "{:.1}ms", self.inner as f64 / 1_000_000.)
 		} else {
