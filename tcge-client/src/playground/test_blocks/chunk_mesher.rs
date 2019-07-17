@@ -57,7 +57,7 @@ impl Drop for ChunkMesh {
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
-struct ChunkMeshVertex {
+pub struct ChunkMeshVertex {
 	// Geometry
 	pub x: half::f16,
 	pub y: half::f16,
@@ -110,14 +110,12 @@ impl MesherThreadState {
 
 
 pub fn mesh_chunk(
-	gl: &gl::Gl,
-	qindex: &render::BufferObjectRef,
 	mesher: &mut MesherThreadState,
 	blocks: BlocksRef,
 	static_bakery: &StaticBlockBakery,
 	chunk: &Chunk,
 	block_data: &ChunkWithEdge
-) -> ChunkMeshState {
+) {
 	let start = common::current_time_nanos_precise();
 	
 	let premesh = start;
@@ -214,10 +212,10 @@ pub fn mesh_chunk(
 		);
 	}
 	
-	return upload(gl, chunk, &vertices, &qindex);
+	// return upload(gl, chunk, &vertices, &qindex);
 }
 
-fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: &render::BufferObjectRef) -> ChunkMeshState {
+pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVertex>, qindex: &render::BufferObjectRef) -> ChunkMeshState {
 	// Don't upload empty meshes.
 	if mesh_data.len() == 0 {
 		return ChunkMeshState::Empty
@@ -281,7 +279,7 @@ fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: 
 		gl.BindVertexArray(0);
 	}
 	
-	let label = format!("Chunk({}, {}, {})", chunk.pos.x, chunk.pos.y, chunk.pos.z);
+	let label = format!("Chunk({}, {}, {})", chunk_pos.x, chunk_pos.y, chunk_pos.z);
 	
 	gl.label_object(
 		gl::VERTEX_ARRAY, vao,

@@ -92,17 +92,16 @@ impl ChunkRenderManager {
 					let ptree = common::profiler::profiler().get_current();
 					
 					ptree.enter_noguard("mesh-chunk");
-					*mesh = mesh_chunk(
-						&self.gl,
-						&self.qindex,
+					mesh_chunk(
 						&mut self.mesher,
 						self.blocks.clone(),
 						&self.bakery,
 						&chunk,
 						&block_data
 					);
-					ptree.leave();
 					
+					*mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.qindex);
+					ptree.leave();
 				}
 				
 				if let ChunkMeshState::Meshed(mesh) = mesh {
@@ -117,7 +116,8 @@ impl ChunkRenderManager {
 					
 					let ptree = common::profiler::profiler().get_current();
 					ptree.enter_noguard("mesh-chunk");
-					let mesh = mesh_chunk(&self.gl, &self.qindex, &mut self.mesher, self.blocks.clone(), &self.bakery, &chunk, &block_data);
+					mesh_chunk(&mut self.mesher, self.blocks.clone(), &self.bakery, &chunk, &block_data);
+					let mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.qindex);
 					ptree.leave();
 					
 					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
