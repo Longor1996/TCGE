@@ -44,7 +44,6 @@ impl Chunk {
 }
 
 impl Chunk {
-	#[inline]
 	pub fn get_block(&self, x: BlockDim, y: BlockDim, z: BlockDim) -> Option<BlockState> {
 		let x = Chunk::clamp_chunk_coord(x)?;
 		let y = Chunk::clamp_chunk_coord(y)?;
