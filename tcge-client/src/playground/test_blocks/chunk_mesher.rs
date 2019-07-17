@@ -93,21 +93,18 @@ impl ChunkMeshVertex {
 }
 
 pub struct MesherThreadState {
-	vertices: Vec<ChunkMeshVertex>,
-	quad_buf: Vec<BakedBlockMeshVertex>
+	pub vertices: Vec<ChunkMeshVertex>
 }
 
 impl MesherThreadState {
 	pub fn new() -> MesherThreadState {
 		MesherThreadState {
-			vertices: vec![],
-			quad_buf: vec![],
+			vertices: vec![]
 		}
 	}
 	
 	pub fn reset(&mut self) {
 		self.vertices.clear();
-		self.quad_buf.clear();
 	}
 }
 
