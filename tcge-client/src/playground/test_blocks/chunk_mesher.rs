@@ -205,13 +205,13 @@ pub fn mesh_chunk(
 		}
 	}
 	
-	let duration = (common::current_time_nanos_precise() - start) as f64;
-	if duration > 100.0 {
-		trace!("Took {:.0}ns ({:.0}% pre, {:.0}% occ, {:.0}% cpy) to mesh chunk {} ({} solids)",
-			duration,
-			premesh as f64 / duration * 100.0,
-			length.0 as f64 / duration * 100.0,
-			length.1 as f64 / duration * 100.0,
+	let duration = (common::current_time_nanos_precise() - start);
+	if duration > 100 {
+		trace!("Took {} ({:.0}% pre, {:.0}% occ, {:.0}% cpy) to mesh chunk {} ({} solids)",
+			common::profiler::Nanosec::new(duration),
+			premesh  * 100 / duration,
+			length.0 * 100 / duration,
+			length.1 * 100 / duration,
 			chunk.pos,
 			non_empty
 		);
