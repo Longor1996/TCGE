@@ -1,6 +1,6 @@
 use super::*;
 use crate::playground::test_blocks::BlocksMaterialError;
-use crate::render::BufferObject;
+use crate::render::{BufferObject, BufferObjectRef};
 
 pub struct ChunkRenderManager {
 	// Static
@@ -8,7 +8,7 @@ pub struct ChunkRenderManager {
 	blocks: BlocksRef,
 	material: BlocksMaterial,
 	bakery: StaticBlockBakery,
-	qindex: BufferObject,
+	qindex: BufferObjectRef,
 	
 	// Dynamic
 	chunks: FxHashMap<ChunkCoord, (u128, ChunkMeshState)>,
@@ -24,7 +24,7 @@ impl ChunkRenderManager {
 		
 		let material = BlocksMaterial::new(gl, res)?;
 		let bakery = StaticBlockBakery::new(&res, &blocks).unwrap();
-		let qindex = Self::generate_quad_indices(gl, 4096);
+		let qindex = Self::generate_quad_indices(gl, 4096).to_ref();
 		
 		gl.label_object(
 			gl::BUFFER,

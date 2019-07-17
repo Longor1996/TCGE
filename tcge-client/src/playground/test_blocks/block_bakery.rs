@@ -187,7 +187,7 @@ impl BakedBlock for BasicBakedBlock {
 struct EmptyBakedBlock;
 
 impl BakedBlock for EmptyBakedBlock {
-	fn build(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&BakedBlockMeshFace)) {
+	fn build(&self, _context: &BakeryContext, _block: &BlockState, _out: &mut FnMut(&BakedBlockMeshFace)) {
 		// Don't do anything what-so-ever.
 	}
 }

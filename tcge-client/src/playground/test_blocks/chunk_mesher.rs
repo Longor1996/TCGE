@@ -114,7 +114,7 @@ impl MesherThreadState {
 
 pub fn mesh_chunk(
 	gl: &gl::Gl,
-	qindex: &render::BufferObject,
+	qindex: &render::BufferObjectRef,
 	mesher: &mut MesherThreadState,
 	blocks: BlocksRef,
 	static_bakery: &StaticBlockBakery,
@@ -205,7 +205,7 @@ pub fn mesh_chunk(
 		}
 	}
 	
-	let duration = (common::current_time_nanos_precise() - start);
+	let duration = common::current_time_nanos_precise() - start;
 	if duration > 100 {
 		trace!("Took {} ({:.0}% pre, {:.0}% occ, {:.0}% cpy) to mesh chunk {} ({} solids)",
 			common::profiler::Nanosec::new(duration),
@@ -220,7 +220,7 @@ pub fn mesh_chunk(
 	return upload(gl, chunk, &vertices, &qindex);
 }
 
-fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: &render::BufferObject) -> ChunkMeshState {
+fn upload(gl: &gl::Gl, chunk: &Chunk, mesh_data: &Vec<ChunkMeshVertex>, qindex: &render::BufferObjectRef) -> ChunkMeshState {
 	// Don't upload empty meshes.
 	if mesh_data.len() == 0 {
 		return ChunkMeshState::Empty
