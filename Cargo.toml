@@ -20,3 +20,6 @@ members = [
   "tcge-client",
   "tcge-server",
 ]
+
+[profile.dev]
+opt-level = 1
