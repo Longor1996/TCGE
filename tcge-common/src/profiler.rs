@@ -238,7 +238,7 @@ impl std::fmt::Display for Nanosec {
 		if self.inner < 1_000 {
 			write!(f, "{}ns", self.inner)
 		} else if self.inner < 1_000_000 {
-			write!(f, "{}us", self.inner as f64 / 1_000.)
+			write!(f, "{:.0}us", self.inner as f64 / 1_000.)
 		} else if self.inner < 1_000_000_000 {
 			write!(f, "{:.1}ms", self.inner as f64 / 1_000_000.)
 		} else {
