@@ -271,14 +271,32 @@ impl ChunkStorage {
 			false
 		};
 		
-		if success && (cx == 0 || cy == 0 || cz == 0 || cx == CHUNK_SIZE_I-1 || cy == CHUNK_SIZE_I-1 || cz == CHUNK_SIZE_I-1){
+		if success {
 			let now = current_time_nanos();
-			self.get_chunk_mut(&cpos.add(-1,0,0)).map(|c| {c.last_update = now});
-			self.get_chunk_mut(&cpos.add(1,0,0)).map(|c| {c.last_update = now});
-			self.get_chunk_mut(&cpos.add(0,-1,0)).map(|c| {c.last_update = now});
-			self.get_chunk_mut(&cpos.add(0,1,0)).map(|c| {c.last_update = now});
-			self.get_chunk_mut(&cpos.add(0,0,-1)).map(|c| {c.last_update = now});
-			self.get_chunk_mut(&cpos.add(0,0,1)).map(|c| {c.last_update = now});
+			if cx == 0 {
+				self.get_chunk_mut(&cpos.add(-1,0,0))
+					.map(|c| {c.last_update = now});
+			}
+			if cy == 0 {
+				self.get_chunk_mut(&cpos.add(0,-1,0))
+					.map(|c| {c.last_update = now});
+			}
+			if cz == 0 {
+				self.get_chunk_mut(&cpos.add(0,0,-1))
+					.map(|c| {c.last_update = now});
+			}
+			if cx == CHUNK_SIZE_I-1 {
+				self.get_chunk_mut(&cpos.add(1,0,0))
+					.map(|c| {c.last_update = now});
+			}
+			if cy == CHUNK_SIZE_I-1 {
+				self.get_chunk_mut(&cpos.add(0,1,0))
+					.map(|c| {c.last_update = now});
+			}
+			if cz == CHUNK_SIZE_I-1 {
+				self.get_chunk_mut(&cpos.add(0,0,1))
+					.map(|c| {c.last_update = now});
+			}
 		}
 		
 		success
