@@ -87,6 +87,14 @@ impl Gl {
 		}
 	}
 	
+	pub fn scope_debug<F, V>(&self, message: &str, func: F) -> V
+		where F: FnOnce() -> V {
+		self.push_debug(message);
+		let v = func();
+		self.pop_debug();
+		v
+	}
+	
 	pub fn get_error(&self) -> Option<&'static str> {
 		if ! self.debug {return None}
 		
