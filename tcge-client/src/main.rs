@@ -329,7 +329,7 @@ impl backbone::Handler for RootNodeHandler {
 			// 'steal' the command from the struct to avoid the borrow checker
 			let command = std::mem::replace(&mut cmd.command, String::new());
 			
-			if command == "stop" {
+			if &command == "stop" {
 				event.stop();
 				context.component_get_mut::<WrapperComponent<gameloop::State>>()
 					.map(|gameloop| {

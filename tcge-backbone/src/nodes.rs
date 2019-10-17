@@ -14,7 +14,7 @@ impl super::Backbone {
 		self.nodes.get(&self.root_id).unwrap()
 	}
 	
-	pub fn node_new(&mut self, parent: NodeId, name: &str, handler: Option<Box<Handler>>) -> Result<NodeId, ()> {
+	pub fn node_new(&mut self, parent: NodeId, name: &str, handler: Option<Box<dyn Handler>>) -> Result<NodeId, ()> {
 		// Ensure parent ID is valid
 		if ! self.nodes.contains_key(&parent) {
 			return Err(())

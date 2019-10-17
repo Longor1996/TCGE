@@ -18,7 +18,7 @@ pub enum ResourceError {
 }
 
 pub struct Resources {
-	providers: Vec<Box<ResourceProvider>>
+	providers: Vec<Box<dyn ResourceProvider>>
 }
 
 impl Resources {
@@ -36,7 +36,7 @@ impl Resources {
 		self.providers.push(Box::new(provider));
 	}
 	
-	pub fn register_provider(&mut self, provider: Box<ResourceProvider>) {
+	pub fn register_provider(&mut self, provider: Box<dyn ResourceProvider>) {
 		self.providers.push(provider);
 	}
 }
@@ -61,7 +61,7 @@ impl ResourceProvider for Resources {
 		Ok(iter)
 	}
 	
-	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<Read>, ResourceError> {
+	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<dyn Read>, ResourceError> {
 		debug!("Attempting to find resource: {}", location);
 		
 		for provider in self.providers.iter() {

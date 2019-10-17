@@ -58,7 +58,7 @@ impl super::ResourceProvider for FilesystemProvider {
 		Ok(Box::new(walker_iter))
 	}
 	
-	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<Read>, ResourceError> {
+	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<dyn Read>, ResourceError> {
 		let mut path: PathBuf = self.root_path.clone();
 		
 		// Instead of passing the path directly...

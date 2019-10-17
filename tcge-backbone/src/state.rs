@@ -137,7 +137,7 @@ pub enum State {
 	Idle,
 	Move(String, usize),
 	Stop(Option<String>),
-	Fire(Box<Event>),
+	Fire(Box<dyn Event>),
 }
 
 impl State {

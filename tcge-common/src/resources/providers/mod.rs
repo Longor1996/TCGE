@@ -17,7 +17,7 @@ pub trait ResourceProvider {
 	
 	fn res_list(&self) -> Result<Box<dyn Iterator<Item = String>>, ResourceError>;
 	
-	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<Read>, ResourceError>;
+	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<dyn Read>, ResourceError>;
 	
 	fn res_as_buffer(&self, location: &ResourceLocation) -> Result<Vec<u8>, ResourceError> {
 		let mut read = self.res_as_stream(location)?;

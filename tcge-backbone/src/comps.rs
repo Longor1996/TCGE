@@ -6,7 +6,7 @@ use super::NodeId;
 use super::Handler;
 
 /// Collection type for `Component` instances, attached to `Node` instances by id.
-pub type Comps = FxHashMap<NodeId, FxHashMap<TypeId, Box<Component>>>;
+pub type Comps = FxHashMap<NodeId, FxHashMap<TypeId, Box<dyn Component>>>;
 
 // Implementation details regarding components.
 impl<'a> super::Backbone {
@@ -46,7 +46,7 @@ impl<'a> super::Backbone {
 		}
 	}
 	
-	pub fn set_root_node_handler(&mut self, handler: Box<Handler>) {
+	pub fn set_root_node_handler(&mut self, handler: Box<dyn Handler>) {
 		self.handlers.insert(self.root_id, handler);
 	}
 }
@@ -208,24 +208,24 @@ pub trait Component: mopa::Any {
 	fn on_unload(&mut self);
 }
 
-impl PartialEq for Component {
-	fn eq(&self, other: &Component) -> bool {
+impl PartialEq for dyn Component {
+	fn eq(&self, other: &dyn Component) -> bool {
 		mopa::Any::get_type_id(self) == mopa::Any::get_type_id(other)
 	}
 }
 
-impl Eq for Component {
+impl Eq for dyn Component {
 	// empty stub
 }
 
-impl std::hash::Hash for Component {
+impl std::hash::Hash for dyn Component {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
 		mopa::Any::get_type_id(self).hash(state);
 	}
 }
 
 
-impl std::fmt::Display for Component {
+impl std::fmt::Display for dyn Component {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
 		write!(f, "{}", self.get_type_name())
 	}

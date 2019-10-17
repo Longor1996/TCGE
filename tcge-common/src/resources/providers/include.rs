@@ -31,7 +31,7 @@ impl super::ResourceProvider for IncludeProvider {
 		Ok(Box::new(iter.into_iter()))
 	}
 	
-	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<Read>, ResourceError> {
+	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<dyn Read>, ResourceError> {
 		let location = &location.inner;
 		let file = self.includes.iter()
 			.find(|(name, _bytes)| name == location);

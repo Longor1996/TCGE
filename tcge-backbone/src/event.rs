@@ -2,12 +2,12 @@ use super::NodeId;
 use super::State;
 
 /// Collection type for `Handler` instances, attached to `Node` instances by id.
-pub type Handlers = super::FxHashMap<NodeId, Box<Handler>>;
+pub type Handlers = super::FxHashMap<NodeId, Box<dyn Handler>>;
 
 // Implementation details regarding nodes.
 impl super::Backbone {
 	
-	pub fn fire_event(&mut self, event: &mut Event) {
+	pub fn fire_event(&mut self, event: &mut dyn Event) {
 		
 		// Non-Passive events can only be fired if the backbone is idle.
 		if ! event.is_passive() {
@@ -217,7 +217,7 @@ impl std::fmt::Display for Phase {
 pub struct Wrapper<'a> {
 	#[allow(dead_code)]
 	/// The event being processed.
-	pub event: &'a mut Event,
+	pub event: &'a mut dyn Event,
 	
 	// --- State for the event
 	phase: Phase,
@@ -237,7 +237,7 @@ pub struct Wrapper<'a> {
 
 impl<'a> Wrapper<'a> {
 	
-	pub fn new(event: &'a mut Event) -> Self {
+	pub fn new(event: &'a mut dyn Event) -> Self {
 		Self {
 			event,
 			

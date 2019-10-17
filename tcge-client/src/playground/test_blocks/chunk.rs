@@ -39,7 +39,7 @@ impl Chunk {
 	#[inline]
 	pub fn coord_to_index(x: BlockDim, y: BlockDim, z: BlockDim) -> usize {
 		// 'God Tier' indexing function from hell.
-		((((y << CHUNK_SIZE_BITS) | z) << CHUNK_SIZE_BITS) | x) as usize
+		((((y << CHUNK_SIZE_BITS_I) | z) << CHUNK_SIZE_BITS_I) | x) as usize
 	}
 }
 

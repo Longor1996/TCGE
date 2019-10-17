@@ -1,7 +1,7 @@
 use super::*;
 
 pub struct StaticBlockBakery {
-	baked_blocks: Vec<Box<BakedBlock>>,
+	baked_blocks: Vec<Box<dyn BakedBlock>>,
 }
 
 impl StaticBlockBakery {
@@ -101,7 +101,7 @@ impl StaticBlockBakery {
 		}))
 	}
 	
-	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut FnMut(&BakedBlockMeshFace)) {
+	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut dyn FnMut(&BakedBlockMeshFace)) {
 		match self.baked_blocks.get(block.id.raw() as usize) {
 			Some(bb) => bb.build(context, block, out),
 			None => return
@@ -140,7 +140,7 @@ trait BakedBlock {
 		&self,
 		context: &BakeryContext,
 		block: &BlockState,
-		out: &mut FnMut(&BakedBlockMeshFace)
+		out: &mut dyn FnMut(&BakedBlockMeshFace)
 	);
 }
 
@@ -151,7 +151,7 @@ struct BasicBakedBlock {
 }
 
 impl BasicBakedBlock {
-	fn transfer(&self, context: &BakeryContext, face: Face, out: &mut FnMut(&BakedBlockMeshFace)) {
+	fn transfer(&self, context: &BakeryContext, face: Face, out: &mut dyn FnMut(&BakedBlockMeshFace)) {
 		let face_id = face.id() as usize;
 		
 		if context.occluded[face_id] {
@@ -169,7 +169,7 @@ impl BakedBlock for BasicBakedBlock {
 		&self,
 		context: &BakeryContext,
 		_block: &BlockState,
-		out: &mut FnMut(&BakedBlockMeshFace)
+		out: &mut dyn FnMut(&BakedBlockMeshFace)
 	) {
 		self.transfer(context, Face::Xneg, out);
 		self.transfer(context, Face::Yneg, out);
@@ -187,7 +187,7 @@ impl BakedBlock for BasicBakedBlock {
 struct EmptyBakedBlock;
 
 impl BakedBlock for EmptyBakedBlock {
-	fn build(&self, _context: &BakeryContext, _block: &BlockState, _out: &mut FnMut(&BakedBlockMeshFace)) {
+	fn build(&self, _context: &BakeryContext, _block: &BlockState, _out: &mut dyn FnMut(&BakedBlockMeshFace)) {
 		// Don't do anything what-so-ever.
 	}
 }

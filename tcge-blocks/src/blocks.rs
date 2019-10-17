@@ -8,7 +8,7 @@ use std::rc::Rc;
 pub type BlocksRef = std::rc::Rc<Blocks>;
 
 pub struct Blocks {
-	blocks: FxHashMap<BlockId, Box<Block>>,
+	blocks: FxHashMap<BlockId, Box<dyn Block>>,
 	names: FxHashMap<String, BlockId>,
 	defaults: FxHashMap<BlockId, BlockState>,
 }
@@ -28,7 +28,7 @@ impl Blocks {
 		new
 	}
 	
-	pub fn register_block(&mut self, block: Box<Block>) {
+	pub fn register_block(&mut self, block: Box<dyn Block>) {
 		let id = block.get_id();
 		if let Some(_) = self.names.insert(block.get_name().to_string(), id) {
 			panic!("Cannot register block '{}': Name is already taken.", block.get_name());
@@ -44,19 +44,19 @@ impl Blocks {
 }
 
 impl Blocks {
-	pub fn get_blocks(&self) -> &FxHashMap<BlockId, Box<Block>> {
+	pub fn get_blocks(&self) -> &FxHashMap<BlockId, Box<dyn Block>> {
 		&self.blocks
 	}
 	
-	pub fn get_block_by_id(&self, id: BlockId) -> Option<&Box<Block>> {
+	pub fn get_block_by_id(&self, id: BlockId) -> Option<&Box<dyn Block>> {
 		self.blocks.get(&id)
 	}
 	
-	pub fn get_block_by_id_unchecked(&self, id: BlockId) -> &Box<Block> {
+	pub fn get_block_by_id_unchecked(&self, id: BlockId) -> &Box<dyn Block> {
 		self.get_block_by_id(id).expect("Could not find block-type.")
 	}
 	
-	pub fn get_block_by_name(&self, name: &str) -> Option<&Box<Block>> {
+	pub fn get_block_by_name(&self, name: &str) -> Option<&Box<dyn Block>> {
 		for (_id, block) in self.blocks.iter() {
 			if block.get_name() == name {
 				return Some(block)
@@ -66,7 +66,7 @@ impl Blocks {
 		None
 	}
 	
-	pub fn get_block_by_name_unchecked(&self, name: &str) -> &Box<Block> {
+	pub fn get_block_by_name_unchecked(&self, name: &str) -> &Box<dyn Block> {
 		self.get_block_by_name(name).expect("Could not find block-type.")
 	}
 }

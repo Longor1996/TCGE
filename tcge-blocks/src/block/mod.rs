@@ -10,8 +10,8 @@ pub trait Block {
 	fn get_default_state(&self) -> BlockState;
 }
 
-impl PartialEq for Block {
-	fn eq(&self, other: &Block) -> bool {
+impl PartialEq for dyn Block {
+	fn eq(&self, other: &dyn Block) -> bool {
 		self.get_id() == other.get_id()
 	}
 }

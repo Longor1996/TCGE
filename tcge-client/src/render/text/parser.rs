@@ -155,7 +155,7 @@ pub fn parse_file(
 
 pub fn parse_line<'a>(
 	line: &'a String,
-	callback: &mut FnMut(&str, &str) -> Result<(), TextRendererError>
+	callback: &mut dyn FnMut(&str, &str) -> Result<(), TextRendererError>
 ) -> Result<(), TextRendererError> {
 	let mut chars = line.chars()
 		.chain(" ".chars())
