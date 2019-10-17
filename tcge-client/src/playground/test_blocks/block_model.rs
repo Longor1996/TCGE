@@ -3,14 +3,16 @@ use smallvec::SmallVec;
 
 #[derive(Clone, Debug)]
 pub struct BlockModel {
-	pub parent: Option<String>,
+	pub parent: Option<String>, // TODO: Let models inherit from each other...
 	// pub inherit_textures: bool,
 	// pub inherit_elements: bool,
+	
 	pub textures: SmallVec<[String; 1]>,
 	pub elements: SmallVec<[BlockModelElement; 1]>,
 }
 
 impl Default for BlockModel {
+	/// Creates a model representing a full cube with the `missingno`-texture,
 	fn default() -> Self {
 		Self {
 			parent: None,
@@ -24,8 +26,15 @@ impl Default for BlockModel {
 pub struct BlockModelElement {
 	pub bounds: [f32; 6], // min/max (xyz)
 	pub faces: [BlockModelElementFace; 6],
-	pub inside: bool,
-	pub outside: bool,
+	
+	// TODO: Implement this here and in the bakery.
+	// pub tform: BlockModelTransform,
+	
+	/// Should geometry for the inside of this element be generated?
+	pub inside: bool, // TODO: Make use of this flag.
+	
+	/// Should geometry for the outside of this element be generated?
+	pub outside: bool, // TODO: Make use of this flag.
 }
 
 impl Default for BlockModelElement {
@@ -56,7 +65,7 @@ impl Default for BlockModelElement {
 #[derive(Copy, Clone, Debug)]
 pub struct BlockModelElementFace {
 	pub uv: [f32; 4],
-	// pub uv_spin: ...?
+	// pub uv_spin: u8 // TODO: Implement UV rotation...
 	pub texture: Option<u8>,
 	
 	pub side: Face,

@@ -11,32 +11,48 @@ impl StaticBlockBakery {
 	
 	pub fn new(_res: &resources::Resources, blocks: &BlocksRef) -> Result<StaticBlockBakery, ()> {
 		
-		let mut baked_blocks: Vec<Box<dyn BakedBlock>> = Vec::with_capacity(blocks.get_blocks().len() + 1);
+		// TODO: The texture atlas should be built outside the bakery...
+		let mut textures: FxHashMap<String, BlockUv> = FxHashMap::default();
+		textures.insert("missingno".to_string(), BlockUv::unit());
+		textures.insert("tex1".to_string(), BlockUv::new_from_pos(0, 0));
+		textures.insert("tex2".to_string(), BlockUv::new_from_pos(1, 0));
+		textures.insert("tex3".to_string(), BlockUv::new_from_pos(2, 0));
+		textures.insert("tex4".to_string(), BlockUv::new_from_pos(3, 0));
+		textures.insert("tex5".to_string(), BlockUv::new_from_pos(4, 0));
 		
+		// --- Create rendering-table for all blocks...
+		let mut baked_blocks: Vec<Box<dyn BakedBlock>> = Vec::with_capacity(blocks.get_blocks().len() + 1);
 		for _ in 0..blocks.get_blocks().len() {
+			// ...and fill it with EmptyBakedBlock's.
 			baked_blocks.push(Box::new(EmptyBakedBlock {}));
 		}
 		
+		// --- Go trough all blocks and bake them.
 		for (id, block) in blocks.get_blocks() {
 			
 			if block.get_name() == "air" {
-				baked_blocks[id.raw() as usize] = Box::new(EmptyBakedBlock {});
-				continue; // skip air!
+				// Do not bake air.
+				continue;
 			}
 			
+			// TODO: Load model from a file, BEFORE the bakery, somehow...
 			let mut block_model = BlockModel::default();
 			block_model.textures[0] = format!("tex{}", id.raw());
 			
-			let baked_block = Self::bake_model(block.borrow(), &block_model);
+			// Bake the model for the block...
+			let baked_block = Self::bake_model(block.borrow(), &block_model, &textures);
+			
+			// ...and place it into the bakery's list.
 			baked_blocks[id.raw() as usize] = baked_block;
 		}
 		
+		// Nothing went wrong, yay!
 		Ok(StaticBlockBakery {
 			baked_blocks
 		})
 	}
 	
-	fn bake_model(block: &dyn Block, block_model: &BlockModel) -> Box<dyn BakedBlock> {
+	fn bake_model(block: &dyn Block, block_model: &BlockModel, textures: &FxHashMap<String, BlockUv>) -> Box<dyn BakedBlock> {
 		
 		let mut sides: [smallvec::SmallVec<[BakedBlockMeshFace;6]>; 8] = [
 			smallvec![],
@@ -49,19 +65,9 @@ impl StaticBlockBakery {
 			smallvec![],
 		];
 		
-		let mut textures: FxHashMap<String, BlockUv> = FxHashMap::default();
-		textures.insert("missingno".to_string(), BlockUv::unit());
-		
-		textures.insert("tex1".to_string(), BlockUv::new_from_pos(0, 0));
-		textures.insert("tex2".to_string(), BlockUv::new_from_pos(1, 0));
-		textures.insert("tex3".to_string(), BlockUv::new_from_pos(2, 0));
-		textures.insert("tex4".to_string(), BlockUv::new_from_pos(3, 0));
-		textures.insert("tex5".to_string(), BlockUv::new_from_pos(4, 0));
-		
 		for element in &block_model.elements {
 			
 			let [min_x, min_y, min_z, max_x, max_y, max_z] = element.bounds.clone();
-			//let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
 			
 			{ // Positive Y: Top
 				let i_face = Face::PositiveY;
@@ -80,8 +86,6 @@ impl StaticBlockBakery {
 						(min_x, max_y, min_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
 					).into());
 				}
-				
-				let texture = face.texture.expect("texture reference");
 			}
 			
 			{ // Negative Y: Bottom
@@ -326,6 +330,7 @@ impl From<(f32, f32, f32, f32, f32, f32, f32, f32)> for BakedBlockMeshVertex {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// TODO: Move this out of the bakery...
 struct BlockUv {
 	umin: f32,
 	umax: f32,
