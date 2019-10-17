@@ -246,14 +246,35 @@ impl Playground {
 		self.crosshair_2d.draw(&projection, revt.width, revt.height, 4.0);
 		
 		text.transform = projection;
-		text.draw_text(&format!("GPU: {}", gl_info.renderer), 16.0, 1.0, 2.0);
-		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, 2.0 + 16.0);
 		
+		let mut y_offset = 2.0;
+		
+		text.draw_text(&format!("GPU: {}", gl_info.renderer), 16.0, 1.0, y_offset);
+		y_offset += 16.0;
+		
+		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, y_offset);
+		y_offset += 16.0;
+		
+		if let Some(block_state) = &self.camera.block {
+			let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
+			text.draw_text(&format!("Equipped: {}", block_name), 16.0, 1.0, y_offset);
+			y_offset += 16.0;
+		}
+		
+		if let Some(target) = &self.camera.target {
+			if let Some(block_state) = self.chunks.get_block(target) {
+				let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
+				text.draw_text(&format!("Aiming at: {}", block_name), 16.0, 1.0, y_offset);
+				y_offset += 16.0;
+			}
+		}
+		
+		y_offset += 8.0;
 		let profiler = common::profiler::profiler();
 		let proftree = profiler.get_passive();
-		let mut y_offset = 2.0 + 16.0 + 16.0 + 2.0;
 		let mut f_buffer = String::with_capacity(250);
 		Self::draw_profiler_node_text(text, proftree, 0, 0, &mut f_buffer, &mut y_offset);
+		y_offset += 2.0;
 	}
 	
 	pub fn draw_profiler_node_text(text: &mut render::text::TextRendererComp, proftree: &common::profiler::ProfilerTree, node_id: usize, depth: usize, f_buffer: &mut String, y_offset: &mut f32) {
