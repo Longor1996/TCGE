@@ -39,7 +39,6 @@ pub fn new(gl: &gl::Gl, res: &Resources, name: &str) -> Result<TextRenderer, Tex
 	let characters: FxHashMap<u32, TextGlyph> = FxHashMap::default();
 	let metrics = TextMetrics::default();
 	
-	use cgmath::One;
 	let transform = cgmath::One::one();
 	
 	let mut text = TextRenderer {

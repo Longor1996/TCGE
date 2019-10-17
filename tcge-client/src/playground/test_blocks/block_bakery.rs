@@ -1,4 +1,6 @@
 use super::*;
+use blocks::Face;
+use std::borrow::Borrow;
 
 pub struct StaticBlockBakery {
 	baked_blocks: Vec<Box<dyn BakedBlock>>,
@@ -7,13 +9,26 @@ pub struct StaticBlockBakery {
 impl StaticBlockBakery {
 	//
 	
-	pub fn new(res: &resources::Resources, blocks: &BlocksRef) -> Result<StaticBlockBakery, ()> {
+	pub fn new(_res: &resources::Resources, blocks: &BlocksRef) -> Result<StaticBlockBakery, ()> {
 		
-		let mut baked_blocks = Vec::with_capacity(blocks.get_blocks().len());
+		let mut baked_blocks: Vec<Box<dyn BakedBlock>> = Vec::with_capacity(blocks.get_blocks().len() + 1);
+		
+		for _ in 0..blocks.get_blocks().len() {
+			baked_blocks.push(Box::new(EmptyBakedBlock {}));
+		}
 		
 		for (id, block) in blocks.get_blocks() {
-			let baked_block = Self::bake_block(res, &**block)?;
-			baked_blocks.insert(id.raw() as usize, baked_block);
+			
+			if block.get_name() == "air" {
+				baked_blocks[id.raw() as usize] = Box::new(EmptyBakedBlock {});
+				continue; // skip air!
+			}
+			
+			let mut block_model = BlockModel::default();
+			block_model.textures[0] = format!("tex{}", id.raw());
+			
+			let baked_block = Self::bake_model(block.borrow(), &block_model);
+			baked_blocks[id.raw() as usize] = baked_block;
 		}
 		
 		Ok(StaticBlockBakery {
@@ -21,11 +36,7 @@ impl StaticBlockBakery {
 		})
 	}
 	
-	fn bake_block(_res: &resources::Resources, block: &Block) -> Result<Box<BakedBlock>, ()> {
-		
-		if block.get_name() == "air" {
-			return Ok(Box::new(EmptyBakedBlock{}));
-		}
+	fn bake_model(block: &dyn Block, block_model: &BlockModel) -> Box<dyn BakedBlock> {
 		
 		let mut sides: [smallvec::SmallVec<[BakedBlockMeshFace;6]>; 8] = [
 			smallvec![],
@@ -38,67 +49,136 @@ impl StaticBlockBakery {
 			smallvec![],
 		];
 		
-		if block.get_id().raw() == 0 {
-			return Ok(Box::new(BasicBakedBlock {
-				sides
-			}))
+		let mut textures: FxHashMap<String, BlockUv> = FxHashMap::default();
+		textures.insert("missingno".to_string(), BlockUv::unit());
+		
+		textures.insert("tex1".to_string(), BlockUv::new_from_pos(0, 0));
+		textures.insert("tex2".to_string(), BlockUv::new_from_pos(1, 0));
+		textures.insert("tex3".to_string(), BlockUv::new_from_pos(2, 0));
+		textures.insert("tex4".to_string(), BlockUv::new_from_pos(3, 0));
+		textures.insert("tex5".to_string(), BlockUv::new_from_pos(4, 0));
+		
+		for element in &block_model.elements {
+			
+			let [min_x, min_y, min_z, max_x, max_y, max_z] = element.bounds.clone();
+			//let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
+			
+			{ // Positive Y: Top
+				let i_face = Face::PositiveY;
+				let face = element.faces[i_face.uid() - 1];
+				let n = i_face.normal();
+				
+				if let Some(texture_id) = face.texture {
+					let texture = &block_model.textures[texture_id as usize];
+					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = uv.subset(&face.uv);
+					
+					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
+						(min_x, max_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, max_y, max_z, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, max_y, min_z, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+						(min_x, max_y, min_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
+					).into());
+				}
+				
+				let texture = face.texture.expect("texture reference");
+			}
+			
+			{ // Negative Y: Bottom
+				let i_face = Face::NegativeY;
+				let face = element.faces[i_face.uid() - 1];
+				let n = i_face.normal();
+				
+				if let Some(texture_id) = face.texture {
+					let texture = &block_model.textures[texture_id as usize];
+					let uv = textures.get(texture).expect("valid texture reference");
+					
+					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
+						(min_x, min_y, min_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, min_y, min_z, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, min_y, max_z, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+						(min_x, min_y, max_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
+					).into());
+				}
+			}
+			
+			{ // Negative X
+				let i_face = Face::NegativeX;
+				let face = element.faces[i_face.uid() - 1];
+				let n = i_face.normal();
+				
+				if let Some(texture_id) = face.texture {
+					let texture = &block_model.textures[texture_id as usize];
+					let uv = textures.get(texture).expect("valid texture reference");
+					
+					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
+						(min_x, max_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+						(min_x, max_y, min_z, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+						(min_x, min_y, min_z, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+						(min_x, min_y, max_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
+					).into());
+				}
+			}
+			
+			{ // Positive X
+				let i_face = Face::PositiveX;
+				let face = element.faces[i_face.uid() - 1];
+				let n = i_face.normal();
+				
+				if let Some(texture_id) = face.texture {
+					let texture = &block_model.textures[texture_id as usize];
+					let uv = textures.get(texture).expect("valid texture reference");
+					
+					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
+						(max_x, min_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, min_y, min_z, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, max_y, min_z, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+						(max_x, max_y, max_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
+					).into());
+				}
+			}
+			
+			{ // Negative Z
+				let i_face = Face::NegativeZ;
+				let face = element.faces[i_face.uid() - 1];
+				let n = i_face.normal();
+				
+				if let Some(texture_id) = face.texture {
+					let texture = &block_model.textures[texture_id as usize];
+					let uv = textures.get(texture).expect("valid texture reference");
+					
+					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
+						(min_x, max_y, min_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, max_y, min_z, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, min_y, min_z, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+						(min_x, min_y, min_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
+					).into());
+				}
+			}
+			
+			{ // Positive Z
+				let i_face = Face::PositiveZ;
+				let face = element.faces[i_face.uid() - 1];
+				let n = i_face.normal();
+				
+				if let Some(texture_id) = face.texture {
+					let texture = &block_model.textures[texture_id as usize];
+					let uv = textures.get(texture).expect("valid texture reference");
+					
+					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
+						(min_x, min_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, min_y, max_z, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
+						(max_x, max_y, max_z, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
+						(min_x, max_y, max_z, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
+					).into());
+				}
+			}
+			
 		}
 		
-		const N: f32 = 0.0;
-		const S: f32 = 1.0;
-		let uv = BlockUv::new_from_pos((block.get_id().raw()) as u8 - 1, 0);
-		
-		let n = (0.0, 1.0, 0.0);
-		sides[Face::Ypos.uid()].push((
-			(N, S, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
-			(S, S, S, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
-			(S, S, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
-			(N, S, N, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
-		).into());
-		
-		let n = (0.0, -1.0, 0.0);
-		sides[Face::Yneg.uid()].push((
-			(N, N, N, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
-			(S, N, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
-			(S, N, S, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
-			(N, N, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
-		).into());
-		
-		let n = (0.0, 0.0, -1.0);
-		sides[Face::Zneg.uid()].push((
-			(N, S, N, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
-			(S, S, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
-			(S, N, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
-			(N, N, N, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
-		).into());
-		
-		let n = (0.0, 0.0, 1.0);
-		sides[Face::Zpos.uid()].push((
-			(N, N, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
-			(S, N, S, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
-			(S, S, S, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
-			(N, S, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
-		).into());
-		
-		let n = (-1.0, 0.0, 0.0);
-		sides[Face::Xneg.uid()].push((
-			(N, S, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
-			(N, S, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
-			(N, N, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
-			(N, N, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
-		).into());
-		
-		let n = (1.0, 0.0, 0.0);
-		sides[Face::Xpos.uid()].push((
-			(S, N, S, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
-			(S, N, N, uv.umax, uv.vmin, n.0, n.1, n.2).into(),
-			(S, S, N, uv.umax, uv.vmax, n.0, n.1, n.2).into(),
-			(S, S, S, uv.umin, uv.vmax, n.0, n.1, n.2).into(),
-		).into());
-		
-		Ok(Box::new(BasicBakedBlock {
+		Box::new(BasicBakedBlock {
 			sides
-		}))
+		})
 	}
 	
 	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut dyn FnMut(&BakedBlockMeshFace)) {
@@ -171,13 +251,13 @@ impl BakedBlock for BasicBakedBlock {
 		_block: &BlockState,
 		out: &mut dyn FnMut(&BakedBlockMeshFace)
 	) {
-		self.transfer(context, Face::Xneg, out);
-		self.transfer(context, Face::Yneg, out);
-		self.transfer(context, Face::Zneg, out);
-		self.transfer(context, Face::Xpos, out);
-		self.transfer(context, Face::Ypos, out);
-		self.transfer(context, Face::Zpos, out);
-		self.transfer(context, Face::Omni, out);
+		self.transfer(context, Face::NegativeX, out);
+		self.transfer(context, Face::NegativeY, out);
+		self.transfer(context, Face::NegativeZ, out);
+		self.transfer(context, Face::PositiveX, out);
+		self.transfer(context, Face::PositiveY, out);
+		self.transfer(context, Face::PositiveZ, out);
+		self.transfer(context, Face::EveryDir, out);
 	}
 }
 
@@ -189,35 +269,6 @@ struct EmptyBakedBlock;
 impl BakedBlock for EmptyBakedBlock {
 	fn build(&self, _context: &BakeryContext, _block: &BlockState, _out: &mut dyn FnMut(&BakedBlockMeshFace)) {
 		// Don't do anything what-so-ever.
-	}
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[repr(u8)]
-#[derive(Debug, Hash, Eq, Copy, Clone)]
-pub enum Face {
-	Xpos = 1, Xneg = 2,
-	Ypos = 3, Yneg = 4,
-	Zpos = 5, Zneg = 6,
-	Omni = 7
-}
-
-impl Face {
-	fn id(&self) -> u8 {
-		unsafe { ::std::mem::transmute(*self) }
-	}
-	
-	fn uid(&self) -> usize {
-		self.id() as usize
-	}
-}
-
-impl PartialEq for Face {
-	/// Partial equality for the state of a lens, using the `LensState` discriminant.
-	fn eq(&self, other: &Face) -> bool {
-		std::mem::discriminant(self) == std::mem::discriminant(other)
 	}
 }
 
@@ -293,5 +344,25 @@ impl BlockUv {
 			vmin: y,
 			vmax: y+s,
 		}
+	}
+	
+	fn unit() -> Self {
+		Self {
+			umin: 0.0, umax: 1.0,
+			vmin: 0.0, vmax: 1.0,
+		}
+	}
+	
+	fn subset(&self, uv: &[f32; 4]) -> Self {
+		Self {
+			umin: Self::lerp(self.umin, self.umax, uv[0]),
+			vmin: Self::lerp(self.vmin, self.vmax, uv[1]),
+			umax: Self::lerp(self.umin, self.umax, uv[2]),
+			vmax: Self::lerp(self.vmin, self.vmax, uv[3]),
+		}
+	}
+	
+	fn lerp(v0: f32, v1: f32, x: f32) -> f32 {
+		(1.0 - x) * v0 + x * v1
 	}
 }

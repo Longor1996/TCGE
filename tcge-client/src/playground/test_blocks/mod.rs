@@ -42,5 +42,8 @@ pub use chunk_mesher::*;
 pub mod block_material;
 pub use block_material::*;
 
+pub mod block_model;
+pub use block_model::*;
+
 pub mod block_bakery;
 pub use block_bakery::*;

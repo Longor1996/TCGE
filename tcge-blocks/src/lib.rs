@@ -5,6 +5,9 @@ pub use blocks::BlocksRef;
 pub mod id;
 pub use id::BlockId;
 
+pub mod face;
+pub use face::Face;
+
 pub mod block;
 pub use block::Block;
 pub use block::BlockState;
