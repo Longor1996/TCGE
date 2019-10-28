@@ -17,6 +17,7 @@ pub mod crosshair;
 pub mod test_blocks;
 use test_blocks::ChunkStorage;
 use test_blocks::ChunkRenderManager;
+use test_blocks::StaticBlockBakery;
 
 pub fn setup(
 	backbone: &mut backbone::Backbone,
@@ -27,10 +28,13 @@ pub fn setup(
 	
 	let chunks = ChunkStorage::new(&blocks);
 	
+	let bakery = Rc::new(StaticBlockBakery::new(res, &blocks).expect("StaticBlockBakery initialization must not fail"));
+	
 	let chdraw = ChunkRenderManager::new(
 		&glfw_context.gl,
 		res,
-		&blocks
+		&blocks,
+		bakery.clone()
 	).map_err(|_| {
 		error!("Failed to load 'Blocks' material.");
 	}).unwrap();

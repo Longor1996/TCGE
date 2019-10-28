@@ -1,6 +1,9 @@
 use super::*;
 use blocks::Face;
 use std::borrow::Borrow;
+use std::rc::Rc;
+
+pub type StaticBlockBakeryRef = Rc<StaticBlockBakery>;
 
 pub struct StaticBlockBakery {
 	baked_blocks: Vec<Box<dyn BakedBlock>>,

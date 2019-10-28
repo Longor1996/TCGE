@@ -7,7 +7,7 @@ pub struct ChunkRenderManager {
 	gl: gl::Gl,
 	blocks: BlocksRef,
 	material: BlocksMaterial,
-	bakery: StaticBlockBakery,
+	bakery: StaticBlockBakeryRef,
 	qindex: BufferObjectRef,
 	
 	// Dynamic
@@ -22,11 +22,11 @@ impl ChunkRenderManager {
 	pub fn new(
 		gl: &gl::Gl,
 		res: &resources::Resources,
-		blocks: &BlocksRef
+		blocks: &BlocksRef,
+		bakery: StaticBlockBakeryRef
 	) -> Result<Self, BlocksMaterialError> {
 		
 		let material = BlocksMaterial::new(gl, res)?;
-		let bakery = StaticBlockBakery::new(&res, &blocks).unwrap();
 		let qindex = Self::generate_quad_indices(gl, 4096).to_ref();
 		
 		gl.label_object(
