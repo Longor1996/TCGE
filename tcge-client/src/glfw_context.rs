@@ -25,7 +25,7 @@ impl GlfwContext {
 		
 		glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
 		
-		let initial_size = (800, 600);
+		let initial_size = (1024, 768);
 		let initial_title = "TaleCraft".to_string();
 		
 		let (mut window, events) = glfw
@@ -76,9 +76,9 @@ impl GlfwContext {
 			let vendor   = gl.GetString(gl::VENDOR)   as *const i8;
 			let renderer = gl.GetString(gl::RENDERER) as *const i8;
 			
-			let version  = std::ffi::CStr::from_ptr(version).to_str().unwrap().to_string();
-			let vendor   = std::ffi::CStr::from_ptr(vendor).to_str().unwrap().to_string();
-			let renderer = std::ffi::CStr::from_ptr(renderer).to_str().unwrap().to_string();
+			let version  = std::ffi::CStr::from_ptr(version ).to_str().expect("OpenGL version string" ).to_string();
+			let vendor   = std::ffi::CStr::from_ptr(vendor  ).to_str().expect("OpenGL vendor string"  ).to_string();
+			let renderer = std::ffi::CStr::from_ptr(renderer).to_str().expect("OpenGL renderer string").to_string();
 			
 			GlInfo {
 				version,
