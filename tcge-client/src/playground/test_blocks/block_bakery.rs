@@ -72,6 +72,8 @@ impl StaticBlockBakery {
 			
 			let [min_x, min_y, min_z, max_x, max_y, max_z] = element.bounds.clone();
 			
+			// TODO: What about rotation?
+			
 			{ // Positive Y: Top
 				let i_face = Face::PositiveY;
 				let face = element.faces[i_face.uid() - 1];

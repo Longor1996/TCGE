@@ -8,7 +8,7 @@ pub struct ChunkRenderManager {
 	blocks: BlocksRef,
 	material: BlocksMaterial,
 	bakery: StaticBlockBakeryRef,
-	qindex: BufferObjectRef,
+	quad_index: BufferObjectRef,
 	
 	// Dynamic
 	chunks: FxHashMap<ChunkCoord, (u128, ChunkMeshState)>,
@@ -27,11 +27,11 @@ impl ChunkRenderManager {
 	) -> Result<Self, BlocksMaterialError> {
 		
 		let material = BlocksMaterial::new(gl, res)?;
-		let qindex = Self::generate_quad_indices(gl, 4096).to_ref();
+		let quad_index = Self::generate_quad_indices(gl, 4096).to_ref();
 		
 		gl.label_object(
 			gl::BUFFER,
-			qindex.id,
+			quad_index.id,
 			"Quads Index"
 		);
 		
@@ -40,7 +40,7 @@ impl ChunkRenderManager {
 			blocks: blocks.clone(),
 			material,
 			bakery,
-			qindex,
+			quad_index,
 			chunks: FxHashMap::default(),
 			mesher: MesherThreadState::new(),
 			calls: vec![],
@@ -83,21 +83,21 @@ impl ChunkRenderManager {
 		self.gl.push_debug("Chunk-Uploads");
 		
 		let mut max_uploads_per_frame: usize = 2;
-		for (cpos, chunk) in chunks.chunks.iter() {
+		for (chunk_pos, chunk) in chunks.chunks.iter() {
 			
-			if self.chunks.contains_key(cpos) {
-				let (time, mesh) = self.chunks.get_mut(cpos).unwrap();
+			if self.chunks.contains_key(chunk_pos) {
+				let (time, mesh) = self.chunks.get_mut(chunk_pos).unwrap();
 				
 				if chunk.last_update > *time && max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
 					
-					let block_data = chunks.get_chunk_with_edges(cpos).unwrap();
+					let block_data = chunks.get_chunk_with_edges(chunk_pos).unwrap();
 					
 					*time = chunk.last_update;
 					
-					let ptree = common::profiler::profiler().get_current();
+					let profiler_tree = common::profiler::profiler().get_current();
 					
-					ptree.enter_noguard("mesh-chunk");
+					profiler_tree.enter_noguard("mesh-chunk");
 					mesh_chunk(
 						&mut self.mesher,
 						self.blocks.clone(),
@@ -106,9 +106,9 @@ impl ChunkRenderManager {
 						&block_data
 					);
 					
-					*mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.qindex);
+					*mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.quad_index);
 					
-					ptree.leave();
+					profiler_tree.leave();
 				}
 				
 				if let ChunkMeshState::Meshed(mesh) = mesh {
@@ -118,10 +118,10 @@ impl ChunkRenderManager {
 				if max_uploads_per_frame > 0 {
 					max_uploads_per_frame -= 1;
 					
-					let block_data = chunks.get_chunk_with_edges(cpos).unwrap();
+					let block_data = chunks.get_chunk_with_edges(chunk_pos).unwrap();
 					
-					let ptree = common::profiler::profiler().get_current();
-					ptree.enter_noguard("mesh-chunk");
+					let profiler_tree = common::profiler::profiler().get_current();
+					profiler_tree.enter_noguard("mesh-chunk");
 					
 					mesh_chunk(
 						&mut self.mesher,
@@ -131,15 +131,15 @@ impl ChunkRenderManager {
 						&block_data
 					);
 					
-					let mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.qindex);
+					let mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.quad_index);
 					
 					if let ChunkMeshState::Meshed(mesh) = &mesh {
 						self.calls.push(mesh.draw_later());
 					}
 					
-					ptree.leave();
+					profiler_tree.leave();
 					
-					self.chunks.insert(cpos.clone(), (current_time_nanos(), mesh));
+					self.chunks.insert(chunk_pos.clone(), (current_time_nanos(), mesh));
 				}
 			}
 		}

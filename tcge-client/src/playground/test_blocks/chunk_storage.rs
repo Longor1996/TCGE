@@ -59,8 +59,8 @@ impl ChunkStorage {
 	
 	pub fn get_chunk_with_edges(&self, pos: &ChunkCoord) -> Option<ChunkWithEdge> {
 		let chunk = self.get_chunk(pos)?;
-		let cpos = chunk.pos.clone();
-		let cbpos = cpos.to_block_coord();
+		let chunk_pos = chunk.pos.clone();
+		let chunk_block_pos = chunk_pos.to_block_coord();
 		
 		let air = self.blocks.get_block_by_name_unchecked("air").get_default_state();
 		
@@ -203,18 +203,18 @@ impl ChunkStorage {
 			for i in 0..CHUNK_SIZE+2 {
 				let ib = i as BlockDim - 1;
 				let mb = CHUNK_SIZE_I;
-				output[0][0][i] = self.get_block(&cbpos.add(ib, -1, -1)).unwrap_or(air);
-				output[m][0][i] = self.get_block(&cbpos.add(ib, mb, -1)).unwrap_or(air);
-				output[0][m][i] = self.get_block(&cbpos.add(ib, -1, mb)).unwrap_or(air);
-				output[m][m][i] = self.get_block(&cbpos.add(ib, mb, mb)).unwrap_or(air);
-				output[i][0][0] = self.get_block(&cbpos.add(-1, ib, -1)).unwrap_or(air);
-				output[i][0][m] = self.get_block(&cbpos.add(mb, ib, -1)).unwrap_or(air);
-				output[i][m][0] = self.get_block(&cbpos.add(-1, ib, mb)).unwrap_or(air);
-				output[i][m][m] = self.get_block(&cbpos.add(mb, ib, mb)).unwrap_or(air);
-				output[0][i][0] = self.get_block(&cbpos.add(-1, -1, ib)).unwrap_or(air);
-				output[0][i][m] = self.get_block(&cbpos.add(mb, -1, ib)).unwrap_or(air);
-				output[m][i][0] = self.get_block(&cbpos.add(-1, mb, ib)).unwrap_or(air);
-				output[m][i][m] = self.get_block(&cbpos.add(mb, mb, ib)).unwrap_or(air);
+				output[0][0][i] = self.get_block(&chunk_block_pos.add(ib, -1, -1)).unwrap_or(air);
+				output[m][0][i] = self.get_block(&chunk_block_pos.add(ib, mb, -1)).unwrap_or(air);
+				output[0][m][i] = self.get_block(&chunk_block_pos.add(ib, -1, mb)).unwrap_or(air);
+				output[m][m][i] = self.get_block(&chunk_block_pos.add(ib, mb, mb)).unwrap_or(air);
+				output[i][0][0] = self.get_block(&chunk_block_pos.add(-1, ib, -1)).unwrap_or(air);
+				output[i][0][m] = self.get_block(&chunk_block_pos.add(mb, ib, -1)).unwrap_or(air);
+				output[i][m][0] = self.get_block(&chunk_block_pos.add(-1, ib, mb)).unwrap_or(air);
+				output[i][m][m] = self.get_block(&chunk_block_pos.add(mb, ib, mb)).unwrap_or(air);
+				output[0][i][0] = self.get_block(&chunk_block_pos.add(-1, -1, ib)).unwrap_or(air);
+				output[0][i][m] = self.get_block(&chunk_block_pos.add(mb, -1, ib)).unwrap_or(air);
+				output[m][i][0] = self.get_block(&chunk_block_pos.add(-1, mb, ib)).unwrap_or(air);
+				output[m][i][m] = self.get_block(&chunk_block_pos.add(mb, mb, ib)).unwrap_or(air);
 			}
 		}
 		
@@ -224,14 +224,14 @@ impl ChunkStorage {
 			let mb = CHUNK_SIZE_I;
 			
 			////// Y  Z  X
-			output[0][0][0] = self.get_block(&cbpos.add(-1, -1, -1)).unwrap_or(air);
-			output[0][0][m] = self.get_block(&cbpos.add(mb, -1, -1)).unwrap_or(air);
-			output[m][0][0] = self.get_block(&cbpos.add(-1, mb, -1)).unwrap_or(air);
-			output[m][0][m] = self.get_block(&cbpos.add(mb, mb, -1)).unwrap_or(air);
-			output[0][m][0] = self.get_block(&cbpos.add(-1, -1, mb)).unwrap_or(air);
-			output[0][m][m] = self.get_block(&cbpos.add(mb, -1, mb)).unwrap_or(air);
-			output[m][m][0] = self.get_block(&cbpos.add(-1, mb, mb)).unwrap_or(air);
-			output[m][m][m] = self.get_block(&cbpos.add(mb, mb, mb)).unwrap_or(air);
+			output[0][0][0] = self.get_block(&chunk_block_pos.add(-1, -1, -1)).unwrap_or(air);
+			output[0][0][m] = self.get_block(&chunk_block_pos.add(mb, -1, -1)).unwrap_or(air);
+			output[m][0][0] = self.get_block(&chunk_block_pos.add(-1, mb, -1)).unwrap_or(air);
+			output[m][0][m] = self.get_block(&chunk_block_pos.add(mb, mb, -1)).unwrap_or(air);
+			output[0][m][0] = self.get_block(&chunk_block_pos.add(-1, -1, mb)).unwrap_or(air);
+			output[0][m][m] = self.get_block(&chunk_block_pos.add(mb, -1, mb)).unwrap_or(air);
+			output[m][m][0] = self.get_block(&chunk_block_pos.add(-1, mb, mb)).unwrap_or(air);
+			output[m][m][m] = self.get_block(&chunk_block_pos.add(mb, mb, mb)).unwrap_or(air);
 		}
 		
 		Some(Box::new(output))
@@ -240,9 +240,9 @@ impl ChunkStorage {
 
 impl ChunkStorage {
 	pub fn get_block(&self, pos: &BlockCoord) -> Option<BlockState> {
-		let cpos = ChunkCoord::new_from_block(pos);
+		let chunk_pos = ChunkCoord::new_from_block(pos);
 		
-		if let Some(chunk) = self.get_chunk(&cpos) {
+		if let Some(chunk) = self.get_chunk(&chunk_pos) {
 			let cx = pos.x & CHUNK_SIZE_MASK_I;
 			let cy = pos.y & CHUNK_SIZE_MASK_I;
 			let cz = pos.z & CHUNK_SIZE_MASK_I;
@@ -256,13 +256,12 @@ impl ChunkStorage {
 	}
 	
 	pub fn set_block(&mut self, pos: &BlockCoord, state: BlockState) -> bool {
-		let cpos = ChunkCoord::new_from_block(pos);
-		let csm = CHUNK_SIZE_MASK_I;
-		let cx = pos.x & csm;
-		let cy = pos.y & csm;
-		let cz = pos.z & csm;
+		let chunk_pos = ChunkCoord::new_from_block(pos);
+		let cx = pos.x & CHUNK_SIZE_MASK_I;
+		let cy = pos.y & CHUNK_SIZE_MASK_I;
+		let cz = pos.z & CHUNK_SIZE_MASK_I;
 		
-		let success = if let Some(chunk) = self.get_chunk_mut(&cpos) {
+		let success = if let Some(chunk) = self.get_chunk_mut(&chunk_pos) {
 			match chunk.set_block(cx, cy, cz, state) {
 				Some(_) => true,
 				None    => false
@@ -274,27 +273,27 @@ impl ChunkStorage {
 		if success {
 			let now = current_time_nanos();
 			if cx == 0 {
-				self.get_chunk_mut(&cpos.add(-1,0,0))
+				self.get_chunk_mut(&chunk_pos.add(-1,0,0))
 					.map(|c| {c.last_update = now});
 			}
 			if cy == 0 {
-				self.get_chunk_mut(&cpos.add(0,-1,0))
+				self.get_chunk_mut(&chunk_pos.add(0,-1,0))
 					.map(|c| {c.last_update = now});
 			}
 			if cz == 0 {
-				self.get_chunk_mut(&cpos.add(0,0,-1))
+				self.get_chunk_mut(&chunk_pos.add(0,0,-1))
 					.map(|c| {c.last_update = now});
 			}
 			if cx == CHUNK_SIZE_I-1 {
-				self.get_chunk_mut(&cpos.add(1,0,0))
+				self.get_chunk_mut(&chunk_pos.add(1,0,0))
 					.map(|c| {c.last_update = now});
 			}
 			if cy == CHUNK_SIZE_I-1 {
-				self.get_chunk_mut(&cpos.add(0,1,0))
+				self.get_chunk_mut(&chunk_pos.add(0,1,0))
 					.map(|c| {c.last_update = now});
 			}
 			if cz == CHUNK_SIZE_I-1 {
-				self.get_chunk_mut(&cpos.add(0,0,1))
+				self.get_chunk_mut(&chunk_pos.add(0,0,1))
 					.map(|c| {c.last_update = now});
 			}
 		}
@@ -304,24 +303,24 @@ impl ChunkStorage {
 	
 	pub fn raycast(&mut self, raycast: &mut BlockRaycast) -> BlockRaycastResponse {
 		loop {
-			let (lx, ly, lz) = raycast.previous();
+			let last = raycast.previous();
 			
-			let (cx, cy, cz) = match raycast.step() {
+			let current = match raycast.step() {
 				Some(pos) => pos,
 				None => break
 			};
 			
-			let last_pos = BlockCoord::new(lx, ly, lz);
-			let pos = BlockCoord::new(cx, cy, cz);
+			let last_pos = BlockCoord::new(last.0, last.1, last.2);
+			let current_pos = BlockCoord::new(current.0, current.1, current.2);
 			
 			let air = self.blocks
 				.get_block_by_name_unchecked("air")
 				.get_default_state();
 			
-			match self.get_block(&pos) {
+			match self.get_block(&current_pos) {
 				Some(block) => {
 					if block != air {
-						return Some((last_pos, pos, block))
+						return Some((last_pos, current_pos, block))
 					}
 				}
 				_ => ()

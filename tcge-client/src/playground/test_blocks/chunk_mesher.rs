@@ -65,11 +65,8 @@ pub fn draw_chunk(gl: &gl::Gl, chunk_mesh_raw: ChunkMeshRaw) {
 impl Drop for ChunkMesh {
 	fn drop(&mut self) {
 		unsafe {
-			let tmp = [self.vertices.id];
-			self.gl.DeleteBuffers(1, tmp.as_ptr());
-			
-			let tmp = [self.descriptor];
-			self.gl.DeleteVertexArrays(1, tmp.as_ptr());
+			self.gl.DeleteBuffers(1, [self.vertices.id].as_ptr());
+			self.gl.DeleteVertexArrays(1, [self.descriptor].as_ptr());
 		}
 	}
 }
@@ -96,6 +93,7 @@ pub struct ChunkMeshVertex {
 }
 
 impl ChunkMeshVertex {
+	// TODO: Use the `From`-trait here instead...
 	pub fn new_from(other: &BakedBlockMeshVertex, ao: f32, offset: &(f32, f32, f32)) -> Self{
 		Self {
 			x: f16::from_f32(other.x + offset.0),
@@ -137,7 +135,7 @@ pub fn mesh_chunk(
 ) {
 	let start = common::current_time_nanos_precise();
 	
-	let premesh = start;
+	let prep_time = start;
 	
 	// --- Reset state of the mesher, clearing the buffers.
 	mesher.reset();
@@ -166,7 +164,7 @@ pub fn mesh_chunk(
 	
 	let mut context = BakeryContext::new();
 	
-	let premesh = common::current_time_nanos_precise() - premesh;
+	let prep_time = common::current_time_nanos_precise() - prep_time;
 	// let mut starts = (start, start);
 	let mut length = (0, 0);
 	
@@ -223,7 +221,7 @@ pub fn mesh_chunk(
 	if duration > 100 {
 		trace!("Took {} ({:.0}% pre, {:.0}% occ, {:.0}% cpy) to mesh chunk {} ({} solids)",
 			common::profiler::Nanosec::new(duration),
-			premesh  * 100 / duration,
+			prep_time * 100 / duration,
 			length.0 * 100 / duration,
 			length.1 * 100 / duration,
 			chunk.pos,
@@ -234,7 +232,7 @@ pub fn mesh_chunk(
 	// return upload(gl, chunk, &vertices, &qindex);
 }
 
-pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVertex>, qindex: &render::BufferObjectRef) -> ChunkMeshState {
+pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVertex>, quad_index: &render::BufferObjectRef) -> ChunkMeshState {
 	// Don't upload empty meshes.
 	if mesh_data.len() == 0 {
 		return ChunkMeshState::Empty
@@ -242,16 +240,16 @@ pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVert
 	
 	let vertex_count = mesh_data.len() / 4 * 6;
 	
-	let vbo = render::BufferObject::buffer_data(gl, gl::ARRAY_BUFFER, gl::STATIC_DRAW, mesh_data);
+	let vertex_buffer = render::BufferObject::buffer_data(gl, gl::ARRAY_BUFFER, gl::STATIC_DRAW, mesh_data);
 	
 	let mut vao: gl::types::GLuint = 0;
 	unsafe {
 		gl.GenVertexArrays(1, &mut vao);
 		gl.BindVertexArray(vao);
-		gl.BindBuffer(gl::ARRAY_BUFFER, vbo.id);
+		gl.BindBuffer(gl::ARRAY_BUFFER, vertex_buffer.id);
 		
 		// Bind the index buffer
-		gl.BindBuffer(qindex.target, qindex.id);
+		gl.BindBuffer(quad_index.target, quad_index.id);
 		
 		let stride = (5 * std::mem::size_of::<f16>()) as gl::types::GLsizei + 3 + 1;
 		
@@ -306,14 +304,14 @@ pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVert
 	);
 	
 	gl.label_object(
-		gl::BUFFER, vbo.id,
+		gl::BUFFER, vertex_buffer.id,
 		&format!("{} Geometry", label)
 	);
 	
 	ChunkMeshState::Meshed(ChunkMesh::new(
 		gl,
 		vao,
-		vbo,
+		vertex_buffer,
 		vertex_count as i32
 	))
 }

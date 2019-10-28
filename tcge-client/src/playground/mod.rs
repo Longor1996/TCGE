@@ -30,7 +30,7 @@ pub fn setup(
 	
 	let bakery = Rc::new(StaticBlockBakery::new(res, &blocks).expect("StaticBlockBakery initialization must not fail"));
 	
-	let chdraw = ChunkRenderManager::new(
+	let chunks_renderer = ChunkRenderManager::new(
 		&glfw_context.gl,
 		res,
 		&blocks,
@@ -60,7 +60,7 @@ pub fn setup(
 	let playground = Playground {
 		blocks,
 		chunks,
-		chdraw,
+		chunks_renderer,
 		camera,
 		sky,
 		grid,
@@ -81,7 +81,7 @@ pub fn setup(
 pub struct Playground {
 	blocks: Rc<blocks::Blocks>,
 	chunks: ChunkStorage,
-	chdraw: ChunkRenderManager,
+	chunks_renderer: ChunkRenderManager,
 	camera: Freecam,
 	sky: sky::SkyRenderer,
 	grid: grid::GridRenderer,
@@ -203,51 +203,51 @@ impl backbone::Handler for Playground {
 
 impl Playground {
 	
-	pub fn render_scene(&mut self, revt: &RenderEvent) {
+	pub fn render_scene(&mut self, render_event: &RenderEvent) {
 		use crate::render::*;
 		
-		let proj_matrix = self.camera.get_gl_projection_matrix((revt.width, revt.height), revt.interpolation);
-		let skyw_matrix = self.camera.get_gl_view_matrix(false, revt.interpolation);
-		let view_matrix = self.camera.get_gl_view_matrix(true, revt.interpolation);
+		let proj_matrix = self.camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
+		let skyw_matrix = self.camera.get_gl_view_matrix(false, render_event.interpolation);
+		let view_matrix = self.camera.get_gl_view_matrix(true, render_event.interpolation);
 		let transform = proj_matrix * view_matrix;
 		
 		self.sky.render(
 			&proj_matrix,
 			&skyw_matrix,
-			&self.camera.get_position(revt.interpolation)
+			&self.camera.get_position(render_event.interpolation)
 		);
 		
 		self.grid.render(
 			&transform,
-			&self.camera.get_position(revt.interpolation),
+			&self.camera.get_position(render_event.interpolation),
 		);
 		
 		unsafe {
-			revt.gl.Enable(gl::DEPTH_TEST);
+			render_event.gl.Enable(gl::DEPTH_TEST);
 		}
 		
-		self.chdraw.render(&self.chunks, &transform);
+		self.chunks_renderer.render(&self.chunks, &transform);
 		
 		if let Some(target) = &self.camera.target {
 			self.crosshair_3d.draw(&transform, target)
 		}
 	}
 	
-	pub fn render_hud(&mut self, revt: &RenderEvent, text: &mut render::text::TextRendererComp, gl_info: &GlInfo) {
+	pub fn render_hud(&mut self, render_event: &RenderEvent, text: &mut render::text::TextRendererComp, gl_info: &GlInfo) {
 		
 		unsafe {
-			revt.gl.Disable(gl::DEPTH_TEST);
-			revt.gl.Enable(gl::BLEND);
-			revt.gl.BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
+			render_event.gl.Disable(gl::DEPTH_TEST);
+			render_event.gl.Enable(gl::BLEND);
+			render_event.gl.BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
 		}
 		
 		let projection = cgmath::Matrix4::from(cgmath::ortho(
-			0.0, revt.width as f32,
-			revt.height as f32, 0.0,
+			0.0, render_event.width as f32,
+			render_event.height as f32, 0.0,
 			-1.0, 1.0
 		));
 		
-		self.crosshair_2d.draw(&projection, revt.width, revt.height, 4.0);
+		self.crosshair_2d.draw(&projection, render_event.width, render_event.height, 4.0);
 		
 		text.transform = projection;
 		
@@ -281,9 +281,14 @@ impl Playground {
 		y_offset += 2.0;
 	}
 	
-	pub fn draw_profiler_node_text(text: &mut render::text::TextRendererComp, proftree: &common::profiler::ProfilerTree, node_id: usize, depth: usize, f_buffer: &mut String, y_offset: &mut f32) {
-		
-		let node = &proftree.nodes[node_id];
+	pub fn draw_profiler_node_text(
+		text: &mut render::text::TextRendererComp,
+		profiler_tree: &common::profiler::ProfilerTree,
+		node_id: usize, depth: usize,
+		f_buffer: &mut String,
+		y_offset: &mut f32
+	) {
+		let node = &profiler_tree.nodes[node_id];
 		
 		if node.total_time < 1_000_000 {
 			return;
@@ -298,11 +303,10 @@ impl Playground {
 		*y_offset += 16.0;
 		
 		for child in node.childs.iter() {
-			if proftree.nodes[*child].calls > 0 {
-				Self::draw_profiler_node_text(text, proftree, *child, depth + 1, f_buffer, y_offset);
+			if profiler_tree.nodes[*child].calls > 0 {
+				Self::draw_profiler_node_text(text, profiler_tree, *child, depth + 1, f_buffer, y_offset);
 			}
 		}
-		
 	}
 	
 }
