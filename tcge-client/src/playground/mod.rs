@@ -7,6 +7,8 @@ use crate::blocks;
 use crate::render;
 use std::rc::Rc;
 
+use legion::prelude::*;
+
 pub mod freecam;
 use freecam::Freecam;
 
@@ -19,11 +21,31 @@ use test_blocks::ChunkStorage;
 use test_blocks::ChunkRenderManager;
 use test_blocks::StaticBlockBakery;
 
+struct EntityPosition(cgmath::Vector3<f32>);
+struct EntityVelocity(cgmath::Vector3<f32>);
+
 pub fn setup(
 	backbone: &mut backbone::Backbone,
 	glfw_context: &mut GlfwContext,
 	res: &mut resources::Resources,
 ) {
+	let luniverse = Universe::new();
+	let mut lworld = luniverse.create_world();
+	
+	let my_ents = lworld.insert(
+		(),
+		vec![
+			(EntityPosition(cgmath::Vector3::<f32> {x: 0.0, y: 1.8, z: 0.0}), EntityVelocity(cgmath::Vector3::<f32> {x: 0.0, y: 0.2, z: 0.0}))
+		]
+	);
+	
+	debug!("xxx start");
+	for (mut pos, vel) in <(Write<EntityPosition>, Read<EntityVelocity>)>::query().iter(&mut lworld) {
+		pos.0.y += vel.0.y;
+		debug!("xxx {:?}", (*pos).0);
+	}
+	debug!("xxx end");
+	
 	let blocks = blocks::Blocks::new().to_ref();
 	
 	let chunks = ChunkStorage::new(&blocks);
@@ -58,6 +80,8 @@ pub fn setup(
 	let crosshair_3d = crosshair::CrosshairRenderer3D::new(&glfw_context.gl, &solid_color_material);
 	
 	let playground = Playground {
+		luniverse,
+		lworld,
 		blocks,
 		chunks,
 		chunks_renderer,
@@ -79,6 +103,8 @@ pub fn setup(
 }
 
 pub struct Playground {
+	luniverse: legion::world::Universe,
+	lworld: legion::world::World,
 	blocks: Rc<blocks::Blocks>,
 	chunks: ChunkStorage,
 	chunks_renderer: ChunkRenderManager,
