@@ -73,7 +73,7 @@ pub struct GridMaterial {
 }
 
 impl GridMaterial {
-	pub fn new(gl: &gl::Gl, res: &Resources) -> Result<Self, GridMaterialError> {
+	pub fn new(gl: &gl::Gl, res: &resources::Resources) -> Result<Self, GridMaterialError> {
 		
 		let shader_vert = ResourceLocation::from("core/shaders/grid.vert");
 		let shader_frag = ResourceLocation::from("core/shaders/grid.frag");
