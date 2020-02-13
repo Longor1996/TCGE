@@ -20,6 +20,9 @@ rustc-hash = "1.0.1"
 smallvec = {version = "0.6.10", default-features = false, features = ["default"]}
 cgmath = {version = "0.17.0", default-features = false} # cant disable "rand"?
 
+# (De)Serialization
+toml = "0.5.6"
+
 # Logging
 log = "~0.4.6"
 simplelog = "0.6.0"

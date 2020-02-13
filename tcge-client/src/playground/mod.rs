@@ -25,12 +25,36 @@ pub mod test_blocks;
 use test_blocks::ChunkStorage;
 use test_blocks::ChunkRenderManager;
 use test_blocks::StaticBlockBakery;
+use common::resources::ResourceProvider;
 
 pub fn setup(
 	backbone: &mut backbone::Backbone,
 	glfw_context: &mut GlfwContext,
 	res: &mut resources::Resources,
 ) {
+	info!("Attempting to load ./assets/playground.toml ...");
+	let config = match res.res_as_string(&resources::ResourceLocation::from_str("playground.toml")) {
+		Ok(config) => match toml::from_str(&config) {
+			Ok(config) => if let toml::Value::Table(config) = config {
+				info!("Loaded configuration.");
+				config
+			} else {
+				error!("Root is not a table in playground.toml");
+				toml::value::Table::new()
+			}
+			Err(e) => {
+				error!("Failed to parse playground.toml: {}", e.to_string());
+				toml::value::Table::new()
+			}
+		},
+		Err(e) => {
+			error!("Failed to read playground.toml");
+			toml::value::Table::new()
+		}
+	};
+	
+	
+	
 	let entity_universe = Universe::new();
 	let mut entity_world = entity_universe.create_world();
 	
