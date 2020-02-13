@@ -9,6 +9,7 @@ pub struct Freecam {
 	pub active: bool,
 	position: cgmath::Vector3<f32>,
 	velocity: cgmath::Vector3<f32>,
+	impulse: cgmath::Vector3<f32>,
 	rotation: cgmath::Vector2<f32>,
 	position_last: cgmath::Vector3<f32>,
 	velocity_last: cgmath::Vector3<f32>,
@@ -26,6 +27,8 @@ pub struct Freecam {
 	const_gravity_power: f32,
 	const_gravity_limit: f32,
 	const_air_friction: f32,
+	const_jump_power: f32,
+	const_impulse_limit: f32,
 }
 
 impl Freecam {
@@ -33,8 +36,9 @@ impl Freecam {
 	pub fn new() -> Self {
 		return Self {
 			active: true,
-			position: cgmath::Vector3 { x: 0.0, y: 1.8, z: -3.0 },
+			position: cgmath::Vector3 { x: 4.0, y: 100.0, z: -8.0 },
 			velocity: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+			impulse: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
 			rotation: cgmath::Vector2 { x: 0.0, y: 0.0 },
 			position_last: cgmath::Vector3 { x: 0.0, y: 1.8, z: 0.0 },
 			velocity_last: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
@@ -48,10 +52,12 @@ impl Freecam {
 			invert_mouse: false,
 			move_speed: 0.5,
 			crane: true,
-			gravity: false,
-			const_gravity_power: 9.81,
-			const_gravity_limit: 0.35,
-			const_air_friction: 0.975,
+			gravity: true,
+			const_gravity_power: 0.0012,
+			const_gravity_limit: 0.999,
+			const_air_friction: 0.5,
+			const_jump_power: 0.25,
+			const_impulse_limit: 0.75,
 		}
 	}
 	
@@ -84,6 +90,12 @@ impl Freecam {
 			self.move_speed = x.as_float().unwrap_or(self.move_speed as f64) as f32;
 		} else {
 			warn!("Missing key: move_speed = {}", self.move_speed);
+		}
+		
+		if let Some(x) = table.get("jump_power") {
+			self.const_jump_power = x.as_float().unwrap_or(self.const_jump_power as f64) as f32;
+		} else {
+			warn!("Missing key: jump_power = {}", self.const_jump_power);
 		}
 		
 		if let Some(x) = table.get("gravity_power") {
@@ -203,7 +215,7 @@ impl Freecam {
 		direction.x += (strafe_right - strafe_left) as f32;
 		
 		// crane or drone mode for y axis
-		if self.crane {
+		if self.crane || self.gravity {
 			// CRANE: The camera pitch does not affect planar movement.
 			let up = (window.get_key(Key::Space) == Action::Press) as i8;
 			let down = (window.get_key(Key::LeftControl) == Action::Press) as i8;
@@ -213,6 +225,10 @@ impl Freecam {
 			// DRONE: The camera pitch tilts the plane of movement.
 			let pitch = cgmath::Deg(self.rotation.x);
 			mat = mat * Matrix4::from_angle_x(pitch);
+		}
+		
+		if self.gravity {
+			direction.y = 0.0;
 		}
 		
 		// Ensure that the vector has a magnitude of 1 (equal in all directions)
@@ -226,9 +242,11 @@ impl Freecam {
 		
 		if self.gravity {
 			// Apply Gravity
-			self.velocity.y -= self.const_gravity_power * delta;
-			self.velocity.y *= if self.velocity.y < 0.0 {self.const_gravity_limit * delta} else {self.const_air_friction * delta};
+			self.velocity.y -= self.const_gravity_power;
+			self.velocity.y *= if self.velocity.y < 0.0 {self.const_gravity_limit} else {self.const_air_friction};
 		}
+		
+		self.velocity += self.impulse;
 		
 		// Now do collision checks
 		let mut player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, 0.5, 0.5);
@@ -254,6 +272,8 @@ impl Freecam {
 			}
 		}
 		
+		let is_falling = self.velocity.y < 0.0;
+		
 		for block_box in block_boxes.iter() {
 			self.velocity.y = block_box.intersection_y(&player_box, self.velocity.y);
 		}
@@ -266,15 +286,25 @@ impl Freecam {
 			self.velocity.z = block_box.intersection_z(&player_box, self.velocity.z);
 		}
 		
+		let is_on_ground = self.velocity.y == 0.0 && is_falling;
+		
 		// Apply velocity
 		self.position += self.velocity;
 		
-		let air_friction: f32 = self.const_air_friction * delta;
+		// Reduce impulse
+		self.impulse *= self.const_impulse_limit;
+		
+		let air_friction: f32 = self.const_air_friction;
 		
 		if self.gravity {
 			// Apply Friction
 			self.velocity.x *= air_friction;
 			self.velocity.z *= air_friction;
+			
+			// Attempt to jump...
+			if window.get_key(Key::Space) == Action::Press && is_on_ground {
+				self.impulse.y += self.const_jump_power;
+			}
 		} else {
 			// Apply Friction
 			self.velocity *= air_friction;
