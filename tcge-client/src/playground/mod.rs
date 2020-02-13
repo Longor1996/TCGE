@@ -32,29 +32,12 @@ pub fn setup(
 	let luniverse = Universe::new();
 	let mut lworld = luniverse.create_world();
 	
-	
-	
 	let lplayer = lworld.insert(
 		(),
 		vec![
 			(Freecam::new(),)
 		]
 	)[0];
-	
-	
-	
-	/*
-	let player_entity_id = lworld.insert(
-		(),
-		vec![
-			(EntityPosition(cgmath::Vector3::<f32> {x: 0.0, y: 1.8, z: 0.0}), EntityVelocity(cgmath::Vector3::<f32> {x: 0.0, y: 0.2, z: 0.0}))
-		]
-	)[0];
-	*/
-	
-	//let pep = lworld.get_component_mut::<EntityPosition>(player_entity_id).unwrap();
-	
-	//lworld.add_tag(player_entity_id, Option::Some(12345));
 	
 	/*
 	debug!("xxx start");
@@ -80,8 +63,6 @@ pub fn setup(
 		error!("Failed to load 'Blocks' material.");
 	}).unwrap();
 	
-	let camera = Freecam::new();
-	
 	let sky = sky::SkyRenderer::new(&glfw_context.gl, res).map_err(|_| {
 		error!("Failed to load 'Blocks' material.");
 	}).unwrap();
@@ -105,7 +86,6 @@ pub fn setup(
 		blocks,
 		chunks,
 		chunks_renderer,
-		camera,
 		sky,
 		grid,
 		crosshair_2d,
@@ -129,7 +109,6 @@ pub struct Playground {
 	blocks: Rc<blocks::Blocks>,
 	chunks: ChunkStorage,
 	chunks_renderer: ChunkRenderManager,
-	camera: Freecam,
 	sky: sky::SkyRenderer,
 	grid: grid::GridRenderer,
 	crosshair_2d: crosshair::CrosshairRenderer2D,
