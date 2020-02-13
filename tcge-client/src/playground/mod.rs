@@ -9,6 +9,8 @@ use std::rc::Rc;
 
 use legion::prelude::*;
 
+pub mod aabb;
+
 pub mod freecam;
 use freecam::Freecam;
 
@@ -190,6 +192,11 @@ impl backbone::Handler for Playground {
 					camera.crane = !camera.crane;
 				},
 				
+				KeyEvent{key: glfw::Key::G, scancode: _, action: glfw::Action::Press, modifiers: _} => {
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+					camera.gravity = !camera.gravity;
+				},
+				
 				KeyEvent{key: glfw::Key::Num1, scancode: _, action: glfw::Action::Press, modifiers: _} => {
 					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
 					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm").get_default_state());
@@ -210,7 +217,7 @@ impl backbone::Handler for Playground {
 			let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 			
 			camera.active = glfw_context.window.get_cursor_mode() == glfw::CursorMode::Disabled;
-			camera.update_movement(&glfw_context.window, 1.0 / tick.tps as f32);
+			camera.update_movement(&glfw_context.window, 1.0 / tick.tps as f32, &self.chunks);
 			
 			let mut rc = camera.get_block_raytrace(16.0, 1.0);
 			if let Some((_, curr, _)) = self.chunks.raycast(&mut rc) {
@@ -306,6 +313,10 @@ impl Playground {
 		
 		let block  = self.entity_world.get_component::<Inventory>(self.entity_player).expect("player entity freecam component").block;
 		let camera  = self.entity_world.get_component::<Freecam>(self.entity_player).expect("player entity freecam component");
+		
+		let cam_pos = camera.get_position(render_event.interpolation);
+		text.draw_text(&format!("Position: {:.2}, {:.2}, {:.2}", cam_pos.x, cam_pos.y, cam_pos.z), 16.0, 1.0, y_offset);
+		y_offset += 16.0;
 		
 		if let Some(block_state) = block {
 			let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();

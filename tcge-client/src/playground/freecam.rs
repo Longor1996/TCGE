@@ -3,6 +3,7 @@ use cgmath::Matrix4;
 use cgmath::Vector3;
 use cgmath::Transform;
 use cgmath::InnerSpace;
+use super::aabb::AxisAlignedBoundingBox;
 
 pub struct Freecam {
 	pub active: bool,
@@ -21,6 +22,7 @@ pub struct Freecam {
 	invert_mouse: bool,
 	move_speed: f32,
 	pub crane: bool,
+	pub gravity: bool,
 }
 
 impl Freecam {
@@ -42,7 +44,8 @@ impl Freecam {
 			mouse_sensivity: 0.0625,
 			invert_mouse: false,
 			move_speed: 0.5,
-			crane: true
+			crane: true,
+			gravity: false
 		}
 	}
 	
@@ -51,6 +54,11 @@ impl Freecam {
 	pub fn get_position(&self, interpolation: f32) -> cgmath::Vector3<f32> {
 		// simple movement prediction formula
 		self.position + (self.velocity * interpolation)
+	}
+	
+	pub fn get_velocity(&self, interpolation: f32) -> cgmath::Vector3<f32> {
+		// simple movement prediction formula
+		self.velocity * interpolation
 	}
 	
 	/// Returns the predicted rotation of the camera for a given interpolation factor.
@@ -103,7 +111,7 @@ impl Freecam {
 	}
 	
 	/// Updates the camera position by querying key-states and changing the velocity accordingly.
-	pub fn update_movement(&mut self, window: &glfw::Window, delta: f32) {
+	pub fn update_movement(&mut self, window: &glfw::Window, delta: f32, chunks: &super::ChunkStorage) {
 		self.position_last.clone_from(&self.position);
 		self.velocity_last.clone_from(&self.velocity);
 		
@@ -160,11 +168,64 @@ impl Freecam {
 		// ...and add it to the existing velocity vector.
 		self.velocity += direction * move_speed;
 		
+		let gravity_reduce: f32 = 9.81 * delta;
+		let gravity_decell: f32 = 0.35;
+		
+		if self.gravity {
+			// Apply Gravity
+			self.velocity.y -= gravity_reduce;
+			self.velocity.y *= if self.velocity.y < 0.0 {gravity_decell} else {0.9};
+		}
+		
+		// Now do collision checks
+		let mut player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, 0.5, 0.5);
+		let mut block_boxes = vec![];
+		
+		let bpx = self.position.x.floor() as i32;
+		let bpy = self.position.y.floor() as i32;
+		let bpz = self.position.z.floor() as i32;
+		
+		for y in (bpy-2)..(bpy+2) {
+			for z in (bpz-2)..(bpz+2) {
+				for x in (bpx-2)..(bpx+2) {
+					let pos = blocks::BlockCoord::new(x, y, z);
+					if let Some(block) = chunks.get_block(&pos) {
+						// only match NOT AIR for now
+						if block.id.raw() != 0 {
+							let vec_pos = Vector3::new(x as f32, y as f32, z as f32);
+							let block_box = AxisAlignedBoundingBox::from_position_size(vec_pos, Vector3::new(1.0, 1.0, 1.0));
+							block_boxes.push(block_box);
+						}
+					}
+				}
+			}
+		}
+		
+		for block_box in block_boxes.iter() {
+			self.velocity.y = block_box.intersection_y(&player_box, self.velocity.y);
+		}
+		
+		for block_box in block_boxes.iter() {
+			self.velocity.x = block_box.intersection_x(&player_box, self.velocity.x);
+		}
+		
+		for block_box in block_boxes.iter() {
+			self.velocity.z = block_box.intersection_z(&player_box, self.velocity.z);
+		}
+		
 		// Apply velocity
 		self.position += self.velocity;
 		
-		// Friction
-		self.velocity *= 0.75;
+		let air_friction: f32 = 0.975 * delta;
+		
+		if self.gravity {
+			// Apply Friction
+			self.velocity.x *= air_friction;
+			self.velocity.z *= air_friction;
+		} else {
+			// Apply Friction
+			self.velocity *= air_friction;
+		}
 	}
 }
 
