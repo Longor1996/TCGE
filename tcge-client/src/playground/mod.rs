@@ -12,6 +12,9 @@ use legion::prelude::*;
 pub mod freecam;
 use freecam::Freecam;
 
+pub mod inventory;
+use inventory::Inventory;
+
 pub mod sky;
 pub mod grid;
 pub mod crosshair;
@@ -33,7 +36,7 @@ pub fn setup(
 	let entity_player = entity_world.insert(
 		(),
 		vec![
-			(Freecam::new(),)
+			(Freecam::new(), Inventory::default(), )
 		]
 	)[0];
 	
@@ -136,11 +139,7 @@ impl backbone::Handler for Playground {
 		if let Some(mouse_event) = event.downcast::<MouseEvent>() {
 			match mouse_event {
 				MouseEvent{button, action: glfw::Action::Press, modifiers: _} => {
-					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
-					
-					if ! camera.active {
-						return;
-					}
+					let used_block  = self.entity_world.get_component::<Inventory>(self.entity_player).expect("player entity freecam component").block;
 					
 					let air = self.blocks
 						.get_block_by_name_unchecked("air")
@@ -150,7 +149,13 @@ impl backbone::Handler for Playground {
 						.get_block_by_name_unchecked("adm")
 						.get_default_state();
 					
-					let used_block = camera.block.unwrap_or(bedrock);
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+					
+					if ! camera.active {
+						return;
+					}
+					
+					let used_block = used_block.unwrap_or(bedrock);
 					
 					let mut rc = camera.get_block_raytrace(16.0, 1.0);
 					
@@ -186,8 +191,10 @@ impl backbone::Handler for Playground {
 				},
 				
 				KeyEvent{key: glfw::Key::Num1, scancode: _, action: glfw::Action::Press, modifiers: _} => {
-					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
-					camera.block = Some(self.blocks.get_block_by_name_unchecked("adm").get_default_state());
+					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
+					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm").get_default_state());
+				},
+				
 				},
 				
 				_ => (),
@@ -297,9 +304,10 @@ impl Playground {
 		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, y_offset);
 		y_offset += 16.0;
 		
+		let block  = self.entity_world.get_component::<Inventory>(self.entity_player).expect("player entity freecam component").block;
 		let camera  = self.entity_world.get_component::<Freecam>(self.entity_player).expect("player entity freecam component");
 		
-		if let Some(block_state) = &camera.block {
+		if let Some(block_state) = block {
 			let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
 			text.draw_text(&format!("Equipped: {}", block_name), 16.0, 1.0, y_offset);
 			y_offset += 16.0;
