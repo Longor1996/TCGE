@@ -184,6 +184,12 @@ impl backbone::Handler for Playground {
 					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 					camera.crane = !camera.crane;
 				},
+				
+				KeyEvent{key: glfw::Key::Num1, scancode: _, action: glfw::Action::Press, modifiers: _} => {
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+					camera.block = Some(self.blocks.get_block_by_name_unchecked("adm").get_default_state());
+				},
+				
 				_ => (),
 			}
 			
