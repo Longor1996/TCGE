@@ -21,18 +21,16 @@ use test_blocks::ChunkStorage;
 use test_blocks::ChunkRenderManager;
 use test_blocks::StaticBlockBakery;
 
-struct EntityPosition(cgmath::Vector3<f32>);
-struct EntityVelocity(cgmath::Vector3<f32>);
-
 pub fn setup(
 	backbone: &mut backbone::Backbone,
 	glfw_context: &mut GlfwContext,
 	res: &mut resources::Resources,
 ) {
-	let luniverse = Universe::new();
-	let mut lworld = luniverse.create_world();
+	let entity_universe = Universe::new();
+	let mut entity_world = entity_universe.create_world();
 	
-	let lplayer = lworld.insert(
+	// Create the player entity
+	let entity_player = entity_world.insert(
 		(),
 		vec![
 			(Freecam::new(),)
@@ -40,12 +38,11 @@ pub fn setup(
 	)[0];
 	
 	/*
-	debug!("xxx start");
-	for (mut pos, vel) in <(Write<EntityPosition>, Read<EntityVelocity>)>::query().iter(&mut lworld) {
-		pos.0.y += vel.0.y;
-		debug!("xxx {:?}", (*pos).0);
+	debug!("query start");
+	for (mut camera,) in <(Write<Freecam>,)>::query().iter(&mut entity_world) {
+		debug!("camera {:?}", &camera);
 	}
-	debug!("xxx end");
+	debug!("query end");
 	*/
 	
 	let blocks = blocks::Blocks::new().to_ref();
@@ -80,9 +77,9 @@ pub fn setup(
 	let crosshair_3d = crosshair::CrosshairRenderer3D::new(&glfw_context.gl, &solid_color_material);
 	
 	let playground = Playground {
-		luniverse,
-		lworld,
-		lplayer,
+		entity_universe,
+		entity_world,
+		entity_player,
 		blocks,
 		chunks,
 		chunks_renderer,
@@ -98,14 +95,12 @@ pub fn setup(
 		"playground",
 		Some(playground)
 	).unwrap();
-	
-	// TODO: Attach more components.
 }
 
 pub struct Playground {
-	luniverse: legion::world::Universe,
-	lworld: legion::world::World,
-	lplayer: legion::entity::Entity,
+	entity_universe: legion::world::Universe,
+	entity_world: legion::world::World,
+	entity_player: legion::entity::Entity,
 	blocks: Rc<blocks::Blocks>,
 	chunks: ChunkStorage,
 	chunks_renderer: ChunkRenderManager,
@@ -121,7 +116,7 @@ impl backbone::Handler for Playground {
 		
 		if let Some(mouse_move_event) = event.downcast::<MouseMoveEvent>() {
 			
-			let mut camera  = self.lworld.get_component_mut::<Freecam>(self.lplayer).expect("player entity freecam component");
+			let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 			
 			camera.update_rotation(
 				mouse_move_event.dx as f32,
@@ -141,7 +136,7 @@ impl backbone::Handler for Playground {
 		if let Some(mouse_event) = event.downcast::<MouseEvent>() {
 			match mouse_event {
 				MouseEvent{button, action: glfw::Action::Press, modifiers: _} => {
-					let mut camera  = self.lworld.get_component_mut::<Freecam>(self.lplayer).expect("player entity freecam component");
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 					
 					if ! camera.active {
 						return;
@@ -186,7 +181,7 @@ impl backbone::Handler for Playground {
 		if let Some(key_event) = event.downcast::<KeyEvent>() {
 			match key_event {
 				KeyEvent{key: glfw::Key::C, scancode: _, action: glfw::Action::Press, modifiers: _} => {
-					let mut camera  = self.lworld.get_component_mut::<Freecam>(self.lplayer).expect("player entity freecam component");
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 					camera.crane = !camera.crane;
 				},
 				_ => (),
@@ -199,7 +194,7 @@ impl backbone::Handler for Playground {
 			let glfw_context = context
 				.component_get_mut::<GlfwContext>().ok().unwrap();
 			
-			let mut camera  = self.lworld.get_component_mut::<Freecam>(self.lplayer).expect("player entity freecam component");
+			let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 			
 			camera.active = glfw_context.window.get_cursor_mode() == glfw::CursorMode::Disabled;
 			camera.update_movement(&glfw_context.window, 1.0 / tick.tps as f32);
@@ -240,7 +235,7 @@ impl Playground {
 	pub fn render_scene(&mut self, render_event: &RenderEvent) {
 		use crate::render::*;
 		
-		let mut camera  = self.lworld.get_component_mut::<Freecam>(self.lplayer).expect("player entity freecam component");
+		let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 		
 		let proj_matrix = camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
 		let skyw_matrix = camera.get_gl_view_matrix(false, render_event.interpolation);
@@ -296,7 +291,7 @@ impl Playground {
 		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, y_offset);
 		y_offset += 16.0;
 		
-		let camera  = self.lworld.get_component::<Freecam>(self.lplayer).expect("player entity freecam component");
+		let camera  = self.entity_world.get_component::<Freecam>(self.entity_player).expect("player entity freecam component");
 		
 		if let Some(block_state) = &camera.block {
 			let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
