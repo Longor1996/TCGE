@@ -7,6 +7,8 @@ use crate::blocks;
 use crate::render;
 use std::rc::Rc;
 
+use legion::prelude::*;
+
 pub mod freecam;
 use freecam::Freecam;
 
@@ -24,6 +26,25 @@ pub fn setup(
 	glfw_context: &mut GlfwContext,
 	res: &mut resources::Resources,
 ) {
+	let entity_universe = Universe::new();
+	let mut entity_world = entity_universe.create_world();
+	
+	// Create the player entity
+	let entity_player = entity_world.insert(
+		(),
+		vec![
+			(Freecam::new(),)
+		]
+	)[0];
+	
+	/*
+	debug!("query start");
+	for (mut camera,) in <(Write<Freecam>,)>::query().iter(&mut entity_world) {
+		debug!("camera {:?}", &camera);
+	}
+	debug!("query end");
+	*/
+	
 	let blocks = blocks::Blocks::new().to_ref();
 	
 	let chunks = ChunkStorage::new(&blocks);
@@ -38,8 +59,6 @@ pub fn setup(
 	).map_err(|_| {
 		error!("Failed to load 'Blocks' material.");
 	}).unwrap();
-	
-	let camera = Freecam::new();
 	
 	let sky = sky::SkyRenderer::new(&glfw_context.gl, res).map_err(|_| {
 		error!("Failed to load 'Blocks' material.");
@@ -58,10 +77,12 @@ pub fn setup(
 	let crosshair_3d = crosshair::CrosshairRenderer3D::new(&glfw_context.gl, &solid_color_material);
 	
 	let playground = Playground {
+		entity_universe,
+		entity_world,
+		entity_player,
 		blocks,
 		chunks,
 		chunks_renderer,
-		camera,
 		sky,
 		grid,
 		crosshair_2d,
@@ -74,15 +95,15 @@ pub fn setup(
 		"playground",
 		Some(playground)
 	).unwrap();
-	
-	// TODO: Attach more components.
 }
 
 pub struct Playground {
+	entity_universe: legion::world::Universe,
+	entity_world: legion::world::World,
+	entity_player: legion::entity::Entity,
 	blocks: Rc<blocks::Blocks>,
 	chunks: ChunkStorage,
 	chunks_renderer: ChunkRenderManager,
-	camera: Freecam,
 	sky: sky::SkyRenderer,
 	grid: grid::GridRenderer,
 	crosshair_2d: crosshair::CrosshairRenderer2D,
@@ -94,16 +115,19 @@ impl backbone::Handler for Playground {
 		let phase = event.get_phase().clone();
 		
 		if let Some(mouse_move_event) = event.downcast::<MouseMoveEvent>() {
-			self.camera.update_rotation(
+			
+			let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+			
+			camera.update_rotation(
 				mouse_move_event.dx as f32,
 				mouse_move_event.dy as f32
 			);
 			
-			let mut rc = self.camera.get_block_raytrace(16.0, 1.0);
+			let mut rc = camera.get_block_raytrace(16.0, 1.0);
 			if let Some((_, curr, _)) = self.chunks.raycast(&mut rc) {
-				self.camera.target = Some(curr);
+				camera.target = Some(curr);
 			} else {
-				self.camera.target = None;
+				camera.target = None;
 			}
 			
 			return
@@ -112,7 +136,9 @@ impl backbone::Handler for Playground {
 		if let Some(mouse_event) = event.downcast::<MouseEvent>() {
 			match mouse_event {
 				MouseEvent{button, action: glfw::Action::Press, modifiers: _} => {
-					if ! self.camera.active {
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+					
+					if ! camera.active {
 						return;
 					}
 					
@@ -124,9 +150,9 @@ impl backbone::Handler for Playground {
 						.get_block_by_name_unchecked("adm")
 						.get_default_state();
 					
-					let used_block = self.camera.block.unwrap_or(bedrock);
+					let used_block = camera.block.unwrap_or(bedrock);
 					
-					let mut rc = self.camera.get_block_raytrace(16.0, 1.0);
+					let mut rc = camera.get_block_raytrace(16.0, 1.0);
 					
 					if let Some((last, curr, _)) = self.chunks.raycast(&mut rc) {
 						let t = match button {
@@ -155,7 +181,8 @@ impl backbone::Handler for Playground {
 		if let Some(key_event) = event.downcast::<KeyEvent>() {
 			match key_event {
 				KeyEvent{key: glfw::Key::C, scancode: _, action: glfw::Action::Press, modifiers: _} => {
-					self.camera.crane = !self.camera.crane;
+					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+					camera.crane = !camera.crane;
 				},
 				_ => (),
 			}
@@ -167,14 +194,16 @@ impl backbone::Handler for Playground {
 			let glfw_context = context
 				.component_get_mut::<GlfwContext>().ok().unwrap();
 			
-			self.camera.active = glfw_context.window.get_cursor_mode() == glfw::CursorMode::Disabled;
-			self.camera.update_movement(&glfw_context.window, 1.0 / tick.tps as f32);
+			let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 			
-			let mut rc = self.camera.get_block_raytrace(16.0, 1.0);
+			camera.active = glfw_context.window.get_cursor_mode() == glfw::CursorMode::Disabled;
+			camera.update_movement(&glfw_context.window, 1.0 / tick.tps as f32);
+			
+			let mut rc = camera.get_block_raytrace(16.0, 1.0);
 			if let Some((_, curr, _)) = self.chunks.raycast(&mut rc) {
-				self.camera.target = Some(curr);
+				camera.target = Some(curr);
 			} else {
-				self.camera.target = None;
+				camera.target = None;
 			}
 			return
 		}
@@ -206,20 +235,23 @@ impl Playground {
 	pub fn render_scene(&mut self, render_event: &RenderEvent) {
 		use crate::render::*;
 		
-		let proj_matrix = self.camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
-		let skyw_matrix = self.camera.get_gl_view_matrix(false, render_event.interpolation);
-		let view_matrix = self.camera.get_gl_view_matrix(true, render_event.interpolation);
+		let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+		
+		let proj_matrix = camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
+		let skyw_matrix = camera.get_gl_view_matrix(false, render_event.interpolation);
+		let view_matrix = camera.get_gl_view_matrix(true, render_event.interpolation);
 		let transform = proj_matrix * view_matrix;
+		let position = camera.get_position(render_event.interpolation);
 		
 		self.sky.render(
 			&proj_matrix,
 			&skyw_matrix,
-			&self.camera.get_position(render_event.interpolation)
+			&position
 		);
 		
 		self.grid.render(
 			&transform,
-			&self.camera.get_position(render_event.interpolation),
+			&position,
 		);
 		
 		unsafe {
@@ -228,7 +260,7 @@ impl Playground {
 		
 		self.chunks_renderer.render(&self.chunks, &transform);
 		
-		if let Some(target) = &self.camera.target {
+		if let Some(target) = &camera.target {
 			self.crosshair_3d.draw(&transform, target)
 		}
 	}
@@ -259,13 +291,15 @@ impl Playground {
 		text.draw_text(&format!("Blocks: {}", self.chunks.get_approximate_volume()), 16.0, 1.0, y_offset);
 		y_offset += 16.0;
 		
-		if let Some(block_state) = &self.camera.block {
+		let camera  = self.entity_world.get_component::<Freecam>(self.entity_player).expect("player entity freecam component");
+		
+		if let Some(block_state) = &camera.block {
 			let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
 			text.draw_text(&format!("Equipped: {}", block_name), 16.0, 1.0, y_offset);
 			y_offset += 16.0;
 		}
 		
-		if let Some(target) = &self.camera.target {
+		if let Some(target) = &camera.target {
 			if let Some(block_state) = self.chunks.get_block(target) {
 				let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
 				text.draw_text(&format!("Aiming at: {}", block_name), 16.0, 1.0, y_offset);
