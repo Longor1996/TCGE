@@ -58,11 +58,19 @@ pub fn setup(
 	let entity_universe = Universe::new();
 	let mut entity_world = entity_universe.create_world();
 	
+	let mut freecam = Freecam::new();
+	
+	if let Some(t) = config.get("freecam") {
+		if let toml::Value::Table(t) = t {
+			freecam.config(t);
+		}
+	}
+	
 	// Create the player entity
 	let entity_player = entity_world.insert(
 		(),
 		vec![
-			(Freecam::new(), Inventory::default(), )
+			(freecam, Inventory::default(), )
 		]
 	)[0];
 	

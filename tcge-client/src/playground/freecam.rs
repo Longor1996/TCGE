@@ -23,6 +23,9 @@ pub struct Freecam {
 	move_speed: f32,
 	pub crane: bool,
 	pub gravity: bool,
+	const_gravity_power: f32,
+	const_gravity_limit: f32,
+	const_air_friction: f32,
 }
 
 impl Freecam {
@@ -45,7 +48,60 @@ impl Freecam {
 			invert_mouse: false,
 			move_speed: 0.5,
 			crane: true,
-			gravity: false
+			gravity: false,
+			const_gravity_power: 9.81,
+			const_gravity_limit: 0.35,
+			const_air_friction: 0.975,
+		}
+	}
+	
+	pub fn config(&mut self, table: &toml::value::Table) {
+		
+		info!("Applying [freecam] config...");
+		
+		if let Some(x) = table.get("position") {
+			let pos = x.as_array().expect("position must be a table");
+			self.position.x = pos.get(0).expect("x-component").as_float().expect("x-component not a float") as f32;
+			self.position.y = pos.get(1).expect("x-component").as_float().expect("x-component not a float") as f32;
+			self.position.z = pos.get(2).expect("x-component").as_float().expect("x-component not a float") as f32;
+		} else {
+			warn!("Missing key: position = [{:.2}, {:.2}, {:.2}]", self.position.x, self.position.y, self.position.z);
+		}
+		
+		if let Some(x) = table.get("field_of_view") {
+			self.field_of_view = x.as_float().unwrap_or(self.field_of_view as f64) as f32;
+		} else {
+			warn!("Missing key: field_of_view = {}", self.field_of_view);
+		}
+		
+		if let Some(x) = table.get("mouse_sensivity") {
+			self.mouse_sensivity = x.as_float().unwrap_or(self.mouse_sensivity as f64) as f32;
+		} else {
+			warn!("Missing key: mouse_sensivity = {}", self.mouse_sensivity);
+		}
+		
+		if let Some(x) = table.get("move_speed") {
+			self.move_speed = x.as_float().unwrap_or(self.move_speed as f64) as f32;
+		} else {
+			warn!("Missing key: move_speed = {}", self.move_speed);
+		}
+		
+		if let Some(x) = table.get("gravity_power") {
+			self.const_gravity_power = x.as_float().unwrap_or(self.const_gravity_power as f64) as f32;
+		} else {
+			warn!("Missing key: gravity_power = {}", self.const_gravity_power);
+		}
+		
+		if let Some(x) = table.get("gravity_limit") {
+			self.const_gravity_limit = x.as_float().unwrap_or(self.const_gravity_limit as f64) as f32;
+		} else {
+			warn!("Missing key: gravity_limit = {}", self.const_gravity_limit);
+		}
+		
+		if let Some(x) = table.get("air_friction") {
+			self.const_air_friction = x.as_float().unwrap_or(self.const_air_friction as f64) as f32;
+		} else {
+			warn!("Missing key: air_friction = {}", self.const_air_friction);
 		}
 	}
 	
@@ -168,13 +224,10 @@ impl Freecam {
 		// ...and add it to the existing velocity vector.
 		self.velocity += direction * move_speed;
 		
-		let gravity_reduce: f32 = 9.81 * delta;
-		let gravity_decell: f32 = 0.35;
-		
 		if self.gravity {
 			// Apply Gravity
-			self.velocity.y -= gravity_reduce;
-			self.velocity.y *= if self.velocity.y < 0.0 {gravity_decell} else {0.9};
+			self.velocity.y -= self.const_gravity_power * delta;
+			self.velocity.y *= if self.velocity.y < 0.0 {self.const_gravity_limit * delta} else {self.const_air_friction * delta};
 		}
 		
 		// Now do collision checks
@@ -216,7 +269,7 @@ impl Freecam {
 		// Apply velocity
 		self.position += self.velocity;
 		
-		let air_friction: f32 = 0.975 * delta;
+		let air_friction: f32 = self.const_air_friction * delta;
 		
 		if self.gravity {
 			// Apply Friction
