@@ -28,8 +28,8 @@ impl AxisAlignedBoundingBox {
 			y_min: position.y - height,
 			z_min: position.z - radius,
 			x_max: position.x + radius,
-			y_max: position.y + radius,
-			z_max: position.z + height,
+			y_max: position.y + height,
+			z_max: position.z + radius,
 		}
 	}
 	
