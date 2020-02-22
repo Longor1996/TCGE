@@ -264,10 +264,11 @@ impl Freecam {
 		let bpx = self.position.x.floor() as i32;
 		let bpy = self.position.y.floor() as i32;
 		let bpz = self.position.z.floor() as i32;
+		let rad = 3;
 		
-		for y in (bpy-2)..(bpy+2) {
-			for z in (bpz-2)..(bpz+2) {
-				for x in (bpx-2)..(bpx+2) {
+		for y in (bpy-rad)..(bpy+rad) {
+			for z in (bpz-rad)..(bpz+rad) {
+				for x in (bpx-rad)..(bpx+rad) {
 					let pos = blocks::BlockCoord::new(x, y, z);
 					if let Some(block) = chunks.get_block(&pos) {
 						// only match NOT AIR for now
