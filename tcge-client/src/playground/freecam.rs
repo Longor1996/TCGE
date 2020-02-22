@@ -140,6 +140,10 @@ impl Freecam {
 		self.rotation // + ((self.rotation_last - self.rotation) * interpolation)
 	}
 	
+	pub fn get_eye_offset(&self, _interpolation: f32) -> cgmath::Vector3<f32> {
+		cgmath::Vector3 {x: 0.0, y: self.shape_extent*0.75, z: 0.0}
+	}
+	
 	pub fn get_look_dir(&self, interpolation: f32) -> cgmath::Vector3<f32> {
 		let rotation = self.get_rotation_euler(interpolation);
 		let pitch = cgmath::Deg(rotation.x);
@@ -156,6 +160,7 @@ impl Freecam {
 	
 	pub fn get_block_raytrace(&self, len: f32, interpolation: f32) -> blocks::BlockRaycast {
 		let src = self.get_position(interpolation);
+		let src = src + self.get_eye_offset(interpolation);
 		let src = (src.x, src.y, src.z);
 		
 		let dir = self.get_look_dir(interpolation);
@@ -319,7 +324,7 @@ impl Freecam {
 // This impl-block has to deal with OpenGL shenanigans. Do NOT use for anything but rendering.
 impl crate::render::camera::Camera for Freecam {
 	fn get_gl_position(&self, interpolation: f32) -> Vector3<f32> {
-		self.get_position(interpolation)
+		self.get_position(interpolation) + self.get_eye_offset(interpolation)
 	}
 	
 	fn get_gl_rotation_matrix(&self, _interpolation: f32) -> Matrix4<f32> {
