@@ -7,6 +7,8 @@ use super::aabb::AxisAlignedBoundingBox;
 
 pub struct Freecam {
 	pub active: bool,
+	shape_radius: f32,
+	shape_extent: f32,
 	position: cgmath::Vector3<f32>,
 	velocity: cgmath::Vector3<f32>,
 	impulse: cgmath::Vector3<f32>,
@@ -36,7 +38,9 @@ impl Freecam {
 	pub fn new() -> Self {
 		return Self {
 			active: true,
-			position: cgmath::Vector3 { x: 4.0, y: 100.0, z: -8.0 },
+			shape_radius: 0.35,
+			shape_extent: 1.8/2.0,
+			position: cgmath::Vector3 { x: 4.0, y: 3.0, z: -8.0 },
 			velocity: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
 			impulse: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
 			rotation: cgmath::Vector2 { x: 0.0, y: 0.0 },
@@ -68,8 +72,8 @@ impl Freecam {
 		if let Some(x) = table.get("position") {
 			let pos = x.as_array().expect("position must be a table");
 			self.position.x = pos.get(0).expect("x-component").as_float().expect("x-component not a float") as f32;
-			self.position.y = pos.get(1).expect("x-component").as_float().expect("x-component not a float") as f32;
-			self.position.z = pos.get(2).expect("x-component").as_float().expect("x-component not a float") as f32;
+			self.position.y = pos.get(1).expect("x-component").as_float().expect("y-component not a float") as f32;
+			self.position.z = pos.get(2).expect("x-component").as_float().expect("z-component not a float") as f32;
 		} else {
 			warn!("Missing key: position = [{:.2}, {:.2}, {:.2}]", self.position.x, self.position.y, self.position.z);
 		}
@@ -249,7 +253,7 @@ impl Freecam {
 		self.velocity += self.impulse;
 		
 		// Now do collision checks
-		let mut player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, 0.5, 0.5);
+		let mut player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, self.shape_radius, self.shape_extent);
 		let mut block_boxes = vec![];
 		
 		let bpx = self.position.x.floor() as i32;
