@@ -1,4 +1,4 @@
-use cgmath::Vector3;
+use cgmath::{Vector3, Zero};
 
 #[derive(Copy, Clone, Debug)]
 pub struct AxisAlignedBoundingBox {
@@ -59,6 +59,55 @@ impl Default for AxisAlignedBoundingBox {
 }
 
 impl AxisAlignedBoundingBox {
+	
+	pub fn min(&self, idx: usize) -> f32 {
+		match idx {
+			0 => self.x_min,
+			1 => self.y_min,
+			2 => self.z_min,
+			_ => panic!("Invalid axis id: {}", idx)
+		}
+	}
+	
+	pub fn max(&self, idx: usize) -> f32 {
+		match idx {
+			0 => self.x_max,
+			1 => self.y_max,
+			2 => self.z_max,
+			_ => panic!("Invalid axis id: {}", idx)
+		}
+	}
+	
+	pub fn center(&self) -> Vector3<f32> {
+		Vector3::new(
+			(self.x_min + self.x_max) / 2.0,
+			(self.y_min + self.y_max) / 2.0,
+			(self.z_min + self.z_max) / 2.0
+		)
+	}
+	
+	pub fn dimensions(&self) -> Vector3<f32> {
+		Vector3::new(
+			(self.x_max - self.x_min),
+			(self.y_max - self.y_min),
+			(self.z_max - self.z_min)
+		)
+	}
+	
+	pub fn extent(&self) -> Vector3<f32> {
+		self.dimensions() / 2.0
+	}
+	
+}
+
+impl AxisAlignedBoundingBox {
+	
+	pub fn intersect(&self, other: &AxisAlignedBoundingBox) -> bool {
+		if self.x_max < other.x_min || self.x_min > other.x_max {return false;}
+		if self.y_max < other.y_min || self.y_min > other.y_max {return false;}
+		if self.z_max < other.z_min || self.z_min > other.z_max {return false;}
+		true
+	}
 	
 	pub fn intersection_x(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
 		if other.y_max > self.y_min && other.y_min < self.y_max {
