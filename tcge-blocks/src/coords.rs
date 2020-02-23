@@ -149,6 +149,16 @@ impl From<(f32, f32, f32)> for BlockCoord {
 	}
 }
 
+impl From<[f32; 3]> for BlockCoord {
+	fn from(other: [f32; 3]) -> Self {
+		Self::new(
+			other[0].floor() as BlockDim,
+			other[1].floor() as BlockDim,
+			other[2].floor() as BlockDim
+		)
+	}
+}
+
 
 
 impl Into<(BlockDim, BlockDim, BlockDim)> for BlockCoord {
@@ -166,5 +176,11 @@ impl Into<(f32, f32, f32)> for BlockCoord {
 impl Into<(f64, f64, f64)> for BlockCoord {
 	fn into(self) -> (f64, f64, f64) {
 		(self.x as f64, self.y as f64, self.z as f64)
+	}
+}
+
+impl Into<[f32; 3]> for BlockCoord {
+	fn into(self) -> [f32; 3] {
+		[self.x as f32, self.y as f32, self.z as f32]
 	}
 }
