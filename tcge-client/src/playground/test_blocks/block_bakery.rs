@@ -193,7 +193,7 @@ impl StaticBlockBakery {
 	pub fn render_block(&self, context: &BakeryContext, block: &BlockState, out: &mut dyn FnMut(&BakedBlockMeshFace)) {
 		match self.baked_blocks.get(block.id.raw() as usize) {
 			Some(bb) => bb.build(context, block, out),
-			None => return
+			None => {}
 		};
 	}
 }

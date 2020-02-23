@@ -138,7 +138,7 @@ impl BlockRaycast {
 		
 		self.step_compute();
 		self.visited += 1;
-		return Some(ret)
+		Some(ret)
 	}
 	
 	/// Calculates the next step using Bresenhams Line Algorithm (3D adaptation).

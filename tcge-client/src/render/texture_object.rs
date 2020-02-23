@@ -1,4 +1,4 @@
-use image;
+
 use image::GenericImageView;
 use common::resources;
 
@@ -83,7 +83,7 @@ impl TextureObjectBuilder {
 		// load buffer
 		use resources::ResourceProvider;
 		let buffer = res.res_as_buffer(location)
-			.map_err(|e| TextureError::Resource(e))?;
+			.map_err(TextureError::Resource)?;
 		
 		// parse buffer
 		self.build_from_buffer(gl, &buffer)
@@ -97,7 +97,7 @@ impl TextureObjectBuilder {
 	) -> Result<TextureObject, TextureError> {
 		// Parse image
 		let image = image::load_from_memory(buffer)
-			.map_err(|e| TextureError::Image(e))?;
+			.map_err(TextureError::Image)?;
 		
 		// Get size
 		let image_size = image.dimensions();
@@ -221,7 +221,7 @@ impl TextureObject {
 	
 	#[allow(dead_code)]
 	pub fn get_uv_rect(&self, x: u32, y:u32, w: u32, h: u32) -> [f32;4] {
-		return [
+		[
 			x as f32 * self.tx,
 			y as f32 * self.ty,
 			(x+w) as f32 * self.tx,

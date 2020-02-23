@@ -3,7 +3,7 @@ use super::ResourceError;
 use std::path::PathBuf;
 use std::io::Read;
 use std::fs::File;
-use walkdir;
+
 
 pub struct FilesystemProvider {
 	root_path: PathBuf
@@ -12,7 +12,7 @@ pub struct FilesystemProvider {
 impl FilesystemProvider {
 	pub fn from_exe_path() -> Result<FilesystemProvider, ResourceError> {
 		let exe_path = super::super::get_exe_path()
-			.map_err(|ioe| ResourceError::Io(ioe))?;
+			.map_err(ResourceError::Io)?;
 		let fs_path = exe_path.join("assets");
 		
 		info!("Created FilesystemProvider: {}", fs_path.to_str().unwrap_or("[ERROR]"));
@@ -62,12 +62,12 @@ impl super::ResourceProvider for FilesystemProvider {
 		let mut path: PathBuf = self.root_path.clone();
 		
 		// Instead of passing the path directly...
-		for part in location.inner.split("/") {
+		for part in location.inner.split('/') {
 			path = path.join(part);
 		}
 		
 		let file = File::open(path)
-			.map_err(|ioe| ResourceError::Io(ioe))?;
+			.map_err(ResourceError::Io)?;
 		
 		Ok(Box::new(file))
 	}

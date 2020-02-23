@@ -12,7 +12,7 @@ pub fn parse_file(
 ) -> Result<(), TextRendererError> {
 	
 	let font_file = res.res_as_stream(&index_loc)
-		.map_err(|e| TextRendererError::Resource(e))?;
+		.map_err(TextRendererError::Resource)?;
 	
 	debug!("Parsing font: {}", index_loc);
 	for line in BufReader::new(font_file).lines() {
@@ -48,19 +48,19 @@ pub fn parse_file(
 			
 			let page_loc = ResourceLocation::from_string(font_loc.inner.clone() + "/" + &page_name);
 			
-			&text.gl.push_debug(&format!("Loading font-page {}", page_name));
+			text.gl.push_debug(&format!("Loading font-page {}", page_name));
 			debug!("Loading font page: {}", page_name);
 			let page_tex = render::TextureObjectBuilder::new()
 				.name(format!("Font Page {}/{}", name, page_name))
 				.build_from_res(&text.gl, &res, &page_loc)
-				.map_err(|e| TextRendererError::Texture(e))?;
+				.map_err(TextRendererError::Texture)?;
 			
 			while let Some(error) = &text.gl.get_error() {
 				error!("OpenGL error while loading font-page {}: {}", page_name, error);
 			}
 			
-			&text.gl.flush();
-			&text.gl.pop_debug();
+			text.gl.flush();
+			text.gl.pop_debug();
 			
 			text.material.pages.insert(page_id, page_tex);
 			continue;

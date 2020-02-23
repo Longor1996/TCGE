@@ -36,7 +36,7 @@ pub struct Freecam {
 impl Freecam {
 	/// Creates a new camera with default settings.
 	pub fn new() -> Self {
-		return Self {
+		Self {
 			active: true,
 			shape_radius: 0.3,
 			shape_extent: 1.8/2.0,
@@ -258,7 +258,7 @@ impl Freecam {
 		self.velocity += self.impulse;
 		
 		// Now do collision checks
-		let mut player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, self.shape_radius, self.shape_extent);
+		let player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, self.shape_radius, self.shape_extent);
 		let mut block_boxes = vec![];
 		
 		let bpx = self.position.x.floor() as i32;

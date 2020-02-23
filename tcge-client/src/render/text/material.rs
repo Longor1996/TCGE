@@ -24,23 +24,23 @@ impl TextRendererMaterial {
 		
 		trace!("Loading vertex shader...");
 		let shader_vert = res.res_as_cstring(&location.add(".vert"))
-			.map_err(|e| TextRendererError::Resource(e))?;
+			.map_err(TextRendererError::Resource)?;
 		
 		trace!("Compiling vertex shader...");
 		let shader_vert = ShaderObject::new_vertex_shader(gl, &shader_vert)
-			.map_err(|e| TextRendererError::Shader(e))?;
+			.map_err(TextRendererError::Shader)?;
 		
 		trace!("Loading fragment shader...");
 		let shader_frag = res.res_as_cstring(&location.add(".frag"))
-			.map_err(|e| TextRendererError::Resource(e))?;
+			.map_err(TextRendererError::Resource)?;
 		
 		trace!("Compiling fragment shader...");
 		let shader_frag = ShaderObject::new_fragment_shader(gl, &shader_frag)
-			.map_err(|e| TextRendererError::Shader(e))?;
+			.map_err(TextRendererError::Shader)?;
 		
 		trace!("Linking program...");
 		let program = ProgramObject::new(gl, "Text Renderer", &smallvec![shader_vert, shader_frag])
-			.map_err(|e| TextRendererError::Shader(e))?;
+			.map_err(TextRendererError::Shader)?;
 		
 		trace!("Fetching uniforms...");
 		let uniform_matrix = program.get_uniform_location("transform")

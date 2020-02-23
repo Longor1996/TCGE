@@ -75,7 +75,7 @@ impl TextRenderer {
 				lx + (w), ly + (h), character.uv[2], character.uv[3],
 				lx + 0.0, ly + (h), character.uv[0], character.uv[3],
 			];
-			&self.buffer.append(&mut temp);
+			self.buffer.append(&mut temp);
 			ok = true;
 		}
 		

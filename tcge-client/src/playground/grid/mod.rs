@@ -79,19 +79,19 @@ impl GridMaterial {
 		let shader_frag = ResourceLocation::from("core/shaders/grid.frag");
 		
 		let shader_vert = res.res_as_cstring(&shader_vert)
-			.map_err(|err| GridMaterialError::Resource(err))?;
+			.map_err(GridMaterialError::Resource)?;
 		
 		let shader_frag = res.res_as_cstring(&shader_frag)
-			.map_err(|err| GridMaterialError::Resource(err))?;
+			.map_err(GridMaterialError::Resource)?;
 		
 		let shader_vert = ShaderObject::new_vertex_shader(gl, &shader_vert)
-			.map_err(|err| GridMaterialError::Shader(err))?;
+			.map_err(GridMaterialError::Shader)?;
 		
 		let shader_frag = ShaderObject::new_fragment_shader(gl, &shader_frag)
-			.map_err(|err| GridMaterialError::Shader(err))?;
+			.map_err(GridMaterialError::Shader)?;
 		
 		let shader = ProgramObject::new(gl, "Sky", &smallvec![shader_vert, shader_frag])
-			.map_err(|err| GridMaterialError::Shader(err))?;
+			.map_err(GridMaterialError::Shader)?;
 		
 		let uniform_matrix = shader.get_uniform_location("transform").unwrap();
 		Ok(Self {

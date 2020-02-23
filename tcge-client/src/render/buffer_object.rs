@@ -62,7 +62,7 @@ impl BufferObject {
 			gl.BufferData(
 				target,
 				bytes as gl::types::GLsizeiptr,
-				0 as *const gl::types::GLvoid,
+				std::ptr::null::<gl::types::GLvoid>(),
 				usage
 			);
 			gl.BindBuffer(target, 0);
@@ -119,7 +119,7 @@ impl BufferObject {
 			gl.BufferStorage(
 				target,
 				bytes as gl::types::GLsizeiptr,
-				0 as *const gl::types::GLvoid,
+				std::ptr::null::<gl::types::GLvoid>(),
 				flags
 			);
 			gl.BindBuffer(target, 0);

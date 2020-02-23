@@ -39,7 +39,7 @@ impl VertexArrayBuilder {
 		unsafe {
 			self.gl.BindBuffer(buffer_object.target, buffer_object.id);
 			
-			if attributes.len() > 0 {
+			if !attributes.is_empty() {
 				for attrib in attributes {
 					attrib.apply(&self.gl);
 				}
@@ -111,7 +111,7 @@ impl VertexArray {
 		let count = self.count as gl::types::GLsizei;
 		unsafe {
 			gl.BindVertexArray(self.id);
-			gl.DrawElements(self.mode, count, type_, 0 as *const gl::types::GLvoid);
+			gl.DrawElements(self.mode, count, type_, std::ptr::null::<gl::types::GLvoid>());
 		}
 	}
 	
@@ -120,7 +120,7 @@ impl VertexArray {
 		let count = count as gl::types::GLsizei;
 		unsafe {
 			gl.BindVertexArray(self.id);
-			gl.DrawElements(self.mode, count, type_, 0 as *const gl::types::GLvoid);
+			gl.DrawElements(self.mode, count, type_, std::ptr::null::<gl::types::GLvoid>());
 		}
 	}
 }

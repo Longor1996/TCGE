@@ -147,7 +147,7 @@ fn main_loop(
 				glfw::WindowEvent::Key(glfw::Key::Escape, _, glfw::Action::Press, _) => {
 					let current = common::current_time_nanos();
 					
-					if (current - last_escape_press) < 500000000 {
+					if (current - last_escape_press) < 500_000_000 {
 						info!("User pressed ESC twice, shutting down...");
 						glfw_context.window.set_should_close(true)
 					} else {
@@ -462,5 +462,5 @@ pub fn toggle_cursor_mode(window: &mut glfw::Window, state: Option<glfw::CursorM
 		glfw::CursorMode::Disabled => glfw::CursorMode::Normal,
 	};
 	
-	return state;
+	state
 }

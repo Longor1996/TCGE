@@ -39,7 +39,7 @@ impl ChunkMesh {
 				gl::TRIANGLES,
 				self.count,
 				gl::UNSIGNED_SHORT,
-				0 as *const gl::types::GLvoid
+				std::ptr::null::<gl::types::GLvoid>()
 			);
 		}
 	}
@@ -57,7 +57,7 @@ pub fn draw_chunk(gl: &gl::Gl, chunk_mesh_raw: ChunkMeshRaw) {
 			gl::TRIANGLES,
 			count,
 			gl::UNSIGNED_SHORT,
-			0 as *const gl::types::GLvoid
+			std::ptr::null::<gl::types::GLvoid>()
 		);
 	}
 }
@@ -154,19 +154,19 @@ pub fn mesh_chunk(
 		local_z: BlockDim,
 	| {
 		// Local minima is 0, maxima is +17: The standard range of 0..CHUNK_SIZE+2
-		(unsafe {
+		unsafe {
 			block_data
 				.get_unchecked((local_y+1) as usize)
 				.get_unchecked((local_z+1) as usize)
 				.get_unchecked((local_x+1) as usize).clone()
-		})
+		}
 	};
 	
 	let mut context = BakeryContext::new();
 	
 	let prep_time = common::current_time_nanos_precise() - prep_time;
 	// let mut starts = (start, start);
-	let mut length = (0, 0);
+	let length = (0, 0);
 	
 	let mut non_empty = 0;
 	
@@ -234,7 +234,7 @@ pub fn mesh_chunk(
 
 pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVertex>, quad_index: &render::BufferObjectRef) -> ChunkMeshState {
 	// Don't upload empty meshes.
-	if mesh_data.len() == 0 {
+	if mesh_data.is_empty() {
 		return ChunkMeshState::Empty
 	}
 	

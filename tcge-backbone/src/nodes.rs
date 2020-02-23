@@ -35,7 +35,7 @@ impl super::Backbone {
 			self.handlers.insert(node_id, handler);
 		}
 		
-		return Ok(node_id)
+		Ok(node_id)
 	}
 	
 	pub fn path_to_string(&self, path: &[NodeId]) -> Result<String, ()> {

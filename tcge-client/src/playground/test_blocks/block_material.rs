@@ -28,7 +28,7 @@ impl BlocksMaterial {
 			.anisotropy(true)
 			.filter(gl::NEAREST_MIPMAP_LINEAR, gl::NEAREST)
 			.build_from_res(gl, &res, &atlas_loc)
-			.map_err(|err| BlocksMaterialError::Texture(err))?;
+			.map_err(BlocksMaterialError::Texture)?;
 		
 		
 		debug!("Loading blocks shader...");
@@ -37,19 +37,19 @@ impl BlocksMaterial {
 		let shader_frag = ResourceLocation::from("core/shaders/blocks.frag");
 		
 		let shader_vert = res.res_as_cstring(&shader_vert)
-			.map_err(|err| BlocksMaterialError::Resource(err))?;
+			.map_err(BlocksMaterialError::Resource)?;
 		
 		let shader_frag = res.res_as_cstring(&shader_frag)
-			.map_err(|err| BlocksMaterialError::Resource(err))?;
+			.map_err(BlocksMaterialError::Resource)?;
 		
 		let shader_vert = ShaderObject::new_vertex_shader(gl, &shader_vert)
-			.map_err(|err| BlocksMaterialError::Shader(err))?;
+			.map_err(BlocksMaterialError::Shader)?;
 		
 		let shader_frag = ShaderObject::new_fragment_shader(gl, &shader_frag)
-			.map_err(|err| BlocksMaterialError::Shader(err))?;
+			.map_err(BlocksMaterialError::Shader)?;
 		
 		let shader = ProgramObject::new(gl, "Blocks", &smallvec![shader_vert, shader_frag])
-			.map_err(|err| BlocksMaterialError::Shader(err))?;
+			.map_err(BlocksMaterialError::Shader)?;
 		
 		// TODO: Fix error handling
 		let uniform_matrix = shader.get_uniform_location("transform").unwrap();

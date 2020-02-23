@@ -27,7 +27,7 @@ pub trait ResourceProvider {
 		let mut buf = Vec::<u8>::new();
 		
 		stream.read_to_end(&mut buf)
-			.map_err(|ioe| ResourceError::Io(ioe))
+			.map_err(ResourceError::Io)
 			?;;
 		
 		Ok(buf)
@@ -38,7 +38,7 @@ pub trait ResourceProvider {
 		let mut buf = String::new();
 		
 		stream.read_to_string(&mut buf)
-			.map_err(|ioe| ResourceError::Io(ioe))
+			.map_err(ResourceError::Io)
 			?;
 		
 		Ok(buf)

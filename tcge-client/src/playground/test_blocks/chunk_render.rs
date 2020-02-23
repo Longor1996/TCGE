@@ -114,33 +114,31 @@ impl ChunkRenderManager {
 				if let ChunkMeshState::Meshed(mesh) = mesh {
 					self.calls.push(mesh.draw_later());
 				}
-			} else {
-				if max_uploads_per_frame > 0 {
-					max_uploads_per_frame -= 1;
-					
-					let block_data = chunks.get_chunk_with_edges(chunk_pos).unwrap();
-					
-					let profiler_tree = common::profiler::profiler().get_current();
-					profiler_tree.enter_noguard("mesh-chunk");
-					
-					mesh_chunk(
-						&mut self.mesher,
-						self.blocks.clone(),
-						&self.bakery,
-						&chunk,
-						&block_data
-					);
-					
-					let mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.quad_index);
-					
-					if let ChunkMeshState::Meshed(mesh) = &mesh {
-						self.calls.push(mesh.draw_later());
-					}
-					
-					profiler_tree.leave();
-					
-					self.chunks.insert(chunk_pos.clone(), (current_time_nanos(), mesh));
+			} else if max_uploads_per_frame > 0 {
+				max_uploads_per_frame -= 1;
+				
+				let block_data = chunks.get_chunk_with_edges(chunk_pos).unwrap();
+				
+				let profiler_tree = common::profiler::profiler().get_current();
+				profiler_tree.enter_noguard("mesh-chunk");
+				
+				mesh_chunk(
+					&mut self.mesher,
+					self.blocks.clone(),
+					&self.bakery,
+					&chunk,
+					&block_data
+				);
+				
+				let mesh = upload(&self.gl, &chunk.pos, &self.mesher.vertices, &self.quad_index);
+				
+				if let ChunkMeshState::Meshed(mesh) = &mesh {
+					self.calls.push(mesh.draw_later());
 				}
+				
+				profiler_tree.leave();
+				
+				self.chunks.insert(chunk_pos.clone(), (current_time_nanos(), mesh));
 			}
 		}
 		

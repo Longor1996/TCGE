@@ -69,9 +69,7 @@ impl super::Backbone {
 				path_str: &self.path_str.as_str(),
 			};
 			
-			handler.map(|handler| {
-				handler.on_event(&mut event, &mut context);
-			});
+			if let Some(handler) = handler { handler.on_event(&mut event, &mut context); }
 			
 			if !event.can_propagate {
 				break;
@@ -122,9 +120,7 @@ impl super::Backbone {
 				path_str: &self.path_str.as_str(),
 			};
 			
-			handler.map(|handler| {
-				handler.on_event(&mut event, &mut context);
-			});
+			if let Some(handler) = handler { handler.on_event(&mut event, &mut context); }
 			
 			if !event.can_bubble {
 				break;

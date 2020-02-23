@@ -47,7 +47,7 @@ pub fn setup(
 				toml::value::Table::new()
 			}
 		},
-		Err(e) => {
+		Err(_e) => {
 			error!("Failed to read playground.toml");
 			toml::value::Table::new()
 		}
@@ -92,7 +92,7 @@ pub fn setup(
 		&glfw_context.gl,
 		res,
 		&blocks,
-		bakery.clone()
+		bakery
 	).map_err(|_| {
 		error!("Failed to load 'Blocks' material.");
 	}).unwrap();
@@ -183,7 +183,7 @@ impl backbone::Handler for Playground {
 						.get_block_by_name_unchecked("adm")
 						.get_default_state();
 					
-					let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+					let camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 					
 					if ! camera.active {
 						return;
@@ -305,7 +305,7 @@ impl Playground {
 	pub fn render_scene(&mut self, render_event: &RenderEvent) {
 		use crate::render::*;
 		
-		let mut camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
+		let camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
 		
 		let proj_matrix = camera.get_gl_projection_matrix((render_event.width, render_event.height), render_event.interpolation);
 		let skyw_matrix = camera.get_gl_view_matrix(false, render_event.interpolation);
@@ -343,11 +343,11 @@ impl Playground {
 			render_event.gl.BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
 		}
 		
-		let projection = cgmath::Matrix4::from(cgmath::ortho(
+		let projection = cgmath::ortho(
 			0.0, render_event.width as f32,
 			render_event.height as f32, 0.0,
 			-1.0, 1.0
-		));
+		);
 		
 		self.crosshair_2d.draw(&projection, render_event.width, render_event.height, 4.0);
 		

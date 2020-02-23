@@ -104,17 +104,14 @@ fn prepare_gpu_objects(gl: &gl::Gl) -> super::VertexArray {
 	let vao = super::VertexArrayBuilder::new(gl)
 		.attach_buffer(
 			vertices,
-			&vec![
-				// Position
-				super::VertexArrayAttrib::from_type::<f32>(0, 2, gl::FLOAT, false, 4, 0),
+			&[super::VertexArrayAttrib::from_type::<f32>(0, 2, gl::FLOAT, false, 4, 0),
 				// TexCoord
-				super::VertexArrayAttrib::from_type::<f32>(1, 2, gl::FLOAT, false, 4, 2),
-			],
+				super::VertexArrayAttrib::from_type::<f32>(1, 2, gl::FLOAT, false, 4, 2)],
 			Some("Dynamic Text Vertices")
 		)
 		.attach_buffer(
 			indices,
-			&vec![],
+			&[],
 			Some("Dynamic Text Indices")
 		)
 		.set_label("Dynamic Text")

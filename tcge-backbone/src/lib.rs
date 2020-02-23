@@ -179,7 +179,7 @@ impl Backbone {
 			}
 		}
 		
-		return true
+		true
 	}
 	
 	pub fn get_state(&self) -> &State {

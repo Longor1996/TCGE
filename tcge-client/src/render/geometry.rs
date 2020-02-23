@@ -99,10 +99,8 @@ impl SimpleMeshBuilder {
 		).to_ref();
 		
 		let vao = VertexArrayBuilder::new(gl)
-			.attach_buffer(vbo, &vec![
-				VertexArrayAttrib::from_type::<f32>(0, 3, gl::FLOAT, false, 5, 0),
-				VertexArrayAttrib::from_type::<f32>(1, 2, gl::FLOAT, false, 5, 3),
-			], None)
+			.attach_buffer(vbo, &[VertexArrayAttrib::from_type::<f32>(0, 3, gl::FLOAT, false, 5, 0),
+				VertexArrayAttrib::from_type::<f32>(1, 2, gl::FLOAT, false, 5, 3)], None)
 			.build(
 				gl::TRIANGLES,
 				elements

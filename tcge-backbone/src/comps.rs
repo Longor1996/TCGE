@@ -24,9 +24,7 @@ impl<'a> super::Backbone {
 			panic!("Could not attach component: The given NodeId is not valid.");
 		}
 		
-		if ! self.comps.contains_key(&node_id) {
-			self.comps.insert(node_id, FxHashMap::default());
-		}
+		self.comps.entry(node_id).or_insert(FxHashMap::default());
 		
 		let type_id = component.get_type_id();
 		let comps = self.comps.get_mut(&node_id).unwrap();

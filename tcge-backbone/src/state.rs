@@ -14,7 +14,7 @@ pub fn update_path(
 	
 	// Parsing of starting location only happens when `offset = 0`
 	if *dst_offset == 0 {
-		if dst_path.starts_with("/") {
+		if dst_path.starts_with('/') {
 			// Bubble until you hit the root
 			if src_path.len() > 1 {
 				return PathChange::ToSuper;
@@ -38,12 +38,12 @@ pub fn update_path(
 	let mut path = dst_path.split_at(*dst_offset).1;
 	
 	// Have we already reached the end?
-	if path.len() == 0 {
+	if path.is_empty() {
 		return PathChange::End;
 	}
 	
 	// Slice away unnecessary slashes
-	while path.starts_with("/") {
+	while path.starts_with('/') {
 		*dst_offset += 1;
 		path = &path[1..];
 	}
@@ -63,10 +63,10 @@ pub fn update_path(
 	
 	let current = match current {
 		Some(x) => x,
-		None => return PathChange::Error(format!("Could not resolve current.")),
+		None => return PathChange::Error("Could not resolve current.".to_string()),
 	};
 	
-	let end = path.find("/")
+	let end = path.find('/')
 		.unwrap_or(path.len());
 	
 	let name = &path[..end];
@@ -90,7 +90,7 @@ pub fn update_path(
 	};
 	
 	*dst_offset += end;
-	return PathChange::ToNode(next.get_id());
+	PathChange::ToNode(next.get_id())
 }
 
 ////////////////////////////////////////////////////////////////////////////////

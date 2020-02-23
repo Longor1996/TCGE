@@ -327,7 +327,7 @@ impl ChunkStorage {
 			}
 		}
 		
-		return None;
+		None
 	}
 	
 	pub fn get_approximate_volume(&self) -> u64 {

@@ -20,7 +20,7 @@ pub trait Camera {
 	///
 	/// If `translation` is `false`, the camera position is ignored in the computation.
 	fn get_gl_view_matrix(&self, translation: bool, interpolation: f32) -> Matrix4<f32> {
-		let rot: Matrix4<f32> = self.get_gl_rotation_matrix(interpolation).into();
+		let rot: Matrix4<f32> = self.get_gl_rotation_matrix(interpolation);
 		
 		let mut out: Matrix4<f32> = rot;
 		

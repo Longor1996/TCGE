@@ -20,19 +20,19 @@ impl SolidColorMaterial {
 		let shader_frag = ResourceLocation::from("core/shaders/solid-color.frag");
 		
 		let shader_vert = res.res_as_cstring(&shader_vert)
-			.map_err(|err| SolidColorMaterialError::Resource(err))?;
+			.map_err(SolidColorMaterialError::Resource)?;
 		
 		let shader_frag = res.res_as_cstring(&shader_frag)
-			.map_err(|err| SolidColorMaterialError::Resource(err))?;
+			.map_err(SolidColorMaterialError::Resource)?;
 		
 		let shader_vert = ShaderObject::new_vertex_shader(gl, &shader_vert)
-			.map_err(|err| SolidColorMaterialError::Shader(err))?;
+			.map_err(SolidColorMaterialError::Shader)?;
 		
 		let shader_frag = ShaderObject::new_fragment_shader(gl, &shader_frag)
-			.map_err(|err| SolidColorMaterialError::Shader(err))?;
+			.map_err(SolidColorMaterialError::Shader)?;
 		
 		let shader = ProgramObject::new(gl, "Sky", &smallvec![shader_vert, shader_frag])
-			.map_err(|err| SolidColorMaterialError::Shader(err))?;
+			.map_err(SolidColorMaterialError::Shader)?;
 		
 		let uniform_matrix = shader.get_uniform_location("transform").unwrap();
 		let uniform_color = shader.get_uniform_location("color").unwrap();

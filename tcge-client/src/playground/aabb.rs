@@ -61,7 +61,7 @@ impl Default for AxisAlignedBoundingBox {
 impl AxisAlignedBoundingBox {
 	
 	pub fn intersection_x(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
-		return if other.y_max > self.y_min && other.y_min < self.y_max {
+		if other.y_max > self.y_min && other.y_min < self.y_max {
 			if other.z_max > self.z_min && other.z_min < self.z_max {
 				let mut d1 = 0.0;
 				
@@ -89,7 +89,7 @@ impl AxisAlignedBoundingBox {
 	}
 	
 	pub fn intersection_y(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
-		return if other.x_max > self.x_min && other.x_min < self.x_max {
+		if other.x_max > self.x_min && other.x_min < self.x_max {
 			if other.z_max > self.z_min && other.z_min < self.z_max {
 				let mut d1 = 0.0;
 				
@@ -117,7 +117,7 @@ impl AxisAlignedBoundingBox {
 	}
 	
 	pub fn intersection_z(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
-		return if other.x_max > self.x_min && other.x_min < self.x_max {
+		if other.x_max > self.x_min && other.x_min < self.x_max {
 			if other.y_max > self.y_min && other.y_min < self.y_max {
 				let mut d1 = 0.0;
 				
