@@ -19,6 +19,7 @@ tcge-opengl   = { path = "../tcge-opengl"}
 rustc-hash = "1.0.1"
 smallvec = {version = "0.6.10", default-features = false, features = ["default"]}
 cgmath = {version = "0.17.0", default-features = false} # cant disable "rand"?
+collision = "0.20.1"
 
 # (De)Serialization
 toml = "0.5.6"

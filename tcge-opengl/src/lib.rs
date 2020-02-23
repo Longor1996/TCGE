@@ -1,5 +1,8 @@
 //! This library crate contains the (generated) OpenGL bindings used by the client.
 
+// Force clippy to shut the heck up; this is a C-binding, there is no hope!
+#![allow(clippy::all)]
+
 /// The actual (automatically generated) OpenGL bindings.
 pub mod bindings;
 

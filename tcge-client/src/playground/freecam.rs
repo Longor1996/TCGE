@@ -38,7 +38,7 @@ impl Freecam {
 	pub fn new() -> Self {
 		return Self {
 			active: true,
-			shape_radius: 0.35,
+			shape_radius: 0.3,
 			shape_extent: 1.8/2.0,
 			position: cgmath::Vector3 { x: 4.0, y: 3.0, z: -8.0 },
 			velocity: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },

@@ -1,5 +1,5 @@
 #[repr(u8)]
-#[derive(Debug, Hash, Eq, Copy, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
 pub enum Face {
 	// None = 0,
 	PositiveX = 1, NegativeX = 2,
@@ -27,12 +27,5 @@ impl Face {
 			Face::NegativeZ => ( 0.0, 0.0,-1.0),
 			Face::EveryDir => (0.0, 0.0, 0.0),
 		}
-	}
-}
-
-impl PartialEq for Face {
-	/// Partial equality for the state of a lens, using the `LensState` discriminant.
-	fn eq(&self, other: &Face) -> bool {
-		std::mem::discriminant(self) == std::mem::discriminant(other)
 	}
 }

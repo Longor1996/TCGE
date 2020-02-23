@@ -54,7 +54,7 @@ fn main() {
 	let includes = common::resources::IncludeProvider::new(includes);
 	resources.register_provider_by_type(includes);
 	
-	for iterator in resources.res_list() {
+	if let Ok(iterator) = resources.res_list() {
 		for path in iterator {
 			info!("Found Resource: {}", path);
 		}

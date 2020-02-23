@@ -25,6 +25,11 @@ impl Blocks {
 		new.register_block(Box::new(SimpleBlock::new(BlockId::new(0), "air", BlockLayers::default())));
 		new.register_block(Box::new(SimpleBlock::new(BlockId::new(1), "adm", BlockLayers::default())));
 		
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(2), "adm2", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(3), "adm3", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(4), "adm4", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(5), "adm5", BlockLayers::default())));
+		
 		new
 	}
 	

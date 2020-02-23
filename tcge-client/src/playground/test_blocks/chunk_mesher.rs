@@ -260,7 +260,7 @@ pub fn upload(gl: &gl::Gl, chunk_pos: &ChunkCoord, mesh_data: &Vec<ChunkMeshVert
 			gl::HALF_FLOAT, // sub-element type
 			gl::FALSE, // sub-element normalization
 			stride,
-			(0 * std::mem::size_of::<f16>()) as *const gl::types::GLvoid
+			std::ptr::null()
 		);
 		
 		gl.EnableVertexAttribArray(1);

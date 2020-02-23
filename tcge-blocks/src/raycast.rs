@@ -42,6 +42,8 @@ impl BlockRaycast {
 	///
 	/// This function prepares the necessary variables the algorithm requires to work.
 	pub fn new_from_src_dst(src: VEC3, dst: VEC3) -> Self {
+		#![allow(clippy::float_cmp)]
+		
 		let gx0idx = src.0.floor();
 		let gy0idx = src.1.floor();
 		let gz0idx = src.2.floor();
@@ -118,6 +120,8 @@ impl BlockRaycast {
 	
 	/// Wraps the state-handling of calculating the next step.
 	pub fn step(&mut self) -> Option<(BlockDim, BlockDim, BlockDim)> {
+		#![allow(clippy::float_cmp)]
+		
 		if self.done {
 			return None
 		}
@@ -139,6 +143,8 @@ impl BlockRaycast {
 	
 	/// Calculates the next step using Bresenhams Line Algorithm (3D adaptation).
 	fn step_compute(&mut self) {
+		#![allow(clippy::float_cmp)]
+		
 		self.lx = self.gx;
 		self.ly = self.gy;
 		self.lz = self.gz;

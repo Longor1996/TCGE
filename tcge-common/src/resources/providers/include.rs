@@ -39,6 +39,7 @@ impl super::ResourceProvider for IncludeProvider {
 		match file {
 			None => Err(ResourceError::NotFound),
 			Some((_name, bytes)) => {
+				#[allow(clippy::clone_double_ref)]
 				let r = bytes.clone();
 				let r = Box::new(r);
 				Ok(r)

@@ -20,10 +20,13 @@ pub trait ResourceProvider {
 	fn res_as_stream(&self, location: &ResourceLocation) -> Result<Box<dyn Read>, ResourceError>;
 	
 	fn res_as_buffer(&self, location: &ResourceLocation) -> Result<Vec<u8>, ResourceError> {
-		let mut read = self.res_as_stream(location)?;
+		// If the extra semicolon is removed, the code does not compile, so it gets to stay.
+		#![allow(redundant_semicolon)]
+		
+		let mut stream = self.res_as_stream(location)?;
 		let mut buf = Vec::<u8>::new();
 		
-		read.read_to_end(&mut buf)
+		stream.read_to_end(&mut buf)
 			.map_err(|ioe| ResourceError::Io(ioe))
 			?;;
 		
@@ -31,10 +34,10 @@ pub trait ResourceProvider {
 	}
 	
 	fn res_as_string(&self, location: &ResourceLocation) -> Result<String, ResourceError> {
-		let mut read = self.res_as_stream(location)?;
+		let mut stream = self.res_as_stream(location)?;
 		let mut buf = String::new();
 		
-		read.read_to_string(&mut buf)
+		stream.read_to_string(&mut buf)
 			.map_err(|ioe| ResourceError::Io(ioe))
 			?;
 		
