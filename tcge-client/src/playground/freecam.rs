@@ -1,9 +1,10 @@
 use glfw::{Key, Action};
-use cgmath::Matrix4;
+use cgmath::{Matrix4, Zero};
 use cgmath::Vector3;
 use cgmath::Transform;
 use cgmath::InnerSpace;
 use super::aabb::AxisAlignedBoundingBox;
+use glfw::GamepadAxis::AxisLeftTrigger;
 
 pub struct Freecam {
 	pub active: bool,
@@ -284,6 +285,47 @@ impl Freecam {
 		
 		let is_falling = self.velocity.y < 0.0;
 		
+		let mut hits: Vec<_> = block_boxes.iter()
+			.filter_map(|block_box| AxisAlignedBoundingBox::sweep_self(&player_box, &self.velocity, &block_box))
+			.collect();
+		
+		hits.sort_by(|a, b| {a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal)});
+		
+		
+		println!("hits: {}", hits.len());
+		
+		for (time, over, velo, norm) in hits {
+			println!("sweep: {:.2}, {:?}, {:?}, {:?}", time, over, velo, norm);
+			
+			if velo.x != 0.0 || velo.y != 0.0 || velo.z != 0.0 {
+				if norm.x != 0.0 {
+					self.velocity.x = 0.0;
+				}
+				if norm.y != 0.0 {
+					self.velocity.y = 0.0;
+				}
+				if norm.z != 0.0 {
+					self.velocity.z = 0.0;
+				}
+			}
+			
+			// self.velocity = *velo;
+		}
+		
+		// TODO: Read https://github.com/oniietzschan/bump-3dpd/blob/master/bump-3dpd.lua
+		// TODO: Read https://github.com/andyhall/voxel-aabb-sweep/blob/master/index.js
+		// TODO: Read https://flipcode.com/archives/3D_Pong_Collision_Response.shtml
+		
+		/*
+		println!("hits: {}", hits.len());
+		for (time, velo, norm) in hits {
+			
+			println!("sweep: {:.2}, {:?}, {:?}", time, velo, norm);
+			self.velocity = velo;
+		}
+		*/
+		
+		/*
 		for block_box in block_boxes.iter() {
 			self.velocity.y = block_box.intersection_y(&player_box, self.velocity.y);
 		}
@@ -295,6 +337,7 @@ impl Freecam {
 		for block_box in block_boxes.iter() {
 			self.velocity.z = block_box.intersection_z(&player_box, self.velocity.z);
 		}
+		*/
 		
 		let is_on_ground = self.velocity.y == 0.0 && is_falling;
 		
