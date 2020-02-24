@@ -1,4 +1,5 @@
 use cgmath::{Vector3, Zero};
+use std::ops::Neg;
 
 #[derive(Copy, Clone, Debug)]
 pub struct AxisAlignedBoundingBox {
@@ -60,6 +61,14 @@ impl Default for AxisAlignedBoundingBox {
 
 impl AxisAlignedBoundingBox {
 	
+	pub fn min_vec(&self) -> Vector3<f32> {
+		Vector3::new(self.x_min, self.y_min, self.z_min)
+	}
+	
+	pub fn max_vec(&self) -> Vector3<f32> {
+		Vector3::new(self.x_max, self.y_max, self.z_max)
+	}
+	
 	pub fn min(&self, idx: usize) -> f32 {
 		match idx {
 			0 => self.x_min,
@@ -98,18 +107,49 @@ impl AxisAlignedBoundingBox {
 		self.dimensions() / 2.0
 	}
 	
+	pub fn contains(&self, p: Vector3<f32>) -> bool {
+		   p.x >= self.x_min && p.x <= self.x_max
+		&& p.y >= self.y_min && p.y <= self.y_max
+		&& p.z >= self.z_min && p.z <= self.z_max
+	}
+	
+	pub fn contains_with_delta(&self, p: Vector3<f32>, d: f32) -> bool {
+		   p.x >= self.x_min-d && p.x <= self.x_max+d
+		&& p.y >= self.y_min-d && p.y <= self.y_max+d
+		&& p.z >= self.z_min-d && p.z <= self.z_max+d
+	}
+	
+	pub fn nearest_corner(&self, p: Vector3<f32>) -> Vector3<f32> {
+		fn nearest(v: f32, a: f32, b: f32) -> f32 {
+			if (a - v).abs() < (b - v).abs() {a} else {b}
+		};
+		Vector3::new(
+			nearest(p.x, self.x_min, self.x_max),
+			nearest(p.y, self.y_min, self.y_max),
+			nearest(p.z, self.z_min, self.z_max)
+		)
+	}
+	
+	pub fn distance_squared(&self, other: &Self) -> f32 {
+		let d = self.center() - other.center();
+		d.x*d.x + d.y*d.y + d.z*d.z
+	}
+	
+	pub fn distance(&self, other: &Self) -> f32 {
+		let d = self.distance_squared(other);
+		if d == 0.0 {0.0} else {d.sqrt()}
+	}
 }
 
 impl AxisAlignedBoundingBox {
-	
-	pub fn intersect(&self, other: &AxisAlignedBoundingBox) -> bool {
-		if self.x_max < other.x_min || self.x_min > other.x_max {return false;}
-		if self.y_max < other.y_min || self.y_min > other.y_max {return false;}
-		if self.z_max < other.z_min || self.z_min > other.z_max {return false;}
+	pub fn intersect(&self, other: &Self) -> bool {
+		if self.x_max < other.x_min || self.x_min > other.x_max { return false; }
+		if self.y_max < other.y_min || self.y_min > other.y_max { return false; }
+		if self.z_max < other.z_min || self.z_min > other.z_max { return false; }
 		true
 	}
 	
-	pub fn intersection_x(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
+	pub fn intersection_x(&self, other: &Self, mut delta: f32) -> f32 {
 		if other.y_max > self.y_min && other.y_min < self.y_max {
 			if other.z_max > self.z_min && other.z_min < self.z_max {
 				let mut d1 = 0.0;
@@ -137,7 +177,7 @@ impl AxisAlignedBoundingBox {
 		}
 	}
 	
-	pub fn intersection_y(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
+	pub fn intersection_y(&self, other: &Self, mut delta: f32) -> f32 {
 		if other.x_max > self.x_min && other.x_min < self.x_max {
 			if other.z_max > self.z_min && other.z_min < self.z_max {
 				let mut d1 = 0.0;
@@ -165,7 +205,7 @@ impl AxisAlignedBoundingBox {
 		}
 	}
 	
-	pub fn intersection_z(&self, other: &AxisAlignedBoundingBox, mut delta: f32) -> f32 {
+	pub fn intersection_z(&self, other: &Self, mut delta: f32) -> f32 {
 		if other.x_max > self.x_min && other.x_min < self.x_max {
 			if other.y_max > self.y_min && other.y_min < self.y_max {
 				let mut d1 = 0.0;
