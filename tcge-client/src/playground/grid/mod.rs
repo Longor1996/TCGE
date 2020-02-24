@@ -1,5 +1,4 @@
 use common::resources::*;
-use cgmath::{Matrix4, Vector3};
 use crate::render::*;
 use super::*;
 
@@ -30,7 +29,7 @@ impl GridRenderer {
 		})
 	}
 	
-	pub fn render(&self, camera_transform: &Matrix4<f32>, camera_position: &Vector3<f32>) {
+	pub fn render(&self, camera_transform: &nalgebra_glm::Mat4, camera_position: &nalgebra_glm::Vec3) {
 		self.gl.push_debug("Draw Grid");
 		
 		unsafe {
@@ -41,15 +40,15 @@ impl GridRenderer {
 		
 		let position = camera_position;
 		
-		let mut grid_transform = Matrix4::from_translation(Vector3::<f32> {
-			x: (position.x / self.size).round() * self.size,
-			y: 0.0,
-			z: (position.z / self.size).round() * self.size,
-		});
+		let mut grid_transform = nalgebra_glm::translation(&nalgebra_glm::Vec3::new (
+			(position.x / self.size).round() * self.size,
+			0.0,
+			(position.z / self.size).round() * self.size
+		));
 		
 		if position.y < 0.0 {
 			// Flip the grid upside-down, by turning it over left.
-			grid_transform = grid_transform * Matrix4::from_nonuniform_scale(-1.0, 1.0, 1.0);
+			grid_transform = grid_transform * nalgebra_glm::scaling(&nalgebra_glm::Vec3::new (-1.0, 1.0, 1.0));
 		}
 		
 		let transform = camera_transform * grid_transform;

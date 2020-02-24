@@ -1,8 +1,5 @@
-use cgmath::Matrix4;
 use crate::render::*;
 use std::rc::Rc;
-
-const HALF_VEC: cgmath::Vector3<f32> = cgmath::Vector3::<f32> {x: 0.5, y: 0.5, z: 0.5};
 
 pub struct CrosshairRenderer2D {
 	gl: gl::Gl,
@@ -29,7 +26,7 @@ impl CrosshairRenderer2D {
 		}
 	}
 	
-	pub fn draw(&self, projection: &cgmath::Matrix4<f32>, width: i32, height: i32, size: f32) {
+	pub fn draw(&self, projection: &nalgebra_glm::Mat4, width: i32, height: i32, size: f32) {
 		self.gl.push_debug("Crosshair 2D");
 		
 		unsafe {
@@ -43,9 +40,10 @@ impl CrosshairRenderer2D {
 		let width = width as f32;
 		let height = height as f32;
 		
-		let mut transform = cgmath::One::one();
-		transform = transform * Matrix4::from_translation(cgmath::Vector3::<f32> {x: width/2.0, y: height/2.0, z: 0.0});
-		transform = transform * Matrix4::from_nonuniform_scale(scale, scale, 0.0);
+		let mut transform = nalgebra_glm::identity();
+		
+		transform = transform * nalgebra_glm::translation(&nalgebra_glm::Vec3::new (width/2.0, height/2.0, 0.0));
+		transform = transform * nalgebra_glm::scaling(&nalgebra_glm::Vec3::new(scale, scale, 0.0));
 		transform = projection * transform;
 		
 		self.material.shader.set_used();
@@ -79,7 +77,7 @@ impl CrosshairRenderer3D {
 		}
 	}
 	
-	pub fn draw(&self, camera: &cgmath::Matrix4<f32>, pos: &blocks::BlockCoord) {
+	pub fn draw(&self, camera: &nalgebra_glm::Mat4, pos: &blocks::BlockCoord) {
 		self.gl.push_debug("Crosshair 3D");
 		
 		unsafe {
@@ -89,12 +87,12 @@ impl CrosshairRenderer3D {
 			self.gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 		}
 		
-		let color = cgmath::Vector4::<f32> {x: 1.0, y: 1.0, z: 1.0, w: 1.0};
+		let color = nalgebra_glm::Vec4::new (1.0, 1.0, 1.0, 1.0);
 		
-		let mut transform = cgmath::One::one();
-		transform = transform * Matrix4::from_translation(HALF_VEC);
-		transform = transform * Matrix4::from_translation(cgmath::vec3(pos.x as f32, pos.y as f32, pos.z as f32));
-		transform = transform * Matrix4::from_scale(1.02);
+		let mut transform = nalgebra_glm::identity();
+		transform = transform * nalgebra_glm::translation(&nalgebra_glm::Vec3::new(0.5, 0.5, 0.5));
+		transform = transform * nalgebra_glm::translation(&nalgebra_glm::Vec3::new(pos.x as f32, pos.y as f32, pos.z as f32));
+		transform = transform * nalgebra_glm::scaling(&nalgebra_glm::vec3(1.02, 1.02, 1.02));
 		transform = camera * transform;
 		
 		self.material.shader.set_used();

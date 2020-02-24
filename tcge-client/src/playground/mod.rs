@@ -343,7 +343,7 @@ impl Playground {
 			render_event.gl.BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
 		}
 		
-		let projection = cgmath::ortho(
+		let projection = nalgebra_glm::ortho(
 			0.0, render_event.width as f32,
 			render_event.height as f32, 0.0,
 			-1.0, 1.0

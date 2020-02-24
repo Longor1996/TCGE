@@ -1,5 +1,3 @@
-use cgmath::Matrix4;
-use cgmath::Vector3;
 use common::resources::*;
 use crate::render::*;
 
@@ -26,7 +24,7 @@ impl SkyRenderer {
 		})
 	}
 	
-	pub fn render(&mut self, proj: &Matrix4<f32>, view: &Matrix4<f32>, pos: &Vector3<f32>) {
+	pub fn render(&mut self, proj: &nalgebra_glm::Mat4, view: &nalgebra_glm::Mat4, pos: &nalgebra_glm::Vec3) {
 		unsafe {
 			self.gl.Disable(gl::DEPTH_TEST);
 			self.gl.Disable(gl::CULL_FACE);

@@ -3,7 +3,6 @@ use super::ShaderObject;
 use super::ShaderObjectRef;
 use std::rc::Rc;
 use std::ffi::CString;
-use cgmath::{Matrix, Array};
 
 pub type UniformLocation = gl::types::GLint;
 
@@ -118,7 +117,7 @@ impl ProgramObject {
 	}
 	
 	#[allow(dead_code)]
-	pub fn set_uniform_vector2(&self, uniform: UniformLocation, vector: &cgmath::Vector2<f32>) -> bool {
+	pub fn set_uniform_vector2(&self, uniform: UniformLocation, vector: &nalgebra_glm::Vec2) -> bool {
 		if uniform == -1 {return false}
 		unsafe {
 			self.gl.Uniform2fv(uniform, 1, vector.as_ptr());
@@ -137,7 +136,7 @@ impl ProgramObject {
 	}
 	
 	#[allow(dead_code)]
-	pub fn set_uniform_vector3(&self, uniform: UniformLocation, vector: &cgmath::Vector3<f32>) -> bool {
+	pub fn set_uniform_vector3(&self, uniform: UniformLocation, vector: &nalgebra_glm::Vec3) -> bool {
 		if uniform == -1 {return false}
 		unsafe {
 			self.gl.Uniform3fv(uniform, 1, vector.as_ptr());
@@ -156,7 +155,7 @@ impl ProgramObject {
 	}
 	
 	#[allow(dead_code)]
-	pub fn set_uniform_vector4(&self, uniform: UniformLocation, vector: &cgmath::Vector4<f32>) -> bool {
+	pub fn set_uniform_vector4(&self, uniform: UniformLocation, vector: &nalgebra_glm::Vec4) -> bool {
 		if uniform == -1 {return false}
 		unsafe {
 			self.gl.Uniform4fv(uniform, 1, vector.as_ptr());
@@ -175,7 +174,7 @@ impl ProgramObject {
 	}
 	
 	#[allow(dead_code)]
-	pub fn set_uniform_matrix4(&self, uniform: UniformLocation, matrix: &cgmath::Matrix4<f32>) -> bool {
+	pub fn set_uniform_matrix4(&self, uniform: UniformLocation, matrix: &nalgebra_glm::Mat4) -> bool {
 		if uniform == -1 {return false}
 		unsafe {
 			self.gl.UniformMatrix4fv(uniform, 1, gl::FALSE, matrix.as_ptr());

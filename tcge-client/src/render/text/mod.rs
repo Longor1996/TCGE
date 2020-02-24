@@ -39,8 +39,6 @@ pub fn new(gl: &gl::Gl, res: &Resources, name: &str) -> Result<TextRenderer, Tex
 	let characters: FxHashMap<u32, TextGlyph> = FxHashMap::default();
 	let metrics = TextMetrics::default();
 	
-	let transform = cgmath::One::one();
-	
 	let mut text = TextRenderer {
 		gl: gl.clone(),
 		metrics,
@@ -48,7 +46,7 @@ pub fn new(gl: &gl::Gl, res: &Resources, name: &str) -> Result<TextRenderer, Tex
 		material,
 		descriptor,
 		buffer,
-		transform
+		transform: nalgebra_glm::translation(&nalgebra_glm::Vec3::new(0.0, 0.0, 0.0))
 	};
 	
 	parse_file(

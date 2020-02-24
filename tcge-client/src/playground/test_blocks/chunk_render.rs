@@ -68,11 +68,10 @@ impl ChunkRenderManager {
 		)
 	}
 	
-	pub fn render(&mut self, chunks: &ChunkStorage, transform: &cgmath::Matrix4<f32>) {
+	pub fn render(&mut self, chunks: &ChunkStorage, transform: &nalgebra_glm::Mat4) {
 		self.gl.push_debug("Chunks");
 		
-		use cgmath::InnerSpace;
-		let sun = cgmath::Vector3::new(0.9, 1.0, 0.7).normalize();
+		let sun = nalgebra_glm::Vec3::new(0.9, 1.0, 0.7).normalize();
 		
 		self.material.shader.set_used();
 		self.material.shader.set_uniform_matrix4(self.material.uniform_matrix, transform);

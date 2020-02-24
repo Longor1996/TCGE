@@ -9,7 +9,7 @@ pub struct TextRenderer {
 	pub material: TextRendererMaterial,
 	pub descriptor: super::VertexArray,
 	pub buffer: Vec<f32>,
-	pub transform: cgmath::Matrix4<f32>,
+	pub transform: nalgebra_glm::Mat4,
 }
 
 impl TextRenderer {
