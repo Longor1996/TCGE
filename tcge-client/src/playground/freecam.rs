@@ -285,6 +285,7 @@ impl Freecam {
 		
 		let is_falling = self.velocity.y < 0.0;
 		
+		/*
 		let mut hits: Vec<_> = block_boxes.iter()
 			.filter_map(|block_box| AxisAlignedBoundingBox::sweep_self(&player_box, &self.velocity, &block_box))
 			.collect();
@@ -311,6 +312,7 @@ impl Freecam {
 			
 			// self.velocity = *velo;
 		}
+		*/
 		
 		// TODO: Read https://github.com/oniietzschan/bump-3dpd/blob/master/bump-3dpd.lua
 		// TODO: Read https://github.com/andyhall/voxel-aabb-sweep/blob/master/index.js
@@ -325,7 +327,6 @@ impl Freecam {
 		}
 		*/
 		
-		/*
 		for block_box in block_boxes.iter() {
 			self.velocity.y = block_box.intersection_y(&player_box, self.velocity.y);
 		}
@@ -337,7 +338,6 @@ impl Freecam {
 		for block_box in block_boxes.iter() {
 			self.velocity.z = block_box.intersection_z(&player_box, self.velocity.z);
 		}
-		*/
 		
 		let is_on_ground = self.velocity.y == 0.0 && is_falling;
 		
