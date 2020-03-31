@@ -138,7 +138,7 @@ pub struct Playground {
 	entity_universe: legion::world::Universe,
 	entity_world: legion::world::World,
 	entity_player: legion::entity::Entity,
-	blocks: Rc<blocks::Blocks>,
+	blocks: blocks::BlocksRef,
 	chunks: ChunkStorage,
 	chunks_renderer: ChunkRenderManager,
 	sky: sky::SkyRenderer,

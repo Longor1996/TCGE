@@ -3,9 +3,9 @@ use super::BlockId;
 use super::Block;
 use super::BlockState;
 use super::BlockLayers;
-use std::rc::Rc;
+use std::sync::Arc;
 
-pub type BlocksRef = std::rc::Rc<Blocks>;
+pub type BlocksRef = Arc<Blocks>;
 
 pub struct Blocks {
 	blocks: FxHashMap<BlockId, Box<dyn Block>>,
@@ -43,8 +43,8 @@ impl Blocks {
 		self.blocks.insert(id, block);
 	}
 	
-	pub fn to_ref(self) -> Rc<Self> {
-		Rc::new(self)
+	pub fn to_ref(self) -> Arc<Self> {
+		Arc::new(self)
 	}
 }
 
