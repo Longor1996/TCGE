@@ -47,6 +47,7 @@ fn main() {
 	// Register all default (core) resources embedded in the binary
 	let mut includes: common::resources::Includes = vec![];
 	includes.extend(&render::text::TEXT_RENDERER_FILES);
+	includes.extend(&render::wireframe::WIREFRAME_PAINTER_FILES);
 	includes.extend(&render::materials::SOLID_COLOR_MATERIAL_FILES);
 	includes.extend(&playground::sky::SKY_MATERIAL_FILES);
 	includes.extend(&playground::grid::GRID_MATERIAL_FILES);
@@ -68,6 +69,10 @@ fn main() {
 	let text_renderer = WrapperComponent::new("TextRenderer", text_renderer);
 	backbone.node_component_attach(root_id, text_renderer);
 	
+	let wire_painter = render::wireframe::WireframePainter::new(&glfw_context.gl, resources)
+		.ok().expect("WireframePainter initialization failed.");
+	let wire_painter = WrapperComponent::new("WireframePainter", wire_painter);
+	backbone.node_component_attach(root_id, wire_painter);
 	
 	// Setup the playground.
 	// TODO: Eventually move this into the initializer.

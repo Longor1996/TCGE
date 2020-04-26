@@ -33,6 +33,7 @@ pub use camera::Camera;
 pub mod text;
 pub mod geometry;
 pub mod materials;
+pub mod wireframe;
 
 ////////////////////////////////////////////////////////////////////////////////
 // --- Utility Functions
