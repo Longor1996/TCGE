@@ -283,7 +283,10 @@ impl backbone::Handler for Playground {
 				.component_get::<GlfwContext>().ok().unwrap();
 			
 			if let backbone::Phase::Action = phase {
-				self.render_scene(render_event);
+				let wire_painter = context
+					.component_get_mut::<render::wireframe::WireframePainterComp>().ok().unwrap();
+				
+				self.render_scene(render_event, wire_painter);
 			}
 			
 			if let backbone::Phase::Bubbling = phase {
@@ -302,7 +305,7 @@ impl backbone::Handler for Playground {
 
 impl Playground {
 	
-	pub fn render_scene(&mut self, render_event: &RenderEvent) {
+	pub fn render_scene(&mut self, render_event: &RenderEvent, wirepainter: &mut render::wireframe::WireframePainter) {
 		use crate::render::*;
 		
 		let camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
@@ -329,6 +332,13 @@ impl Playground {
 		}
 		
 		self.chunks_renderer.render(&self.chunks, &transform);
+		
+		wirepainter.transform = transform;
+		wirepainter.draw_line(
+			&nalgebra_glm::vec3(0.0, 0.0, 0.0),
+			&nalgebra_glm::vec3(10.0, 10.0, 10.0),
+			&nalgebra_glm::vec4(1.0, 0.0, 0.0, 1.0)
+		);
 		
 		if let Some(target) = &camera.target {
 			self.crosshair_3d.draw(&transform, target)
