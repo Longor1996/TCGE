@@ -69,13 +69,12 @@ impl TextRenderer {
 			let lx = *x + character.xoffset  * scale;
 			let ly = *y + character.yoffset  * scale;
 			
-			let mut temp = vec![
+			self.buffer.extend_from_slice(&[
 				lx + 0.0, ly + 0.0, character.uv[0], character.uv[1],
 				lx + (w), ly + 0.0, character.uv[2], character.uv[1],
 				lx + (w), ly + (h), character.uv[2], character.uv[3],
 				lx + 0.0, ly + (h), character.uv[0], character.uv[3],
-			];
-			self.buffer.append(&mut temp);
+			]);
 			ok = true;
 		}
 		

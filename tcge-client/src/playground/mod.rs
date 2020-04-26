@@ -387,7 +387,7 @@ impl Playground {
 		let proftree = profiler.get_passive();
 		let mut f_buffer = String::with_capacity(250);
 		Self::draw_profiler_node_text(text, proftree, 0, 0, &mut f_buffer, &mut y_offset);
-		y_offset += 2.0;
+		//y_offset += 2.0;
 	}
 	
 	pub fn draw_profiler_node_text(

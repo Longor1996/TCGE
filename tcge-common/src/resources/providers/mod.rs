@@ -21,7 +21,7 @@ pub trait ResourceProvider {
 	
 	fn res_as_buffer(&self, location: &ResourceLocation) -> Result<Vec<u8>, ResourceError> {
 		// If the extra semicolon is removed, the code does not compile, so it gets to stay.
-		#![allow(redundant_semicolon)]
+		#![allow(redundant_semicolons)]
 		
 		let mut stream = self.res_as_stream(location)?;
 		let mut buf = Vec::<u8>::new();

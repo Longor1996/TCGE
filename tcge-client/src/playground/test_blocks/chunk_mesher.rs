@@ -116,7 +116,7 @@ pub struct MesherThreadState {
 impl MesherThreadState {
 	pub fn new() -> MesherThreadState {
 		MesherThreadState {
-			vertices: vec![]
+			vertices: Vec::with_capacity(4096)
 		}
 	}
 	
@@ -207,10 +207,12 @@ pub fn mesh_chunk(
 				let offset = (cbx as f32, cby as f32, cbz as f32);
 				
 				static_bakery.render_block(&context, &block, &mut |face| {
-					vertices.push(ChunkMeshVertex::new_from(&face.a, 0.0, &offset));
-					vertices.push(ChunkMeshVertex::new_from(&face.b, 0.0, &offset));
-					vertices.push(ChunkMeshVertex::new_from(&face.c, 0.0, &offset));
-					vertices.push(ChunkMeshVertex::new_from(&face.d, 0.0, &offset));
+					vertices.extend_from_slice(&[
+						ChunkMeshVertex::new_from(&face.a, 0.0, &offset),
+						ChunkMeshVertex::new_from(&face.b, 0.0, &offset),
+						ChunkMeshVertex::new_from(&face.c, 0.0, &offset),
+						ChunkMeshVertex::new_from(&face.d, 0.0, &offset),
+					]);
 				});
 				// length.1 += common::current_time_nanos_precise() - starts.1;
 			}

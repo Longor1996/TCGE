@@ -31,21 +31,13 @@ impl SimpleMeshBuilder {
 	/// Add a new vertex (`x, y, z`) with texture-coordinates `(0.0, 0.0)`.
 	#[allow(dead_code)]
 	pub fn push_vertex(&mut self, x: f32, y: f32, z: f32) {
-		self.vertices.push(x);
-		self.vertices.push(y);
-		self.vertices.push(z);
-		self.vertices.push(0.0);
-		self.vertices.push(0.0);
+		self.vertices.extend_from_slice(&[x,y,z,0.0,0.0]);
 	}
 	
 	/// Add a new vertex (`x, y, z`) with texture-coordinates `(u, v)`.
 	#[allow(dead_code)]
 	pub fn push_vertex_with_uv(&mut self, x: f32, y: f32, z: f32, u: f32, v: f32) {
-		self.vertices.push(x);
-		self.vertices.push(y);
-		self.vertices.push(z);
-		self.vertices.push(u);
-		self.vertices.push(v);
+		self.vertices.extend_from_slice(&[x,y,z,u,v]);
 	}
 	
 	/// Push a large amount of vertices, without texture-coordinates.

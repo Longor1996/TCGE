@@ -1,8 +1,6 @@
 use glfw::{Key, Action};
 use super::aabb::AxisAlignedBoundingBox;
-use glfw::GamepadAxis::AxisLeftTrigger;
 use nalgebra::{DimAdd, DimMul};
-use std::ops::Add;
 
 pub struct Freecam {
 	pub active: bool,

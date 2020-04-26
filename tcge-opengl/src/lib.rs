@@ -2,6 +2,7 @@
 
 // Force clippy to shut the heck up; this is a C-binding, there is no hope!
 #![allow(clippy::all)]
+#![allow(bare_trait_objects)]
 
 /// The actual (automatically generated) OpenGL bindings.
 pub mod bindings;
