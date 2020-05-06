@@ -22,9 +22,7 @@ pub mod grid;
 pub mod crosshair;
 
 pub mod test_blocks;
-use test_blocks::ChunkStorage;
-use test_blocks::ChunkRenderManager;
-use test_blocks::StaticBlockBakery;
+use test_blocks::*;
 use common::resources::ResourceProvider;
 
 pub fn setup(
@@ -84,9 +82,35 @@ pub fn setup(
 	
 	let blocks = blocks::Blocks::new().to_ref();
 	
-	let chunks = ChunkStorage::new(&blocks);
+	let mut block_models = rustc_hash::FxHashMap::default();
 	
-	let bakery = Rc::new(StaticBlockBakery::new(res, &blocks).expect("StaticBlockBakery initialization must not fail"));
+	for (id, block) in blocks.get_blocks() {
+		
+		if block.get_name() == "air" {
+			// Never create a model for air.
+			continue;
+		}
+		
+		// TODO: Load model from file... but how?
+		let mut block_model = test_blocks::BlockModel::default();
+		block_model.textures[0] = format!("tex{}", id.raw());
+		
+		block_models.insert(*id, block_model);
+	}
+	
+	// TODO: Actually build a texture atlas from the data given by the block models...
+	let mut textures = rustc_hash::FxHashMap::default();
+	textures.insert("missingno".to_string(), BlockUv::unit());
+	textures.insert("tex1".to_string(), BlockUv::new_from_pos(0, 0));
+	textures.insert("tex2".to_string(), BlockUv::new_from_pos(1, 0));
+	textures.insert("tex3".to_string(), BlockUv::new_from_pos(2, 0));
+	textures.insert("tex4".to_string(), BlockUv::new_from_pos(3, 0));
+	textures.insert("tex5".to_string(), BlockUv::new_from_pos(4, 0));
+	
+	let bakery = StaticBlockBakery::new(res, &blocks, &block_models, &textures).expect("StaticBlockBakery initialization must not fail");
+	let bakery = Rc::new(bakery);
+	
+	let chunks = ChunkStorage::new(&blocks);
 	
 	let chunks_renderer = ChunkRenderManager::new(
 		&glfw_context.gl,
