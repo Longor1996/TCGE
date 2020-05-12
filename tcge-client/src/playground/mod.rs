@@ -216,7 +216,7 @@ impl backbone::Handler for Playground {
 						.get_default_state();
 					
 					let bedrock = self.blocks
-						.get_block_by_name_unchecked("adm")
+						.get_block_by_name_unchecked("color_white")
 						.get_default_state();
 					
 					let camera  = self.entity_world.get_component_mut::<Freecam>(self.entity_player).expect("player entity freecam component");
@@ -267,27 +267,27 @@ impl backbone::Handler for Playground {
 				
 				KeyEvent{key: glfw::Key::Num1, scancode: _, action: glfw::Action::Press, modifiers: _} => {
 					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
-					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm").get_default_state());
+					inventory.block = Some(self.blocks.get_block_by_name_unchecked("missingno").get_default_state());
 				},
 				
 				KeyEvent{key: glfw::Key::Num2, scancode: _, action: glfw::Action::Press, modifiers: _} => {
 					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
-					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm2").get_default_state());
+					inventory.block = Some(self.blocks.get_block_by_name_unchecked("color_red").get_default_state());
 				},
 				
 				KeyEvent{key: glfw::Key::Num3, scancode: _, action: glfw::Action::Press, modifiers: _} => {
 					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
-					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm3").get_default_state());
+					inventory.block = Some(self.blocks.get_block_by_name_unchecked("color_green").get_default_state());
 				},
 				
 				KeyEvent{key: glfw::Key::Num4, scancode: _, action: glfw::Action::Press, modifiers: _} => {
 					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
-					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm4").get_default_state());
+					inventory.block = Some(self.blocks.get_block_by_name_unchecked("color_blue").get_default_state());
 				},
 				
 				KeyEvent{key: glfw::Key::Num5, scancode: _, action: glfw::Action::Press, modifiers: _} => {
 					let mut inventory  = self.entity_world.get_component_mut::<Inventory>(self.entity_player).expect("player entity inventory component");
-					inventory.block = Some(self.blocks.get_block_by_name_unchecked("adm5").get_default_state());
+					inventory.block = Some(self.blocks.get_block_by_name_unchecked("color_white").get_default_state());
 				},
 				
 				_ => (),

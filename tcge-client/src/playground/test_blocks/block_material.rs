@@ -12,11 +12,11 @@ pub const BLOCKS_MATERIAL_FILES: [(&str, &[u8]); 3] = [
 ];
 
 pub const BLOCK_SPRITE_FILES: [(&str, &[u8]); 5] = [
-	("core/textures/blocks/adm.png", include_bytes!("missingno.png")),
-	("core/textures/blocks/adm2.png", include_bytes!("missingno.png")),
-	("core/textures/blocks/adm3.png", include_bytes!("missingno.png")),
-	("core/textures/blocks/adm4.png", include_bytes!("missingno.png")),
-	("core/textures/blocks/adm5.png", include_bytes!("missingno.png")),
+	("core/textures/blocks/missingno.png", include_bytes!("textures/missingno.png")),
+	("core/textures/blocks/color_white.png", include_bytes!("textures/color_white.png")),
+	("core/textures/blocks/color_red.png", include_bytes!("textures/color_red.png")),
+	("core/textures/blocks/color_green.png", include_bytes!("textures/color_green.png")),
+	("core/textures/blocks/color_blue.png", include_bytes!("textures/color_blue.png")),
 ];
 
 pub struct BlocksMaterial {

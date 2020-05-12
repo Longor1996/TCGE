@@ -23,12 +23,12 @@ impl Blocks {
 		
 		use super::block::simple::SimpleBlock;
 		new.register_block(Box::new(SimpleBlock::new(BlockId::new(0), "air", BlockLayers::default())));
-		new.register_block(Box::new(SimpleBlock::new(BlockId::new(1), "adm", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(1), "missingno", BlockLayers::default())));
 		
-		new.register_block(Box::new(SimpleBlock::new(BlockId::new(2), "adm2", BlockLayers::default())));
-		new.register_block(Box::new(SimpleBlock::new(BlockId::new(3), "adm3", BlockLayers::default())));
-		new.register_block(Box::new(SimpleBlock::new(BlockId::new(4), "adm4", BlockLayers::default())));
-		new.register_block(Box::new(SimpleBlock::new(BlockId::new(5), "adm5", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(2), "color_red", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(3), "color_green", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(4), "color_blue", BlockLayers::default())));
+		new.register_block(Box::new(SimpleBlock::new(BlockId::new(5), "color_white", BlockLayers::default())));
 		
 		new
 	}

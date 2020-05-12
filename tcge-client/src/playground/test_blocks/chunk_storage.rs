@@ -27,7 +27,7 @@ impl ChunkStorage {
 		
 		// Get the only basic solid...
 		let bedrock = blocks
-			.get_block_by_name_unchecked("adm")
+			.get_block_by_name_unchecked("color_white")
 			.get_default_state();
 		
 		for y in 0..height {

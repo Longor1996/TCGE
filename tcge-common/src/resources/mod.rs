@@ -10,6 +10,7 @@ pub fn new() -> Resources {
 	Resources::new()
 }
 
+#[derive(Debug)]
 pub enum ResourceError {
 	Io(std::io::Error),
 	HasNil(usize),
