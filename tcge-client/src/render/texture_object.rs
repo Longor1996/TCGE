@@ -99,6 +99,14 @@ impl TextureObjectBuilder {
 		let image = image::load_from_memory(buffer)
 			.map_err(TextureError::Image)?;
 		
+		self.build_from_dynamic_image(gl, &image)
+	}
+	
+	pub fn build_from_dynamic_image(
+		self,
+		gl: &super::Gl,
+		image: &image::DynamicImage,
+	) -> Result<TextureObject, TextureError> {
 		// Get size
 		let image_size = image.dimensions();
 		let width = image_size.0;
@@ -181,7 +189,6 @@ impl TextureObjectBuilder {
 			tx,
 			ty,
 		})
-		
 	}
 }
 
