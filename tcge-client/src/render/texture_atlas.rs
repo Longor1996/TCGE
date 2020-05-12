@@ -6,6 +6,7 @@ use image::GenericImageView;
 use super::TextureError;
 use super::TextureObject;
 use super::TextureObjectBuilder;
+use std::rc::Rc;
 
 pub struct TextureAtlasBuilder {
     texture: DynamicImage,
@@ -153,9 +154,20 @@ impl TextureAtlasBuilder {
             .expect("Failed to save atlas for debugging.");
         
         let (width, height) = self.texture.dimensions();
+        let fwidth = width as f32;
+        let fheight = height as f32;
+        
+        info!("Uploading TextureAtlas...");
         
         let texture = TextureObjectBuilder::new()
+            .wrapping(gl::CLAMP_TO_EDGE)
+            .anisotropy(true)
+            .filter(gl::NEAREST_MIPMAP_LINEAR, gl::NEAREST)
             .build_from_dynamic_image(gl, &self.texture)?;
+        
+        let texture = Rc::new(texture);
+        
+        info!("UV-mapping sprites...");
         
         let sprites = self.sprites
             .drain()
@@ -166,10 +178,10 @@ impl TextureAtlasBuilder {
                     y: raw_sprite.y,
                     w: raw_sprite.w as u16,
                     h: raw_sprite.h as u16,
-                    umin: ((raw_sprite.x) / width) as f32,
-                    umax: ((raw_sprite.x + raw_sprite.w) / width) as f32,
-                    vmin: ((raw_sprite.y) / height) as f32,
-                    vmax: ((raw_sprite.y + raw_sprite.h) / height) as f32,
+                    umin: (raw_sprite.x) as f32 / fwidth,
+                    umax: (raw_sprite.x + raw_sprite.w) as f32 / fwidth,
+                    vmin: (raw_sprite.y) as f32 / fheight,
+                    vmax: (raw_sprite.y + raw_sprite.h) as f32 / fheight,
                 })
             })
             .collect();
@@ -182,17 +194,18 @@ impl TextureAtlasBuilder {
 }
 
 pub struct TextureAtlas {
-    pub texture: TextureObject,
+    pub texture: Rc<TextureObject>,
     pub sprites: FxHashMap<String, TextureAtlasSprite>,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct TextureAtlasSprite {
-    x: u32,
-    y: u32,
-    w: u16,
-    h: u16,
-    umin: f32,
-    umax: f32,
-    vmin: f32,
-    vmax: f32,
+    pub x: u32,
+    pub y: u32,
+    pub w: u16,
+    pub h: u16,
+    pub umin: f32,
+    pub umax: f32,
+    pub vmin: f32,
+    pub vmax: f32,
 }

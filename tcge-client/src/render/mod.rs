@@ -24,6 +24,7 @@ pub use texture_object::TextureError;
 pub mod texture_atlas;
 pub use texture_atlas::TextureAtlasBuilder;
 pub use texture_atlas::TextureAtlas;
+pub use texture_atlas::TextureAtlasSprite;
 
 pub mod vertex_array;
 pub use vertex_array::VertexArray;

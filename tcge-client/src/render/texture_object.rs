@@ -237,6 +237,7 @@ impl TextureObject {
 	}
 }
 
+#[derive(Debug)]
 pub enum TextureError {
 	Image(image::ImageError),
 	Resource(resources::ResourceError),
