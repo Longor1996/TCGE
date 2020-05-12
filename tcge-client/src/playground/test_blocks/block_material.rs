@@ -3,6 +3,7 @@ use super::resources::ResourceProvider;
 use super::resources::ResourceError;
 use super::resources::Resources;
 use crate::render::*;
+use std::rc::Rc;
 
 pub const BLOCKS_MATERIAL_FILES: [(&str, &[u8]); 3] = [
 	("core/shaders/blocks.vert", include_bytes!("blocks.vert")),
@@ -10,27 +11,24 @@ pub const BLOCKS_MATERIAL_FILES: [(&str, &[u8]); 3] = [
 	("core/textures/blocks.png", include_bytes!("blocks.png")),
 ];
 
+pub const BLOCK_SPRITE_FILES: [(&str, &[u8]); 5] = [
+	("core/textures/blocks/adm.png", include_bytes!("missingno.png")),
+	("core/textures/blocks/adm2.png", include_bytes!("missingno.png")),
+	("core/textures/blocks/adm3.png", include_bytes!("missingno.png")),
+	("core/textures/blocks/adm4.png", include_bytes!("missingno.png")),
+	("core/textures/blocks/adm5.png", include_bytes!("missingno.png")),
+];
+
 pub struct BlocksMaterial {
 	pub shader: ProgramObject,
-	pub atlas: TextureObject,
+	pub atlas: Rc<TextureObject>,
 	pub uniform_matrix: UniformLocation,
 	pub uniform_atlas: UniformLocation,
 	pub uniform_sun: UniformLocation,
 }
 
 impl BlocksMaterial {
-	pub fn new(gl: &gl::Gl, res: &Resources) -> Result<Self, BlocksMaterialError> {
-		debug!("Loading blocks texture...");
-		
-		let atlas_loc = ResourceLocation::from_str("core/textures/blocks.png");
-		let atlas = TextureObjectBuilder::new()
-			.wrapping(gl::CLAMP_TO_EDGE)
-			.anisotropy(true)
-			.filter(gl::NEAREST_MIPMAP_LINEAR, gl::NEAREST)
-			.build_from_res(gl, &res, &atlas_loc)
-			.map_err(BlocksMaterialError::Texture)?;
-		
-		
+	pub fn new(gl: &gl::Gl, res: &Resources, atlas: Rc<TextureObject>) -> Result<Self, BlocksMaterialError> {
 		debug!("Loading blocks shader...");
 		
 		let shader_vert = ResourceLocation::from("core/shaders/blocks.vert");

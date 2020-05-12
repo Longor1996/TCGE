@@ -52,6 +52,7 @@ fn main() {
 	includes.extend(&playground::sky::SKY_MATERIAL_FILES);
 	includes.extend(&playground::grid::GRID_MATERIAL_FILES);
 	includes.extend(&playground::test_blocks::BLOCKS_MATERIAL_FILES);
+	includes.extend(&playground::test_blocks::BLOCK_SPRITE_FILES);
 	
 	// Register the embedded files.
 	let includes = common::resources::IncludeProvider::new(includes);

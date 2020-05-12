@@ -125,6 +125,7 @@ pub fn setup(
 		&glfw_context.gl,
 		res,
 		&blocks,
+		block_atlas.texture.clone(),
 		bakery
 	).map_err(|_| {
 		error!("Failed to load 'Blocks' material.");

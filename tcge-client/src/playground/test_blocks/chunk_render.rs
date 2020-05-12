@@ -1,6 +1,7 @@
 use super::*;
 use crate::playground::test_blocks::BlocksMaterialError;
-use crate::render::{BufferObject, BufferObjectRef};
+use crate::render::{BufferObject, BufferObjectRef, TextureObject};
+use std::rc::Rc;
 
 pub struct ChunkRenderManager {
 	// Static
@@ -23,10 +24,11 @@ impl ChunkRenderManager {
 		gl: &gl::Gl,
 		res: &resources::Resources,
 		blocks: &BlocksRef,
+		block_atlas: Rc<TextureObject>,
 		bakery: StaticBlockBakeryRef
 	) -> Result<Self, BlocksMaterialError> {
 		
-		let material = BlocksMaterial::new(gl, res)?;
+		let material = BlocksMaterial::new(gl, res, block_atlas)?;
 		let quad_index = Self::generate_quad_indices(gl, 4096).to_ref();
 		
 		gl.label_object(
