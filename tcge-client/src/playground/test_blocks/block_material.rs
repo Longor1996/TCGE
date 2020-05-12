@@ -5,10 +5,9 @@ use super::resources::Resources;
 use crate::render::*;
 use std::rc::Rc;
 
-pub const BLOCKS_MATERIAL_FILES: [(&str, &[u8]); 3] = [
+pub const BLOCKS_MATERIAL_FILES: [(&str, &[u8]); 2] = [
 	("core/shaders/blocks.vert", include_bytes!("blocks.vert")),
 	("core/shaders/blocks.frag", include_bytes!("blocks.frag")),
-	("core/textures/blocks.png", include_bytes!("blocks.png")),
 ];
 
 pub const BLOCK_SPRITE_FILES: [(&str, &[u8]); 5] = [
