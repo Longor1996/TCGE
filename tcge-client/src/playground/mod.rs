@@ -23,7 +23,7 @@ pub mod crosshair;
 
 pub mod test_blocks;
 use test_blocks::*;
-use common::resources::ResourceProvider;
+use common::resources::{ResourceProvider, ResourceLocation};
 
 pub fn setup(
 	backbone: &mut backbone::Backbone,
@@ -98,16 +98,25 @@ pub fn setup(
 		block_models.insert(*id, block_model);
 	}
 	
-	// TODO: Actually build a texture atlas from the data given by the block models...
-	let mut textures = rustc_hash::FxHashMap::default();
-	textures.insert("missingno".to_string(), BlockUv::unit());
-	textures.insert("adm".to_string(), BlockUv::new_from_pos(0, 0));
-	textures.insert("adm2".to_string(), BlockUv::new_from_pos(1, 0));
-	textures.insert("adm3".to_string(), BlockUv::new_from_pos(2, 0));
-	textures.insert("adm4".to_string(), BlockUv::new_from_pos(3, 0));
-	textures.insert("adm5".to_string(), BlockUv::new_from_pos(4, 0));
+	let mut block_atlas = render::TextureAtlasBuilder::new(64);
 	
-	let bakery = StaticBlockBakery::new(res, &blocks, &block_models, &textures).expect("StaticBlockBakery initialization must not fail");
+	for (_, model) in &block_models {
+		for texture in &model.textures {
+			if ! block_atlas.contains(&texture) {
+				let path = format!("core/textures/blocks/{}.png", texture).into();
+				let buffer = res.res_as_buffer(&path).expect("Could not load block sprite.");
+				let sprite = image::load_from_memory(&buffer).expect("Could not decode image buffer.");
+				block_atlas.insert(texture, &sprite);
+			}
+		}
+	}
+	
+	let block_atlas = block_atlas.finish(&glfw_context.gl).expect("Failed to upload block atlas to GPU.");
+	
+	let bakery = StaticBlockBakery::new(
+		res, &blocks, &block_models,
+		&|name| block_atlas.sprites.get(name).map(|s|BlockUv::from(s))
+	).expect("StaticBlockBakery initialization must not fail");
 	let bakery = Rc::new(bakery);
 	
 	let chunks = ChunkStorage::new(&blocks);
@@ -142,6 +151,7 @@ pub fn setup(
 		entity_world,
 		entity_player,
 		blocks,
+		block_atlas,
 		chunks,
 		chunks_renderer,
 		sky,
@@ -163,6 +173,7 @@ pub struct Playground {
 	entity_world: legion::world::World,
 	entity_player: legion::entity::Entity,
 	blocks: blocks::BlocksRef,
+	block_atlas: render::TextureAtlas,
 	chunks: ChunkStorage,
 	chunks_renderer: ChunkRenderManager,
 	sky: sky::SkyRenderer,

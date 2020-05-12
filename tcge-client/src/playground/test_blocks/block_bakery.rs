@@ -13,7 +13,7 @@ pub struct StaticBlockBakery {
 impl StaticBlockBakery {
 	//
 	
-	pub fn new(_res: &resources::Resources, blocks: &BlocksRef, block_models: &FxHashMap<BlockId, BlockModel>, textures: &FxHashMap<String, BlockUv>) -> Result<StaticBlockBakery, ()> {
+	pub fn new(_res: &resources::Resources, blocks: &BlocksRef, block_models: &FxHashMap<BlockId, BlockModel>, textures: &dyn Fn(&str) -> Option<BlockUv>) -> Result<StaticBlockBakery, ()> {
 		
 		// --- Create rendering-table for all blocks...
 		let mut baked_blocks: Vec<Box<dyn BakedBlock>> = Vec::with_capacity(blocks.get_blocks().len() + 1);
@@ -25,7 +25,7 @@ impl StaticBlockBakery {
 		// --- Go trough all block models and bake them.
 		for (id, block_model) in block_models.iter() {
 			// Bake the model...
-			let baked_block = Self::bake_model(block_model, &textures);
+			let baked_block = Self::bake_model(block_model, textures);
 			
 			// ...and place it into the bakery's list.
 			baked_blocks[id.raw() as usize] = baked_block;
@@ -37,7 +37,7 @@ impl StaticBlockBakery {
 		})
 	}
 	
-	fn bake_model(block_model: &BlockModel, textures: &FxHashMap<String, BlockUv>) -> Box<dyn BakedBlock> {
+	fn bake_model(block_model: &BlockModel, textures: &dyn Fn(&str) -> Option<BlockUv>) -> Box<dyn BakedBlock> {
 		
 		let mut sides: [smallvec::SmallVec<[BakedBlockMeshFace;6]>; 8] = [
 			smallvec![],
@@ -63,7 +63,7 @@ impl StaticBlockBakery {
 				
 				if let Some(texture_id) = face.texture {
 					let texture = &block_model.textures[texture_id as usize];
-					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = textures(texture).expect("valid texture reference");
 					let uv = uv.subset(&face.uv);
 					
 					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
@@ -82,7 +82,7 @@ impl StaticBlockBakery {
 				
 				if let Some(texture_id) = face.texture {
 					let texture = &block_model.textures[texture_id as usize];
-					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = textures(texture).expect("valid texture reference");
 					
 					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
 						(min_x, min_y, min_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
@@ -100,7 +100,7 @@ impl StaticBlockBakery {
 				
 				if let Some(texture_id) = face.texture {
 					let texture = &block_model.textures[texture_id as usize];
-					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = textures(texture).expect("valid texture reference");
 					
 					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
 						(min_x, max_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
@@ -118,7 +118,7 @@ impl StaticBlockBakery {
 				
 				if let Some(texture_id) = face.texture {
 					let texture = &block_model.textures[texture_id as usize];
-					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = textures(texture).expect("valid texture reference");
 					
 					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
 						(max_x, min_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
@@ -136,7 +136,7 @@ impl StaticBlockBakery {
 				
 				if let Some(texture_id) = face.texture {
 					let texture = &block_model.textures[texture_id as usize];
-					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = textures(texture).expect("valid texture reference");
 					
 					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
 						(min_x, max_y, min_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
@@ -154,7 +154,7 @@ impl StaticBlockBakery {
 				
 				if let Some(texture_id) = face.texture {
 					let texture = &block_model.textures[texture_id as usize];
-					let uv = textures.get(texture).expect("valid texture reference");
+					let uv = textures(texture).expect("valid texture reference");
 					
 					sides[if face.cull { i_face.uid()} else {Face::EveryDir.uid()}].push((
 						(min_x, min_y, max_z, uv.umin, uv.vmin, n.0, n.1, n.2).into(),
@@ -318,6 +318,7 @@ impl From<(f32, f32, f32, f32, f32, f32, f32, f32)> for BakedBlockMeshVertex {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TODO: Move this out of the bakery...
+#[derive(Copy, Clone)]
 pub struct BlockUv {
 	umin: f32,
 	umax: f32,
@@ -357,4 +358,15 @@ impl BlockUv {
 	pub fn lerp(v0: f32, v1: f32, x: f32) -> f32 {
 		(1.0 - x) * v0 + x * v1
 	}
+}
+
+impl From<&crate::render::TextureAtlasSprite> for BlockUv {
+    fn from(sprite: &crate::render::TextureAtlasSprite) -> Self {
+        Self {
+			umin: sprite.umin,
+			umax: sprite.umax,
+			vmin: sprite.vmin,
+			vmax: sprite.vmax,
+		}
+    }
 }
