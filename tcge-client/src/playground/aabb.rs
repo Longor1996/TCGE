@@ -36,12 +36,12 @@ impl AxisAlignedBoundingBox {
 	
 	pub fn from_position_radius_height(position: nalgebra_glm::Vec3, radius: f32, height: f32) -> Self {
 		Self {
-			x_min: &position.x - radius,
-			y_min: &position.y - height,
-			z_min: &position.z - radius,
-			x_max: &position.x + radius,
-			y_max: &position.y + height,
-			z_max: &position.z + radius,
+			x_min: position.x - radius,
+			y_min: position.y - height,
+			z_min: position.z - radius,
+			x_max: position.x + radius,
+			y_max: position.y + height,
+			z_max: position.z + radius,
 		}
 	}
 	
@@ -50,9 +50,9 @@ impl AxisAlignedBoundingBox {
 			x_min: position.x,
 			y_min: position.y,
 			z_min: position.z,
-			x_max: &position.x + &size.x,
-			y_max: &position.y + &size.y,
-			z_max: &position.z + &size.z,
+			x_max: position.x + size.x,
+			y_max: position.y + size.y,
+			z_max: position.z + size.z,
 		}
 	}
 }
@@ -152,9 +152,9 @@ impl AxisAlignedBoundingBox {
 	}
 	
 	pub fn contains_with_delta(&self, p: nalgebra_glm::Vec3, d: f32) -> bool {
-		   p.x >= self.x_min-d && p.x <= self.x_max+d
-		&& p.y >= self.y_min-d && p.y <= self.y_max+d
-		&& p.z >= self.z_min-d && p.z <= self.z_max+d
+		   p.x > self.x_min+d && p.x < self.x_max-d
+		&& p.y > self.y_min+d && p.y < self.y_max-d
+		&& p.z > self.z_min+d && p.z < self.z_max-d
 	}
 	
 	/// Return the closest corner as seen from the given point `p`.
@@ -543,6 +543,7 @@ impl AxisAlignedBoundingBox {
 		
 		let mut overlaps = false;
 		
+		/// Delta Value is 1e-10
 		const DELTA: f32 = 1e-10;
 		
 		if i.contains_with_delta(nalgebra_glm::Vec3::new(0.0, 0.0, 0.0), DELTA) {
@@ -571,7 +572,7 @@ impl AxisAlignedBoundingBox {
 				
 				if ti1 < 1.0
 					&& ((ti1 - ti2).abs() >= DELTA) // prevents corner intersection
-					&& (0.0 < ti1 + DELTA || (0.0 == ti1 && ti2 > 0.0))
+					&& (0.0 < ti1 + DELTA || 0.0 == ti1 && ti2 > 0.0)
 				{
 					ti = Some(ti1);
 					n = Some(n1);
