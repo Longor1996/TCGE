@@ -414,6 +414,10 @@ impl Playground {
 		text.draw_text(&format!("Position: {:.2}, {:.2}, {:.2}", cam_pos.x, cam_pos.y, cam_pos.z), 16.0, 1.0, y_offset);
 		y_offset += 16.0;
 		
+		let cam_vel = camera.get_velocity(1.0);
+		text.draw_text(&format!("Velocity: {:.2}, {:.2}, {:.2}", cam_vel.x, cam_vel.y, cam_vel.z), 16.0, 1.0, y_offset);
+		y_offset += 16.0;
+		
 		if let Some(block_state) = block {
 			let block_name = self.blocks.get_block_by_id_unchecked(block_state.id).get_name();
 			text.draw_text(&format!("Equipped: {}", block_name), 16.0, 1.0, y_offset);
