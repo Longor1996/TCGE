@@ -4,7 +4,6 @@ extern crate simplelog;
 extern crate rustc_hash;
 extern crate nalgebra;
 extern crate nalgebra_glm;
-extern crate nphysics3d;
 extern crate half;
 
 extern crate glfw;
