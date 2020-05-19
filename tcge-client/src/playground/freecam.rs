@@ -258,8 +258,6 @@ impl Freecam {
 		
 		self.velocity += &self.impulse;
 		
-		// println!("pre-velocity  {:.5}, {:.5}, {:.5}", self.velocity.x, self.velocity.y, self.velocity.z);
-		
 		// Now do collision checks
 		let player_box = AxisAlignedBoundingBox::from_position_radius_height(self.position, self.shape_radius, self.shape_extent);
 		let mut block_boxes = vec![];
@@ -288,57 +286,50 @@ impl Freecam {
 		
 		let is_falling = self.velocity.y < 0.0;
 		
-		/*
-		let mut intersections = block_boxes.iter().filter_map(|block_box| {
-			AxisAlignedBoundingBox::detect_collision(&player_box, block_box, self.position + self.velocity)
-		}).collect::<Vec<_>>();
+		let mut intersections = block_boxes.iter()
+			.filter_map(|block_box| {
+				AxisAlignedBoundingBox::detect_collision(&player_box, block_box, self.position + self.velocity)
+			})
+			.filter_map(|i| i.normal.map(|_|i))
+			.collect::<Vec<_>>();
 		
 		intersections.sort_by(|a, b| {
 			if a.ti == b.ti {
-				return a.distance.partial_cmp(&b.distance).unwrap_or(std::cmp::Ordering::Equal);
+				return a.distance.partial_cmp(&b.distance).unwrap();
 			}
-			return a.ti.partial_cmp(&b.ti).unwrap_or(std::cmp::Ordering::Equal)
+			return a.ti.partial_cmp(&b.ti).unwrap()
 		});
 		
-		for intersection in intersections {
+		intersections.iter()
+			.map(|i| (i.ti, i.distance))
+			.for_each(|(t,d)| {
+				print!("({:.2},{:.2})",t,d);
+			});
+			if intersections.len() > 0 {
+				println!();
+			}
+		
+		let mut goal = self.position + self.velocity;
+		
+		if let Some(intersection) = intersections.first() {
 			println!("-> {:?}", intersection);
 			
 			if intersection.mov.x != 0.0 || intersection.mov.y != 0.0 || intersection.mov.z != 0.0 {
-				if intersection.normal.x != 0.0 {
-					//
+				if let Some(norm) = intersection.normal {
+					if norm.x != 0.0 {
+						goal.x = intersection.touch.x;
+					}
+					if norm.y != 0.0 {
+						goal.y = intersection.touch.y;
+					}
+					if norm.z != 0.0 {
+						goal.z = intersection.touch.z;
+					}
 				}
 			}
 		}
-		*/
 		
-		/*
-		let mut hits: Vec<_> = block_boxes.iter()
-			.filter_map(|block_box| AxisAlignedBoundingBox::sweep_self(&player_box, &self.velocity, &block_box))
-			.collect();
-		
-		hits.sort_by(|a, b| {
-			a.0.partial_cmp(&b.0)
-			   .unwrap_or(std::cmp::Ordering::Equal)
-			});
-		
-		//println!("hits: {}", hits.len());
-		
-		for (time, over, velo, norm) in hits {
-			println!("sweep: {:.2}, {:?}, {:?}, {:?}", time, over, velo, norm);
-			if velo.x != 0.0 || velo.y != 0.0 || velo.z != 0.0 {
-				if norm.x != 0.0 {
-					self.velocity.x = 0.0;
-				}
-				if norm.y != 0.0 {
-					self.velocity.y = 0.0;
-				}
-				if norm.z != 0.0 {
-					self.velocity.z = 0.0;
-				}
-			}
-			// self.velocity = *velo;
-		}
-		*/
+		self.position = goal;
 		
 		// TODO: Read https://github.com/oniietzschan/bump-3dpd/blob/master/bump-3dpd.lua
 		// TODO: Read https://github.com/andyhall/voxel-aabb-sweep/blob/master/index.js
@@ -350,40 +341,7 @@ impl Freecam {
 		// TODO: Read https://www.gamedev.net/articles/programming/general-and-gameplay-programming/swept-aabb-collision-detection-and-response-r3084/
 		// TODO: Read https://gitlab.com/veloren/veloren/-/blob/master/common/src/sys/phys.rs
 		
-		/*
-		println!("hits: {}", hits.len());
-		for (time, velo, norm) in hits {
-			
-			println!("sweep: {:.2}, {:?}, {:?}", time, velo, norm);
-			self.velocity = velo;
-		}
-		*/
-		
-		//let increments = (self.velocity.map(|e| (e.abs())).max() / 0.3).ceil().max(1.0);
-		//println!("increments: {:.2}", increments);
-		
-		for block_box in block_boxes.iter() {
-			let old = self.velocity.y;
-			self.velocity.y = block_box.intersection_y(&player_box, old);
-			/*if self.velocity.y != old && old != -0.0 {
-				println!("Velocity Changed from {:.2} to {:.2}", old, self.velocity.y);
-			}*/
-		}
-		
-		for block_box in block_boxes.iter() {
-			self.velocity.x = block_box.intersection_x(&player_box, self.velocity.x);
-		}
-		
-		for block_box in block_boxes.iter() {
-			self.velocity.z = block_box.intersection_z(&player_box, self.velocity.z);
-		}
-		
 		let is_on_ground = self.velocity.y == 0.0 && is_falling;
-		
-		// println!("post-velocity {:.5}, {:.5}, {:.5}", self.velocity.x, self.velocity.y, self.velocity.z);
-		
-		// Apply velocity
-		self.position += &self.velocity;
 		
 		// Reduce impulse
 		self.impulse *= self.const_impulse_limit;
