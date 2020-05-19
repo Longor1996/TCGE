@@ -203,35 +203,46 @@ impl AxisAlignedBoundingBox {
 		}
 	}
 	
-	pub fn segment_intersection_indices(&self, start: nalgebra_glm::Vec3, end: nalgebra_glm::Vec3, ti1: Option<f32>, ti2: Option<f32>) -> Option<(f32, f32, nalgebra_glm::Vec3, nalgebra_glm::Vec3)> {
+	/// Intersects a line segment with this AABB, returning the 'time' & location of both entry and exit.
+	pub fn segment_intersection_indices(&self,
+		start: nalgebra_glm::Vec3,
+		end: nalgebra_glm::Vec3,
+		time_enter: Option<f32>,
+		time_exit: Option<f32>
+	) -> Option<(
+		f32,
+		f32,
+		nalgebra_glm::Vec3,
+		nalgebra_glm::Vec3
+	)> {
 		
-		let mut ti1 = ti1.unwrap_or(0.0);
-		let mut ti2 = ti2.unwrap_or(1.0);
+		let mut time_enter = time_enter.unwrap_or(0.0);
+		let mut time_exit = time_exit.unwrap_or(1.0);
 		
-		let d: nalgebra_glm::Vec3 = end - start;
+		let difference: nalgebra_glm::Vec3 = end - start;
 		
-		let mut n1 = nalgebra_glm::Vec3::new(0.0, 0.0, 0.0);
-		let mut n2 = nalgebra_glm::Vec3::new(0.0, 0.0, 0.0);
+		let mut vec_enter = nalgebra_glm::Vec3::new(0.0, 0.0, 0.0);
+		let mut vec_exit = nalgebra_glm::Vec3::new(0.0, 0.0, 0.0);
 		
 		for side in 0..6 {
 			let (nx, ny, nz, p, q) = match side {
 				0 => {
-					(-1.0, 0.0, 0.0, -d.x, &start.x - self.x_min)
+					(-1.0, 0.0, 0.0, -difference.x, &start.x - self.x_min)
 				},
 				1 => {
-					(1.0, 0.0, 0.0, d.x, self.x_max - &start.x)
+					(1.0, 0.0, 0.0, difference.x, self.x_max - &start.x)
 				},
 				2 => {
-					(0.0, -1.0, 0.0, -d.y, &start.y - self.y_min)
+					(0.0, -1.0, 0.0, -difference.y, &start.y - self.y_min)
 				},
 				3 => {
-					(0.0, 1.0, 0.0, d.y, self.y_max - &start.y)
+					(0.0, 1.0, 0.0, difference.y, self.y_max - &start.y)
 				},
 				4 => {
-					(0.0, 0.0, -1.0, -d.z, &start.z - self.z_min)
+					(0.0, 0.0, -1.0, -difference.z, &start.z - self.z_min)
 				},
 				5 => {
-					(0.0, 0.0, 1.0, d.z, self.z_max - &start.z)
+					(0.0, 0.0, 1.0, difference.z, self.z_max - &start.z)
 				},
 				_ => panic!()
 			};
@@ -244,26 +255,40 @@ impl AxisAlignedBoundingBox {
 				let r = q / p;
 				if p < 0.0 {
 					// p < 0.0
-					if r > ti2 {
+					if r > time_exit {
 						return None;
-					} else if r > ti1 {
-						ti1 = r;
-						n1 = nalgebra_glm::Vec3::new(nx, ny, nz);
+					} else if r > time_enter {
+						time_enter = r;
+						vec_enter = nalgebra_glm::Vec3::new(nx, ny, nz);
 					}
 				} else {
 					// p > 0.0
-					if r < ti1 {
+					if r < time_enter {
 						return None;
-					} else if r < ti2 {
-						ti2 = r;
-						n2 = nalgebra_glm::Vec3::new(nx, ny, nz);
+					} else if r < time_exit {
+						time_exit = r;
+						vec_exit = nalgebra_glm::Vec3::new(nx, ny, nz);
 					}
 				}
 			}
 		}
 		
-		Some((ti1, ti2, n1, n2))
+		Some((time_enter, time_exit, vec_enter, vec_exit))
 	}
+}
+
+#[test]
+pub fn test_line_segment_intersection() {
+	let aabb = AxisAlignedBoundingBox::from_position_size(
+		nalgebra_glm::vec3(0.0, 0.0, 0.0),
+		nalgebra_glm::vec3(1.0, 1.0, 1.0)
+	);
+	println!("{:?}", aabb.segment_intersection_indices(
+		nalgebra_glm::vec3(0.5, 2.0, 0.5),
+		nalgebra_glm::vec3(0.5, 0.5, 0.5),
+		None,
+		None
+	));
 	
 }
 
