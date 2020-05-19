@@ -191,16 +191,18 @@ impl AxisAlignedBoundingBox {
 	
 	/// Returns the minkowsky difference between two AABB's.
 	pub fn minkowsky_diff(&self, other: &Self) -> Self {
-		let sd = self.dimensions();
-		let od = self.dimensions();
-		Self {
-			x_min: other.x_min - self.x_min - sd.x,
-			y_min: other.y_min - self.y_min - sd.y,
-			z_min: other.z_min - self.z_min - sd.z,
-			x_max: sd.x + od.x,
-			y_max: sd.y + od.y,
-			z_max: sd.z + od.z,
-		}
+		let self_dim = self.dimensions();
+		let other_dim = other.dimensions();
+		// x = other.x - self.x - self.w
+		// y = other.y - self.y - self.h
+		// z = other.z - self.z - self.d
+		// w = self.w + other.w
+		// h = self.h + other.h
+		// d = self.d + other.d
+		Self::from_position_size(
+			other.min_vec() - self.min_vec() - self_dim,
+			self_dim + other_dim
+		)
 	}
 	
 	/// Intersects a line segment with this AABB, returning the 'time' & location of both entry and exit.
