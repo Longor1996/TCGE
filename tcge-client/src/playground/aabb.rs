@@ -86,6 +86,33 @@ impl AxisAlignedBoundingBox {
 		}
 	}
 	
+	pub fn x(&self) -> f32 {
+		(self.x_min + self.x_max) / 2.0
+	}
+	
+	pub fn y(&self) -> f32 {
+		(self.y_min + self.y_max) / 2.0
+	}
+	
+	pub fn z(&self) -> f32 {
+		(self.z_min + self.z_max) / 2.0
+	}
+	
+	/// Returns the length on the X-axis (width) of the box.
+	pub fn w(&self) -> f32 {
+		self.x_max - self.x_min
+	}
+	
+	/// Returns the length on the Y-axis (height) of the box.
+	pub fn h(&self) -> f32 {
+		self.y_max - self.y_min
+	}
+	
+	/// Returns the length on the Z-axis (depth) of the box.
+	pub fn d(&self) -> f32 {
+		self.z_max - self.z_min
+	}
+	
 	pub fn center(&self) -> nalgebra_glm::Vec3 {
 		nalgebra_glm::Vec3::new(
 			(self.x_min + self.x_max) / 2.0,
@@ -118,6 +145,7 @@ impl AxisAlignedBoundingBox {
 		&& p.z >= self.z_min-d && p.z <= self.z_max+d
 	}
 	
+	/// Return the closest corner as seen from the given point `p`.
 	pub fn nearest_corner(&self, p: nalgebra_glm::Vec3) -> nalgebra_glm::Vec3 {
 		fn nearest(v: f32, a: f32, b: f32) -> f32 {
 			if (a - v).abs() < (b - v).abs() {a} else {b}
@@ -139,6 +167,17 @@ impl AxisAlignedBoundingBox {
 		if d == 0.0 {0.0} else {d.sqrt()}
 	}
 	
+	/// Returns a vector that tells how much `self` penetrates `other`.
+	pub fn collision_vector(&self, other: &Self) -> nalgebra_glm::Vec3 {
+		let (c1, c2) = (self.center(), other.center());
+		nalgebra_glm::vec3(
+			if c1.x < c2.x {self.x_max - other.x_min} else {self.x_min - other.x_max},
+			if c1.y < c2.y {self.y_max - other.y_min} else {self.y_min - other.y_max},
+			if c1.z < c2.z {self.z_max - other.z_min} else {self.z_min - other.z_max}
+		)
+	}
+	
+	/// Returns the minkowsky difference between two AABB's.
 	pub fn minkowsky_diff(&self, other: &Self) -> Self {
 		let sd = self.dimensions();
 		let od = self.dimensions();
@@ -434,6 +473,7 @@ impl AxisAlignedBoundingBox {
 	}
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AxisAlignedBoundingBoxIntersection {
 	pub overlaps: bool,
 	pub ti: f32,
@@ -441,6 +481,15 @@ pub struct AxisAlignedBoundingBoxIntersection {
 	pub normal: Option<nalgebra_glm::Vec3>,
 	pub touch: nalgebra_glm::Vec3,
 	pub distance: f32,
+}
+
+impl std::cmp::PartialOrd for AxisAlignedBoundingBoxIntersection{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.ti == other.ti {
+			return self.distance.partial_cmp(&other.distance);
+		}
+		return self.ti.partial_cmp(&other.ti)
+    }
 }
 
 impl AxisAlignedBoundingBox {
@@ -461,6 +510,7 @@ impl AxisAlignedBoundingBox {
 			
 			let p = i.nearest_corner(nalgebra_glm::Vec3::new(0.0, 0.0, 0.0));
 			
+			// Calculate the volume of the intersection...
 			let adim = a.dimensions();
 			let wi = adim.x.min(p.x.abs());
 			let hi = adim.y.min(p.y.abs());
@@ -478,10 +528,10 @@ impl AxisAlignedBoundingBox {
 				Some(std::f32::INFINITY)
 			);
 			
-			if let Some((ti1, ti2, n1, n2)) = si {
+			if let Some((ti1, ti2, n1, _)) = si {
 				
 				if ti1 < 1.0
-					&& ((ti1 - ti2).abs() >= DELTA)
+					&& ((ti1 - ti2).abs() >= DELTA) // prevents corner intersection
 					&& (0.0 < ti1 + DELTA || (0.0 == ti1 && ti2 > 0.0))
 				{
 					ti = Some(ti1);
@@ -524,7 +574,7 @@ impl AxisAlignedBoundingBox {
 			} else {
 				// intersecting and moving - move in the opposite direction
 				
-				let (ti1, _, n1, n2) = match i.segment_intersection_indices(
+				let (ti1, _, n1, _) = match i.segment_intersection_indices(
 					nalgebra_glm::Vec3::new(0.0, 0.0, 0.0),
 					d,
 					Some(-std::f32::INFINITY),
@@ -534,7 +584,6 @@ impl AxisAlignedBoundingBox {
 					None => return None
 				};
 				
-				// -- tunnel
 				n = Some(n1);
 				t = nalgebra_glm::Vec3::new(
 					a.x_min + d.x * ti1,
@@ -562,3 +611,78 @@ impl AxisAlignedBoundingBox {
 	}
 	
 }
+
+/*
+impl AxisAlignedBoundingBox {
+	pub fn sweep_self2(a: &Self, b: &Self, av: &nalgebra_glm::Vec3) {
+		
+		// --- Calculate Inverse Entry/Exit
+		
+		let (x_inv_entry, x_inv_exit) = if av.x > 0.0 {
+			(
+				b.x() - (a.x() + a.w()),
+				(b.x() + b.w()) - a.x()
+			)
+		} else {
+			(
+				(b.x() + b.w()) - a.x(),
+				b.x() - (a.x() + a.w())
+			)
+		};
+		
+		let (y_inv_entry, y_inv_exit) = if av.y > 0.0 {
+			(
+				b.y() - (a.y() + a.h()),
+				(b.y() + b.h()) - a.y()
+			)
+		} else {
+			(
+				(b.y() + b.h()) - a.y(),
+				b.y() - (a.y() + a.h())
+			)
+		};
+		
+		let (z_inv_entry, z_inv_exit) = if av.z > 0.0 {
+			(
+				b.z() - (a.z() + a.d()),
+				(b.z() + b.d()) - a.z()
+			)
+		} else {
+			(
+				(b.z() + b.d()) - a.z(),
+				b.z() - (a.z() + a.d())
+			)
+		};
+		
+		// --- Calculate Entry/Exit by dividing the inverse by the velocity
+		
+		let (x_entry, x_exit) = if av.x == 0.0 {
+			(f32::NEG_INFINITY, f32::INFINITY)
+		} else {
+			(x_inv_entry / av.x, x_inv_exit / av.x)
+		};
+		
+		let (y_entry, y_exit) = if av.y == 0.0 {
+			(f32::NEG_INFINITY, f32::INFINITY)
+		} else {
+			(y_inv_entry / av.y, y_inv_exit / av.y)
+		};
+		
+		let (z_entry, z_exit) = if av.z == 0.0 {
+			(f32::NEG_INFINITY, f32::INFINITY)
+		} else {
+			(z_inv_entry / av.z, z_inv_exit / av.z)
+		};
+		
+		// --- Find earliest/latest times of collision.
+		
+		let entry_time = x_entry.max(y_entry).max(z_entry);
+		let exit_time = x_entry.min(y_entry).min(z_entry);
+		
+		if entry_time > exit_time {
+			//
+		}
+		
+	}
+}
+*/
