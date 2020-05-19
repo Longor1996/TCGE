@@ -11,6 +11,18 @@ pub struct AxisAlignedBoundingBox {
 }
 
 impl AxisAlignedBoundingBox {
+	
+	pub fn from_min_max(min: nalgebra_glm::Vec3, max: nalgebra_glm::Vec3) -> Self {
+		Self {
+			x_min: min.x,
+			y_min: min.y,
+			z_min: min.z,
+			x_max: max.x,
+			y_max: max.y,
+			z_max: max.z,
+		}
+	}
+	
 	pub fn from_extent(extent: f32) -> Self {
 		Self {
 			x_min: -extent,
