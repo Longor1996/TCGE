@@ -334,9 +334,9 @@ impl backbone::Handler for RootNodeHandler {
 		
 		if let Some(cmd) = event.downcast_mut::<CommandEvent>() {
 			// 'steal' the command from the struct to avoid the borrow checker
-			let command = std::mem::replace(&mut cmd.command, String::new());
+			let command = &mut cmd.command;
 			
-			if &command == "stop" {
+			if command.as_str() == "stop" {
 				event.stop();
 				context.component_get_mut::<WrapperComponent<gameloop::State>>()
 					.map(|gameloop| {
@@ -393,8 +393,6 @@ impl backbone::Handler for RootNodeHandler {
 				return;
 			}
 			
-			// give the command back to the struct
-			cmd.command = command;
 			return
 		}
 		
