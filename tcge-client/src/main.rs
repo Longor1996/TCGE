@@ -130,157 +130,186 @@ fn main_loop(
 	let mut last_escape_press = common::current_time_nanos();
 	let mut cursor = (0.0, 0.0);
 	
-	while backbone.update() {
-		
-		if glfw_context.completion() {
-			backbone.stop();
-			continue
-		}
-		
-		while let Some(command) = command_line.recv() {
-			backbone.fire_event(&mut CommandEvent {
-				command
-			});
-		}
-		
-		glfw_context.update();
-		
-		let loop_state = gameloop.update(
-			|| glfw_context.glfw.get_time()
-		);
-		
-		for (_time, event) in glfw::flush_messages(&glfw_context.events) {
-			match event {
-				glfw::WindowEvent::Key(glfw::Key::Escape, _, glfw::Action::Press, _) => {
-					let current = common::current_time_nanos();
-					
-					if (current - last_escape_press) < 500_000_000 {
-						info!("User pressed ESC twice, shutting down...");
-						glfw_context.window.set_should_close(true)
-					} else {
-						info!("User pressed ESC once...");
-						last_escape_press = current;
-					}
-				},
-				
-				glfw::WindowEvent::Key(key, scancode, action, modifiers) => {
-					common::profiler::scope("key", || {
-						backbone.fire_event(&mut KeyEvent {
-							key, scancode, action, modifiers
-						});
-					});
-				},
-				
-				glfw::WindowEvent::MouseButton(button, action, modifiers) => {
-					common::profiler::scope("mouse", || {
-						backbone.fire_event(&mut MouseEvent {
-							button, action, modifiers
-						});
-					});
-				},
-				
-				glfw::WindowEvent::CursorPos(x, y) => {
-					// calc delta
-					let dx = x - cursor.0;
-					let dy = y - cursor.1;
-					
-					// fire event
-					common::profiler::scope("mouse-move", || {
-						backbone.fire_event(&mut MouseMoveEvent {
-							x, y, dx, dy
-						});
-					});
-					
-					// update
-					cursor.0 = x;
-					cursor.1 = y;
-				},
-				
-				glfw::WindowEvent::FramebufferSize(width, height) => {
-					unsafe {
-						glfw_context.gl.Viewport(0, 0, width, height);
-					}
-					
-					common::profiler::scope("resize", || {
-						backbone.fire_event(&mut ResizeEvent {
-							width, height
-						});
-					});
-				},
-				
-				glfw::WindowEvent::Refresh => {
-					// TODO: Figure out why this doesn't work?
-					/*
-					backbone.fire_event(&mut RenderEvent {
-						time, interpolation: 0.0,
-					});
-					*/
-				}
-				
-				_ => {}
-			}
-		}
-		
-		match loop_state {
-			gameloop::Pre => {
-				common::profiler::start_frame();
-			},
-			
-			gameloop::Tick(tps, time, delta) => {
-				common::profiler::scope("tick", || {
-					backbone.fire_event(&mut TickEvent {
-						tps, time, delta
-					});
-				});
-			},
-			
-			gameloop::Frame(time, interpolation) => {
-				let window_size = glfw_context.window.get_framebuffer_size();
-				
-				if window_size.0 == 0 || window_size.1 == 0 {
-					// Swap window, then abort immediately.
-					use glfw::Context;
-					glfw_context.window.swap_buffers();
-					continue
-				}
-				
-				common::profiler::scope("render", || {
-					backbone.fire_event(&mut RenderEvent {
-						gl: glfw_context.gl.clone(),
-						time,
-						width:  window_size.0,
-						height: window_size.1,
-						interpolation: interpolation as f32,
-						delta: 1.0 / gameloop.get_ticks_per_second() as f32,
-					});
-				});
-			},
-			
-			gameloop::Timer(fps, tps) => {
-				use std::fmt::Write;
-				glfw_context.title_dyn.clear();
-				write!(
-					glfw_context.title_dyn,
-					"{} - {:.0} FPS, {:.0} TPS - {}",
-					glfw_context.title_fin,
-					fps, tps,
-					backbone.location_get_str()
-				).unwrap();
-				glfw_context.window.set_title(glfw_context.title_dyn.as_str());
-			},
-			
-			gameloop::Post => {
-				common::profiler::end_frame();
-			},
-			
-			gameloop::Stop => {
-				glfw_context.window.set_should_close(true)
-			}
-			
-			_ => ()
-		}
+	use smol::Task;
+	use std::thread;
+	
+	let num_threads = num_cpus::get().max(1);
+	let num_threads = if num_threads > 8 {8} else {num_threads};
+	
+	let (s, r) = piper::chan::<()>(0);
+	let mut threads = Vec::new();
+	
+	for i in 0..num_threads {
+		let r = r.clone();
+		let t = thread::Builder::new()
+			.name(format!("Smol Worker Thread {}", i))
+			.spawn(move || smol::run(r.recv()))
+			.expect("spawn smol worker thread");
+		threads.push(t);
 	}
 	
+	smol::run(async {
+		
+		while backbone.update() {
+			
+			// Allow smol to do its job, by yielding the main thread.
+			smol::Task::local(futures::future::ready(())).await;
+			
+			if glfw_context.completion() {
+				backbone.stop();
+				continue
+			}
+			
+			while let Some(command) = command_line.recv() {
+				backbone.fire_event(&mut CommandEvent {
+					command
+				});
+			}
+			
+			glfw_context.update();
+			
+			let loop_state = gameloop.update(
+				|| glfw_context.glfw.get_time()
+			);
+			
+			for (_time, event) in glfw::flush_messages(&glfw_context.events) {
+				match event {
+					glfw::WindowEvent::Key(glfw::Key::Escape, _, glfw::Action::Press, _) => {
+						let current = common::current_time_nanos();
+						
+						if (current - last_escape_press) < 500_000_000 {
+							info!("User pressed ESC twice, shutting down...");
+							glfw_context.window.set_should_close(true)
+						} else {
+							info!("User pressed ESC once...");
+							last_escape_press = current;
+						}
+					},
+					
+					glfw::WindowEvent::Key(key, scancode, action, modifiers) => {
+						common::profiler::scope("key", || {
+							backbone.fire_event(&mut KeyEvent {
+								key, scancode, action, modifiers
+							});
+						});
+					},
+					
+					glfw::WindowEvent::MouseButton(button, action, modifiers) => {
+						common::profiler::scope("mouse", || {
+							backbone.fire_event(&mut MouseEvent {
+								button, action, modifiers
+							});
+						});
+					},
+					
+					glfw::WindowEvent::CursorPos(x, y) => {
+						// calc delta
+						let dx = x - cursor.0;
+						let dy = y - cursor.1;
+						
+						// fire event
+						common::profiler::scope("mouse-move", || {
+							backbone.fire_event(&mut MouseMoveEvent {
+								x, y, dx, dy
+							});
+						});
+						
+						// update
+						cursor.0 = x;
+						cursor.1 = y;
+					},
+					
+					glfw::WindowEvent::FramebufferSize(width, height) => {
+						unsafe {
+							glfw_context.gl.Viewport(0, 0, width, height);
+						}
+						
+						common::profiler::scope("resize", || {
+							backbone.fire_event(&mut ResizeEvent {
+								width, height
+							});
+						});
+					},
+					
+					glfw::WindowEvent::Refresh => {
+						// TODO: Figure out why this doesn't work?
+						/*
+						backbone.fire_event(&mut RenderEvent {
+							time, interpolation: 0.0,
+						});
+						*/
+					}
+					
+					_ => {}
+				}
+			}
+			
+			match loop_state {
+				gameloop::Pre => {
+					common::profiler::start_frame();
+				},
+				
+				gameloop::Tick(tps, time, delta) => {
+					common::profiler::scope("tick", || {
+						backbone.fire_event(&mut TickEvent {
+							tps, time, delta
+						});
+					});
+				},
+				
+				gameloop::Frame(time, interpolation) => {
+					let window_size = glfw_context.window.get_framebuffer_size();
+					
+					if window_size.0 == 0 || window_size.1 == 0 {
+						// Swap window, then abort immediately.
+						use glfw::Context;
+						glfw_context.window.swap_buffers();
+						continue
+					}
+					
+					common::profiler::scope("render", || {
+						backbone.fire_event(&mut RenderEvent {
+							gl: glfw_context.gl.clone(),
+							time,
+							width:  window_size.0,
+							height: window_size.1,
+							interpolation: interpolation as f32,
+							delta: 1.0 / gameloop.get_ticks_per_second() as f32,
+						});
+					});
+				},
+				
+				gameloop::Timer(fps, tps) => {
+					use std::fmt::Write;
+					glfw_context.title_dyn.clear();
+					write!(
+						glfw_context.title_dyn,
+						"{} - {:.0} FPS, {:.0} TPS - {}",
+						glfw_context.title_fin,
+						fps, tps,
+						backbone.location_get_str()
+					).unwrap();
+					glfw_context.window.set_title(glfw_context.title_dyn.as_str());
+				},
+				
+				gameloop::Post => {
+					common::profiler::end_frame();
+				},
+				
+				gameloop::Stop => {
+					glfw_context.window.set_should_close(true)
+				}
+				
+				_ => ()
+			}
+		}
+	});
+	
+	drop(s);
+	
+	for t in threads {
+		t.join().unwrap();
+	}
 }
 
 

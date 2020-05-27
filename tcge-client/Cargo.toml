@@ -16,6 +16,11 @@ tcge-server   = { path = "../tcge-server"}
 tcge-opengl   = { path = "../tcge-opengl"}
 
 # Utility
+futures = "0.3.5"
+num_cpus = "1.12.0"
+piper = "0.1.2"
+smol = "0.1.10"
+
 rustc-hash = "1.0.1"
 smallvec = {version = "0.6.10", default-features = false, features = ["default"]}
 
